@@ -1,11 +1,11 @@
 from decimal import Decimal
 
-from django.db.models import Sum
+from django.db.models import Exists, OuterRef, Sum
 from rest_framework import serializers
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
-from schools.models import SchoolAdminProfile, SubjectPaper
+from schools.models import Exam, Performance, SchoolAdminProfile, SubjectPaper
 from .views import _scope
 
 
@@ -13,6 +13,19 @@ class SubjectPaperSerializer(serializers.ModelSerializer):
     class Meta:
         model = SubjectPaper
         fields = ("id", "subject", "paper_number", "weight")
+
+
+def weights_locked(subject):
+    """True if a published exam already has marks for this subject."""
+    return Exam.objects.filter(school_id=subject.school_id, status="published").filter(
+        Exists(Performance.objects.filter(
+            subject=subject, term=OuterRef("term"),
+            assessment_type=OuterRef("assessment_type"),
+        ))
+    ).exists()
+
+
+LOCKED_MSG = {"detail": "Weights are locked: a published exam already uses this subject."}
 
 
 @api_view(["GET", "POST"])
@@ -42,6 +55,8 @@ def subject_paper_list(request):
     subject = data["subject"]
     if school_id is not None and subject.school_id != school_id:
         return Response({"detail": "Subject must belong to your school."}, status=403)
+    if weights_locked(subject):
+        return Response(LOCKED_MSG, status=409)
     existing = SubjectPaper.objects.filter(subject=subject).aggregate(t=Sum("weight"))["t"]
     if (existing or Decimal("0")) + data["weight"] > 100:
         return Response({"weight": ["Paper weights for a subject cannot exceed 100."]}, status=400)

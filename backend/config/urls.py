@@ -111,3 +111,9 @@ urlpatterns += [
     path('api/enrollments/<int:pk>/', enrollment_detail),
     path('api/teacher-assignments/<int:pk>/', teacher_assignment_detail),
 ]
+
+from api.paper_edit import subject_paper_detail
+
+urlpatterns += [
+    path('api/subject-papers/<int:pk>/', subject_paper_detail),
+]
