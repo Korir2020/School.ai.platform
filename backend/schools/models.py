@@ -196,6 +196,8 @@ class CurriculumPathway(models.Model):
     def __str__(self):
         return f"{self.name} ({self.curriculum.name})"
 
+
+class TeacherAssignment(models.Model):
     teacher = models.ForeignKey(TeacherProfile, on_delete=models.CASCADE)
     school = models.ForeignKey(School, on_delete=models.CASCADE)
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
@@ -205,18 +207,20 @@ class CurriculumPathway(models.Model):
     def __str__(self):
         return f"{self.teacher} - {self.subject} - {self.stream}"
 
-
 class SchoolAdminProfile(models.Model):
     user = models.OneToOneField(
-        "auth.User",
+        settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name="school_admin_profile"
+        related_name="school_admin_profile",
     )
     school = models.ForeignKey(
         School,
         on_delete=models.CASCADE,
-        related_name="admin_profiles"
+        related_name="school_admins",
     )
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.user} - {self.school}"
+        return f"{self.user.username} - {self.school.name}"
+
+
