@@ -15,10 +15,15 @@ Feature order: model > migration > serializer > API view > URL > permissions > t
 - Tests: isolation, marks entry, JWT, workflow, report cards, edit, audit, term check.
 
 ## Remaining backend
-- Verify curriculum catalogues against official requirements.
-- Wider tests (all list APIs, role edge cases), analytics, AI features.
+- Verify 8-4-4 and Cambridge catalogues against official sources (CBC verified; Forms 3-4 are the last 8-4-4 cohort).
+- More role edge-case tests, analytics/dashboards, then AI features.
 - API docs, backups, monitoring, secure deployment.
 - Then frontend (phone-first, offline-first).
 
-## Housekeeping to do
-- Remove stray backend/models.py, views.py, .py, *.bak and *.save files.
+
+## Also done
+- CBC catalogue checked against KICD Senior School design; added PE, Advanced Maths, Advanced English.
+- Catalogue fixture: schools/fixtures/catalogues.json (load with loaddata).
+- Isolation tests cover all 8 school-scoped endpoints.
+- Settings read DJANGO_SECRET_KEY, DJANGO_DEBUG, DJANGO_ALLOWED_HOSTS from environment.
+- db.sqlite3 is not tracked by git. Old secret key is in git history: never use in production.
