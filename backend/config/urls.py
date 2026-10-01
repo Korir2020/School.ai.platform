@@ -77,3 +77,9 @@ from api.exams import exam_list
 urlpatterns += [
     path('api/exams/', exam_list),
 ]
+
+from api.exam_publish import exam_publish
+
+urlpatterns += [
+    path('api/exams/<int:pk>/publish/', exam_publish),
+]

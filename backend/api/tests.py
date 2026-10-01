@@ -514,3 +514,116 @@ class ExamApiTests(APITestCase):
     def test_anonymous_gets_401(self):
         self.client.force_authenticate(None)
         self.assertEqual(self.client.get("/api/exams/").status_code, 401)
+
+
+from schools.models import Exam, ExamResult, MarkAuditLog, Performance, SubjectPaper
+
+
+class ExamPublishTests(APITestCase):
+    payload = MarksEntryTests.payload
+
+    def setUp(self):
+        WorkflowTests.setUp(self)
+        self.exam = Exam.objects.create(
+            school=self.school, name="E", term=self.term,
+            assessment_type="end", class_level=self.stream.class_level,
+        )
+
+    def papers(self, a, b):
+        SubjectPaper.objects.create(subject=self.subject, paper_number=1, weight=a)
+        SubjectPaper.objects.create(subject=self.subject, paper_number=2, weight=b)
+
+    def mark(self, student, paper, marks, status="approved"):
+        return Performance.objects.create(
+            student=student, subject=self.subject, academic_year=self.year,
+            term=self.term, assessment_type="end", paper_number=paper,
+            marks=marks, status=status,
+        )
+
+    def add_student(self, admission):
+        s = Student.objects.create(
+            school=self.school, first_name="X", last_name="Y", admission_number=admission
+        )
+        Enrollment.objects.create(
+            student=s, academic_year=self.year,
+            class_level=self.stream.class_level, stream=self.stream,
+        )
+        return s
+
+    def publish(self, user):
+        self.client.force_authenticate(user)
+        return self.client.post(f"/api/exams/{self.exam.id}/publish/")
+
+    def test_weighted_score_rank_lock_and_audit(self):
+        self.papers(60, 40)
+        self.mark(self.student, 1, 80)
+        self.mark(self.student, 2, 50)
+        self.assertEqual(self.publish(self.admin).status_code, 200)
+        result = ExamResult.objects.get(exam=self.exam, student=self.student)
+        self.assertEqual(str(result.overall_average), "68.00")
+        self.assertEqual((result.stream_rank, result.class_rank), (1, 1))
+        self.exam.refresh_from_db()
+        self.assertEqual(self.exam.status, "published")
+        self.assertEqual(
+            set(Performance.objects.values_list("status", flat=True)), {"locked"}
+        )
+        self.assertEqual(MarkAuditLog.objects.filter(action="lock").count(), 2)
+
+    def test_draft_paper_blocks_publishing(self):
+        self.papers(60, 40)
+        self.mark(self.student, 1, 80)
+        self.mark(self.student, 2, 50, status="draft")
+        self.assertEqual(self.publish(self.admin).status_code, 409)
+        self.assertEqual(ExamResult.objects.count(), 0)
+        self.exam.refresh_from_db()
+        self.assertEqual(self.exam.status, "draft")
+
+    def test_missing_paper_blocks_publishing(self):
+        self.papers(60, 40)
+        self.mark(self.student, 1, 80)
+        self.assertEqual(self.publish(self.admin).status_code, 409)
+
+    def test_weights_not_totalling_100_rejected(self):
+        self.papers(60, 30)
+        self.mark(self.student, 1, 80)
+        self.mark(self.student, 2, 50)
+        self.assertEqual(self.publish(self.admin).status_code, 400)
+
+    def test_ranking_order(self):
+        s2 = self.add_student("S-2")
+        self.mark(self.student, 1, 70)
+        self.mark(s2, 1, 60)
+        self.assertEqual(self.publish(self.admin).status_code, 200)
+        r1 = ExamResult.objects.get(student=self.student)
+        r2 = ExamResult.objects.get(student=s2)
+        self.assertEqual((r1.class_rank, r2.class_rank), (1, 2))
+        self.assertEqual((r1.stream_rank, r2.stream_rank), (1, 2))
+
+    def test_ties_share_rank(self):
+        s2 = self.add_student("S-2")
+        self.mark(self.student, 1, 70)
+        self.mark(s2, 1, 70)
+        self.publish(self.admin)
+        ranks = set(ExamResult.objects.values_list("class_rank", flat=True))
+        self.assertEqual(ranks, {1})
+
+    def test_cannot_publish_twice(self):
+        self.mark(self.student, 1, 70)
+        self.assertEqual(self.publish(self.admin).status_code, 200)
+        self.assertEqual(self.publish(self.admin).status_code, 409)
+
+    def test_no_marks_rejected(self):
+        self.assertEqual(self.publish(self.admin).status_code, 400)
+
+    def test_teacher_cannot_publish(self):
+        self.mark(self.student, 1, 70)
+        self.assertEqual(self.publish(self.good).status_code, 403)
+
+    def test_other_school_admin_gets_404(self):
+        self.mark(self.student, 1, 70)
+        self.assertEqual(self.publish(self.other_admin).status_code, 404)
+
+    def test_anonymous_gets_401(self):
+        self.client.force_authenticate(None)
+        r = self.client.post(f"/api/exams/{self.exam.id}/publish/")
+        self.assertEqual(r.status_code, 401)
