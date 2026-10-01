@@ -87,3 +87,14 @@ NOT DONE yet (next, in order):
 5. Analytics beyond the dashboard, then AI learning, assessment and early-warning features using ExamResult history.
 6. Frontend (after backend is solid).
 PHONE TIP: long pastes get cut off. Send code in pastes of about 30 lines or fewer, using cat > for the first part and cat >> for the rest. If the prompt shows ">" the paste was cut off: close that terminal with the trash icon and open a new one.
+
+## Progress log (session 4) - supersedes the NOT DONE list in session 3
+DONE and tested (135 tests): pagination on all list endpoints (api/pagination.py: StandardPagination, 50 per page, ?page= and ?page_size= up to 200). List responses are now {count, next, previous, results}. Covers schools, students, academic-years, terms, curriculums, class-levels, streams, enrollments, subjects, teacher-assignments, performance, exams, subject-papers. Not paginated by design: /api/audit-logs/ (capped at 200 rows).
+NOT DONE yet (next, in order):
+1. JWT blacklist for logout.
+2. CORS (django-cors-headers) once the frontend origin is known; PostgreSQL via env vars; rotate SECRET_KEY (old one is in git history).
+3. Verify IGCSE subject list against the official Cambridge syllabus list. Primary and AS/A Level deliberately deferred.
+4. API docs, backups, monitoring (point an uptime monitor at /api/health/), secure deployment.
+5. Analytics beyond the dashboard, then AI learning, assessment and early-warning features using ExamResult history.
+6. Frontend (after backend is solid).
+NOTE: the full test run takes about 4-5 minutes. Run it once, wait for the prompt, and look for "OK".
