@@ -239,3 +239,79 @@ class ReportCardTests(APITestCase):
 
     def test_anonymous_gets_401(self):
         self.assertEqual(self.client.get(self.url()).status_code, 401)
+
+
+class MarkEditTests(APITestCase):
+    payload = MarksEntryTests.payload
+    def setUp(self):
+        WorkflowTests.setUp(self)
+        self.pk = WorkflowTests.make_mark(self)
+
+    def edit(self, user, marks):
+        self.client.force_authenticate(user)
+        return self.client.patch(
+            f"/api/performance/{self.pk}/", {"marks": marks}, format="json"
+        )
+
+    def test_assigned_teacher_can_edit_draft_and_it_is_audited(self):
+        self.assertEqual(self.edit(self.good, "55").status_code, 200)
+        self.assertEqual(str(Performance.objects.get(pk=self.pk).marks), "55.00")
+        self.assertTrue(MarkAuditLog.objects.filter(action="edited").exists())
+
+    def test_marks_over_100_rejected(self):
+        self.assertEqual(self.edit(self.good, "101").status_code, 400)
+
+    def test_submitted_mark_cannot_be_edited(self):
+        WorkflowTests.act(self, self.good, self.pk, "submit")
+        self.assertEqual(self.edit(self.good, "55").status_code, 409)
+
+    def test_unassigned_teacher_blocked(self):
+        self.assertEqual(self.edit(self.bad, "55").status_code, 403)
+
+    def test_other_school_admin_gets_404(self):
+        self.assertEqual(self.edit(self.other_admin, "55").status_code, 404)
+
+
+class AuditLogTests(APITestCase):
+    payload = MarksEntryTests.payload
+
+    def setUp(self):
+        WorkflowTests.setUp(self)
+        self.pk = WorkflowTests.make_mark(self)
+
+    def get(self, user):
+        self.client.force_authenticate(user)
+        return self.client.get("/api/audit-logs/")
+
+    def test_admin_sees_own_school_logs(self):
+        r = self.get(self.admin)
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(any(x["action"] == "created" for x in r.json()))
+
+    def test_teacher_blocked(self):
+        self.assertEqual(self.get(self.good).status_code, 403)
+
+    def test_other_school_admin_sees_nothing(self):
+        self.assertEqual(self.get(self.other_admin).json(), [])
+
+    def test_anonymous_gets_401(self):
+        self.client.force_authenticate(None)
+        self.assertEqual(self.client.get("/api/audit-logs/").status_code, 401)
+
+
+class TermYearMismatchTests(APITestCase):
+    payload = MarksEntryTests.payload
+
+    def setUp(self):
+        MarksEntryTests.setUp(self)
+        self.year2 = AcademicYear.objects.create(
+            school=self.school, name="2027",
+            start_date=date(2027, 1, 1), end_date=date(2027, 12, 31),
+        )
+
+    def test_term_from_other_year_rejected(self):
+        self.client.force_authenticate(self.good)
+        data = self.payload()
+        data["academic_year"] = self.year2.id
+        r = self.client.post("/api/performance/", data, format="json")
+        self.assertEqual(r.status_code, 400)

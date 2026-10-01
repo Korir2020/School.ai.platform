@@ -47,3 +47,15 @@ from api.report_cards import report_card
 urlpatterns += [
     path('api/report-card/<int:student_id>/<int:term_id>/', report_card),
 ]
+
+from api.workflow import performance_edit
+
+urlpatterns += [
+    path('api/performance/<int:pk>/', performance_edit),
+]
+
+from api.audit import audit_log_list
+
+urlpatterns += [
+    path('api/audit-logs/', audit_log_list),
+]

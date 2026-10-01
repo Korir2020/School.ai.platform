@@ -77,3 +77,12 @@ class PerformanceSerializer(serializers.ModelSerializer):
         model = Performance
         fields = '__all__'
         read_only_fields = ('status', 'entered_by', 'updated_at')
+
+    def validate(self, attrs):
+        term = attrs.get("term")
+        year = attrs.get("academic_year")
+        if term and year and term.academic_year_id != year.id:
+            raise serializers.ValidationError(
+                "Term does not belong to the selected academic year."
+            )
+        return attrs
