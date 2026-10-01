@@ -1,3 +1,5 @@
+from api.admin_create import academic_year_collection, term_collection, stream_collection, subject_collection, enrollment_collection, teacher_assignment_collection
+from api.students_api import student_collection
 from django.contrib import admin
 from django.urls import path
 from api.views import (
@@ -15,14 +17,14 @@ from api.views import (
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/schools/', school_list),
-    path('api/students/', student_list),
-    path('api/academic-years/', academic_year_list),
-    path('api/terms/', term_list),
+    path('api/students/', student_collection),
+    path('api/academic-years/', academic_year_collection),
+    path('api/terms/', term_collection),
     path('api/curriculums/', curriculum_list),
     path('api/class-levels/', class_level_list),
-    path('api/streams/', stream_list),
-    path('api/enrollments/', enrollment_list),
-    path('api/subjects/', subject_list),
+    path('api/streams/', stream_collection),
+    path('api/enrollments/', enrollment_collection),
+    path('api/subjects/', subject_collection),
     path('api/performance/', performance_list),
 ]
 
@@ -89,4 +91,23 @@ from api.results import exam_results, student_exam_history
 urlpatterns += [
     path('api/exams/<int:pk>/results/', exam_results),
     path('api/students/<int:student_id>/exam-history/', student_exam_history),
+]
+
+urlpatterns += [
+    path('api/teacher-assignments/', teacher_assignment_collection),
+]
+
+from api.admin_edit import (
+    student_detail, academic_year_detail, term_detail, stream_detail,
+    subject_detail, enrollment_detail, teacher_assignment_detail,
+)
+
+urlpatterns += [
+    path('api/students/<int:pk>/', student_detail),
+    path('api/academic-years/<int:pk>/', academic_year_detail),
+    path('api/terms/<int:pk>/', term_detail),
+    path('api/streams/<int:pk>/', stream_detail),
+    path('api/subjects/<int:pk>/', subject_detail),
+    path('api/enrollments/<int:pk>/', enrollment_detail),
+    path('api/teacher-assignments/<int:pk>/', teacher_assignment_detail),
 ]

@@ -52,3 +52,9 @@ Responsive for low-end Android phones and computers: Marian branding, animated p
 
 ## Starter message for a new chat
 "I am building Marian, a multi-school Django school platform. Read AI_CONTEXT.md from my repo (I will paste it). Continue from Remaining backend item 1. Do not restart or duplicate models. Give brief step-by-step instructions, one action at a time, with the exact terminal location."
+
+## Progress log
+- Done (Remaining backend item 1): admin create/edit APIs, tested. Files: api/students_api.py, api/admin_create.py (POST academic-years, terms, streams, subjects, enrollments, teacher-assignments), api/admin_edit.py (GET/PATCH /api/<records>/<id>/, DELETE on teacher-assignments). Tests: api/test_students_api.py, test_admin_create.py, test_admin_edit.py.
+- Rules enforced: admin records forced into own school, linked records must share one school, other-school detail returns 404, teachers read-only, deactivate instead of delete, school never editable.
+- Known issues: Student.admission_number is unique across ALL schools (should be unique per school: needs migration). Subject.definition not yet validated against the school's curriculum.
+- Next: fix admission_number uniqueness, then Remaining backend items 2 and 3.
