@@ -98,3 +98,7 @@ NOT DONE yet (next, in order):
 5. Analytics beyond the dashboard, then AI learning, assessment and early-warning features using ExamResult history.
 6. Frontend (after backend is solid).
 NOTE: the full test run takes about 4-5 minutes. Run it once, wait for the prompt, and look for "OK".
+
+## Progress log (session 4, part 2)
+DONE and tested (139 tests): JWT blacklist for logout. token_blacklist app enabled, BLACKLIST_AFTER_ROTATION on, POST /api/auth/logout/ with {"refresh": token} returns 205 and blacklists it (api/auth_logout.py, api/test_logout.py). Needs "python manage.py migrate" on every new database, including production.
+NOT DONE yet (next, in order): CORS once the frontend origin is known; PostgreSQL via env vars; rotate SECRET_KEY (old one is in git history); then items 3-6 from the session 4 list above.

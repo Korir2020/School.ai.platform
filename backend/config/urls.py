@@ -32,11 +32,13 @@ urlpatterns = [
 
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from api.auth_views import me
+from api.auth_logout import logout
 
 urlpatterns += [
     path('api/auth/login/', LoginView.as_view()),
     path('api/auth/refresh/', TokenRefreshView.as_view()),
     path('api/auth/me/', me),
+    path('api/auth/logout/', logout),
 ]
 
 from api.workflow import performance_action
