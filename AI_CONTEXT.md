@@ -58,3 +58,4 @@ Responsive for low-end Android phones and computers: Marian branding, animated p
 - Rules enforced: admin records forced into own school, linked records must share one school, other-school detail returns 404, teachers read-only, deactivate instead of delete, school never editable.
 - Known issues: Student.admission_number is unique across ALL schools (should be unique per school: needs migration). Subject.definition not yet validated against the school's curriculum.
 - Next: fix admission_number uniqueness, then Remaining backend items 2 and 3.
+- Cambridge catalogue scope (decided): Lower Secondary (Stages 7-9) and IGCSE (Years 10-11) only. Primary and AS/A Level deferred. Command extend_cambridge_catalogue adds Computing and ICT Starters (Stages 7-9); run after loaddata on a fresh DB. IGCSE subject list not yet verified against the official syllabus list. French/Arabic at Stages 7-9 are school extras, not Cambridge Lower Secondary frameworks.
