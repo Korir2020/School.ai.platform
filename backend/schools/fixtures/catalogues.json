@@ -1,0 +1,2058 @@
+[
+{
+ "model": "schools.curriculum",
+ "pk": 1,
+ "fields": {
+  "name": "Competency-Based Curriculum",
+  "code": "CBC",
+  "is_active": true
+ }
+},
+{
+ "model": "schools.curriculum",
+ "pk": 2,
+ "fields": {
+  "name": "8-4-4",
+  "code": "844",
+  "is_active": true
+ }
+},
+{
+ "model": "schools.curriculum",
+ "pk": 3,
+ "fields": {
+  "name": "Cambridge International",
+  "code": "CAMBRIDGE",
+  "is_active": true
+ }
+},
+{
+ "model": "schools.classlevel",
+ "pk": 1,
+ "fields": {
+  "curriculum": 1,
+  "name": "Grade 1",
+  "level_number": 1,
+  "is_active": true
+ }
+},
+{
+ "model": "schools.classlevel",
+ "pk": 2,
+ "fields": {
+  "curriculum": 1,
+  "name": "Grade 2",
+  "level_number": 2,
+  "is_active": true
+ }
+},
+{
+ "model": "schools.classlevel",
+ "pk": 3,
+ "fields": {
+  "curriculum": 1,
+  "name": "Grade 3",
+  "level_number": 3,
+  "is_active": true
+ }
+},
+{
+ "model": "schools.classlevel",
+ "pk": 4,
+ "fields": {
+  "curriculum": 1,
+  "name": "Grade 4",
+  "level_number": 4,
+  "is_active": true
+ }
+},
+{
+ "model": "schools.classlevel",
+ "pk": 5,
+ "fields": {
+  "curriculum": 1,
+  "name": "Grade 5",
+  "level_number": 5,
+  "is_active": true
+ }
+},
+{
+ "model": "schools.classlevel",
+ "pk": 6,
+ "fields": {
+  "curriculum": 1,
+  "name": "Grade 6",
+  "level_number": 6,
+  "is_active": true
+ }
+},
+{
+ "model": "schools.classlevel",
+ "pk": 7,
+ "fields": {
+  "curriculum": 1,
+  "name": "Grade 7",
+  "level_number": 7,
+  "is_active": true
+ }
+},
+{
+ "model": "schools.classlevel",
+ "pk": 8,
+ "fields": {
+  "curriculum": 1,
+  "name": "Grade 8",
+  "level_number": 8,
+  "is_active": true
+ }
+},
+{
+ "model": "schools.classlevel",
+ "pk": 9,
+ "fields": {
+  "curriculum": 1,
+  "name": "Grade 9",
+  "level_number": 9,
+  "is_active": true
+ }
+},
+{
+ "model": "schools.classlevel",
+ "pk": 10,
+ "fields": {
+  "curriculum": 1,
+  "name": "Grade 10",
+  "level_number": 10,
+  "is_active": true
+ }
+},
+{
+ "model": "schools.classlevel",
+ "pk": 11,
+ "fields": {
+  "curriculum": 1,
+  "name": "Grade 11",
+  "level_number": 11,
+  "is_active": true
+ }
+},
+{
+ "model": "schools.classlevel",
+ "pk": 12,
+ "fields": {
+  "curriculum": 1,
+  "name": "Grade 12",
+  "level_number": 12,
+  "is_active": true
+ }
+},
+{
+ "model": "schools.classlevel",
+ "pk": 13,
+ "fields": {
+  "curriculum": 2,
+  "name": "Form 3",
+  "level_number": 3,
+  "is_active": true
+ }
+},
+{
+ "model": "schools.classlevel",
+ "pk": 14,
+ "fields": {
+  "curriculum": 2,
+  "name": "Form 4",
+  "level_number": 4,
+  "is_active": true
+ }
+},
+{
+ "model": "schools.classlevel",
+ "pk": 15,
+ "fields": {
+  "curriculum": 3,
+  "name": "Lower Secondary Stage 7",
+  "level_number": 7,
+  "is_active": true
+ }
+},
+{
+ "model": "schools.classlevel",
+ "pk": 16,
+ "fields": {
+  "curriculum": 3,
+  "name": "Lower Secondary Stage 8",
+  "level_number": 8,
+  "is_active": true
+ }
+},
+{
+ "model": "schools.classlevel",
+ "pk": 17,
+ "fields": {
+  "curriculum": 3,
+  "name": "Lower Secondary Stage 9",
+  "level_number": 9,
+  "is_active": true
+ }
+},
+{
+ "model": "schools.classlevel",
+ "pk": 18,
+ "fields": {
+  "curriculum": 3,
+  "name": "IGCSE Year 10",
+  "level_number": 10,
+  "is_active": true
+ }
+},
+{
+ "model": "schools.classlevel",
+ "pk": 19,
+ "fields": {
+  "curriculum": 3,
+  "name": "IGCSE Year 11",
+  "level_number": 11,
+  "is_active": true
+ }
+},
+{
+ "model": "schools.curriculumpathway",
+ "pk": 1,
+ "fields": {
+  "curriculum": 1,
+  "name": "STEM",
+  "code": "STEM",
+  "is_active": true,
+  "class_levels": [
+   10,
+   11,
+   12
+  ]
+ }
+},
+{
+ "model": "schools.curriculumpathway",
+ "pk": 2,
+ "fields": {
+  "curriculum": 1,
+  "name": "Social Sciences",
+  "code": "SOCIAL_SCIENCES",
+  "is_active": true,
+  "class_levels": [
+   10,
+   11,
+   12
+  ]
+ }
+},
+{
+ "model": "schools.curriculumpathway",
+ "pk": 3,
+ "fields": {
+  "curriculum": 1,
+  "name": "Arts and Sports Science",
+  "code": "ARTS_SPORTS",
+  "is_active": true,
+  "class_levels": [
+   10,
+   11,
+   12
+  ]
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 1,
+ "fields": {
+  "curriculum": 1,
+  "name": "Mathematics",
+  "code": "MATH",
+  "is_active": true,
+  "class_levels": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 2,
+ "fields": {
+  "curriculum": 1,
+  "name": "English",
+  "code": "ENG",
+  "is_active": true,
+  "class_levels": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 3,
+ "fields": {
+  "curriculum": 1,
+  "name": "Kiswahili",
+  "code": "KISW",
+  "is_active": true,
+  "class_levels": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 4,
+ "fields": {
+  "curriculum": 1,
+  "name": "Environmental Activities",
+  "code": "ENV",
+  "is_active": true,
+  "class_levels": [
+   1,
+   2,
+   3
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 5,
+ "fields": {
+  "curriculum": 1,
+  "name": "Creative Activities",
+  "code": "CREACT",
+  "is_active": true,
+  "class_levels": [
+   1,
+   2,
+   3
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 6,
+ "fields": {
+  "curriculum": 1,
+  "name": "Science and Technology",
+  "code": "SCITECH",
+  "is_active": true,
+  "class_levels": [
+   4,
+   5,
+   6
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 7,
+ "fields": {
+  "curriculum": 1,
+  "name": "Agriculture and Nutrition",
+  "code": "AGRNUT",
+  "is_active": true,
+  "class_levels": [
+   4,
+   5,
+   6
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 8,
+ "fields": {
+  "curriculum": 1,
+  "name": "Social Studies",
+  "code": "SOCSTUD",
+  "is_active": true,
+  "class_levels": [
+   4,
+   5,
+   6,
+   7,
+   8,
+   9
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 9,
+ "fields": {
+  "curriculum": 1,
+  "name": "Creative Arts",
+  "code": "CRART",
+  "is_active": true,
+  "class_levels": [
+   4,
+   5,
+   6
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 10,
+ "fields": {
+  "curriculum": 1,
+  "name": "Christian Religious Education",
+  "code": "CRE",
+  "is_active": true,
+  "class_levels": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 11,
+ "fields": {
+  "curriculum": 1,
+  "name": "Islamic Religious Education",
+  "code": "IRE",
+  "is_active": true,
+  "class_levels": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 12,
+ "fields": {
+  "curriculum": 1,
+  "name": "Hindu Religious Education",
+  "code": "HRE",
+  "is_active": true,
+  "class_levels": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 13,
+ "fields": {
+  "curriculum": 1,
+  "name": "Integrated Science",
+  "code": "INTSCI",
+  "is_active": true,
+  "class_levels": [
+   7,
+   8,
+   9
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 14,
+ "fields": {
+  "curriculum": 1,
+  "name": "Agriculture",
+  "code": "AGRIC",
+  "is_active": true,
+  "class_levels": [
+   7,
+   8,
+   9
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 15,
+ "fields": {
+  "curriculum": 1,
+  "name": "Pre-Technical Studies",
+  "code": "PRETECH",
+  "is_active": true,
+  "class_levels": [
+   7,
+   8,
+   9
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 16,
+ "fields": {
+  "curriculum": 1,
+  "name": "Creative Arts and Sports",
+  "code": "CAS",
+  "is_active": true,
+  "class_levels": [
+   7,
+   8,
+   9
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 17,
+ "fields": {
+  "curriculum": 1,
+  "name": "Indigenous Language",
+  "code": "ILANG",
+  "is_active": true,
+  "class_levels": [
+   7,
+   8,
+   9
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 18,
+ "fields": {
+  "curriculum": 1,
+  "name": "Community Service Learning",
+  "code": "CSL",
+  "is_active": true,
+  "class_levels": [
+   10,
+   11,
+   12
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 19,
+ "fields": {
+  "curriculum": 1,
+  "name": "Biology",
+  "code": "BIO",
+  "is_active": true,
+  "class_levels": [
+   10,
+   11,
+   12
+  ],
+  "pathways": [
+   1
+  ]
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 20,
+ "fields": {
+  "curriculum": 1,
+  "name": "Chemistry",
+  "code": "CHEM",
+  "is_active": true,
+  "class_levels": [
+   10,
+   11,
+   12
+  ],
+  "pathways": [
+   1
+  ]
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 21,
+ "fields": {
+  "curriculum": 1,
+  "name": "Physics",
+  "code": "PHY",
+  "is_active": true,
+  "class_levels": [
+   10,
+   11,
+   12
+  ],
+  "pathways": [
+   1
+  ]
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 22,
+ "fields": {
+  "curriculum": 1,
+  "name": "General Science",
+  "code": "GENSCI",
+  "is_active": true,
+  "class_levels": [
+   10,
+   11,
+   12
+  ],
+  "pathways": [
+   1
+  ]
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 23,
+ "fields": {
+  "curriculum": 1,
+  "name": "Agriculture",
+  "code": "AGRI_SS",
+  "is_active": true,
+  "class_levels": [
+   10,
+   11,
+   12
+  ],
+  "pathways": [
+   1
+  ]
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 24,
+ "fields": {
+  "curriculum": 1,
+  "name": "Computer Studies",
+  "code": "COMPST",
+  "is_active": true,
+  "class_levels": [
+   10,
+   11,
+   12
+  ],
+  "pathways": [
+   1
+  ]
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 25,
+ "fields": {
+  "curriculum": 1,
+  "name": "Home Science",
+  "code": "HOMSCI",
+  "is_active": true,
+  "class_levels": [
+   10,
+   11,
+   12
+  ],
+  "pathways": [
+   1
+  ]
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 26,
+ "fields": {
+  "curriculum": 1,
+  "name": "Aviation",
+  "code": "AVIATION",
+  "is_active": true,
+  "class_levels": [
+   10,
+   11,
+   12
+  ],
+  "pathways": [
+   1
+  ]
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 27,
+ "fields": {
+  "curriculum": 1,
+  "name": "Building Construction",
+  "code": "BUILDCON",
+  "is_active": true,
+  "class_levels": [
+   10,
+   11,
+   12
+  ],
+  "pathways": [
+   1
+  ]
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 28,
+ "fields": {
+  "curriculum": 1,
+  "name": "Electricity",
+  "code": "ELECT",
+  "is_active": true,
+  "class_levels": [
+   10,
+   11,
+   12
+  ],
+  "pathways": [
+   1
+  ]
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 29,
+ "fields": {
+  "curriculum": 1,
+  "name": "Metalwork",
+  "code": "METAL",
+  "is_active": true,
+  "class_levels": [
+   10,
+   11,
+   12
+  ],
+  "pathways": [
+   1
+  ]
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 30,
+ "fields": {
+  "curriculum": 1,
+  "name": "Power Mechanics",
+  "code": "POWERMECH",
+  "is_active": true,
+  "class_levels": [
+   10,
+   11,
+   12
+  ],
+  "pathways": [
+   1
+  ]
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 31,
+ "fields": {
+  "curriculum": 1,
+  "name": "Wood Technology",
+  "code": "WOODTECH",
+  "is_active": true,
+  "class_levels": [
+   10,
+   11,
+   12
+  ],
+  "pathways": [
+   1
+  ]
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 32,
+ "fields": {
+  "curriculum": 1,
+  "name": "Media Technology",
+  "code": "MEDIATECH",
+  "is_active": true,
+  "class_levels": [
+   10,
+   11,
+   12
+  ],
+  "pathways": [
+   1
+  ]
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 33,
+ "fields": {
+  "curriculum": 1,
+  "name": "Marine and Fisheries Technology",
+  "code": "MARFISH",
+  "is_active": true,
+  "class_levels": [
+   10,
+   11,
+   12
+  ],
+  "pathways": [
+   1
+  ]
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 34,
+ "fields": {
+  "curriculum": 1,
+  "name": "Core Mathematics",
+  "code": "COREMATH",
+  "is_active": true,
+  "class_levels": [
+   10,
+   11,
+   12
+  ],
+  "pathways": [
+   1
+  ]
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 35,
+ "fields": {
+  "curriculum": 1,
+  "name": "Literature in English",
+  "code": "LITENG",
+  "is_active": true,
+  "class_levels": [
+   10,
+   11,
+   12
+  ],
+  "pathways": [
+   2
+  ]
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 36,
+ "fields": {
+  "curriculum": 1,
+  "name": "Indigenous Languages",
+  "code": "INDLANG_SS",
+  "is_active": true,
+  "class_levels": [
+   10,
+   11,
+   12
+  ],
+  "pathways": [
+   2
+  ]
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 37,
+ "fields": {
+  "curriculum": 1,
+  "name": "Fasihi ya Kiswahili",
+  "code": "FASIK",
+  "is_active": true,
+  "class_levels": [
+   10,
+   11,
+   12
+  ],
+  "pathways": [
+   2
+  ]
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 38,
+ "fields": {
+  "curriculum": 1,
+  "name": "Sign Language",
+  "code": "SIGNLANG",
+  "is_active": true,
+  "class_levels": [
+   10,
+   11,
+   12
+  ],
+  "pathways": [
+   2
+  ]
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 39,
+ "fields": {
+  "curriculum": 1,
+  "name": "Arabic",
+  "code": "ARABIC",
+  "is_active": true,
+  "class_levels": [
+   10,
+   11,
+   12
+  ],
+  "pathways": [
+   2
+  ]
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 40,
+ "fields": {
+  "curriculum": 1,
+  "name": "French",
+  "code": "FRENCH",
+  "is_active": true,
+  "class_levels": [
+   10,
+   11,
+   12
+  ],
+  "pathways": [
+   2
+  ]
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 41,
+ "fields": {
+  "curriculum": 1,
+  "name": "German",
+  "code": "GERMAN",
+  "is_active": true,
+  "class_levels": [
+   10,
+   11,
+   12
+  ],
+  "pathways": [
+   2
+  ]
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 42,
+ "fields": {
+  "curriculum": 1,
+  "name": "Mandarin Chinese",
+  "code": "MANDARIN",
+  "is_active": true,
+  "class_levels": [
+   10,
+   11,
+   12
+  ],
+  "pathways": [
+   2
+  ]
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 43,
+ "fields": {
+  "curriculum": 1,
+  "name": "Christian Religious Education",
+  "code": "CRE_SS",
+  "is_active": true,
+  "class_levels": [
+   10,
+   11,
+   12
+  ],
+  "pathways": [
+   2
+  ]
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 44,
+ "fields": {
+  "curriculum": 1,
+  "name": "Islamic Religious Education",
+  "code": "IRE_SS",
+  "is_active": true,
+  "class_levels": [
+   10,
+   11,
+   12
+  ],
+  "pathways": [
+   2
+  ]
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 45,
+ "fields": {
+  "curriculum": 1,
+  "name": "Hindu Religious Education",
+  "code": "HRE_SS",
+  "is_active": true,
+  "class_levels": [
+   10,
+   11,
+   12
+  ],
+  "pathways": [
+   2
+  ]
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 46,
+ "fields": {
+  "curriculum": 1,
+  "name": "Business Studies",
+  "code": "BUSST",
+  "is_active": true,
+  "class_levels": [
+   10,
+   11,
+   12
+  ],
+  "pathways": [
+   2
+  ]
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 47,
+ "fields": {
+  "curriculum": 1,
+  "name": "History and Citizenship",
+  "code": "HISTCIT",
+  "is_active": true,
+  "class_levels": [
+   10,
+   11,
+   12
+  ],
+  "pathways": [
+   2
+  ]
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 48,
+ "fields": {
+  "curriculum": 1,
+  "name": "Geography",
+  "code": "GEOG",
+  "is_active": true,
+  "class_levels": [
+   10,
+   11,
+   12
+  ],
+  "pathways": [
+   2
+  ]
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 49,
+ "fields": {
+  "curriculum": 1,
+  "name": "Essential Mathematics",
+  "code": "ESSMATH",
+  "is_active": true,
+  "class_levels": [
+   10,
+   11,
+   12
+  ],
+  "pathways": [
+   2,
+   3
+  ]
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 50,
+ "fields": {
+  "curriculum": 1,
+  "name": "Sports and Recreation",
+  "code": "SPORTREC",
+  "is_active": true,
+  "class_levels": [
+   10,
+   11,
+   12
+  ],
+  "pathways": [
+   3
+  ]
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 51,
+ "fields": {
+  "curriculum": 1,
+  "name": "Music and Dance",
+  "code": "MUSDANCE",
+  "is_active": true,
+  "class_levels": [
+   10,
+   11,
+   12
+  ],
+  "pathways": [
+   3
+  ]
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 52,
+ "fields": {
+  "curriculum": 1,
+  "name": "Theatre and Film",
+  "code": "THEAFILM",
+  "is_active": true,
+  "class_levels": [
+   10,
+   11,
+   12
+  ],
+  "pathways": [
+   3
+  ]
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 53,
+ "fields": {
+  "curriculum": 1,
+  "name": "Fine Arts",
+  "code": "FINEART",
+  "is_active": true,
+  "class_levels": [
+   10,
+   11,
+   12
+  ],
+  "pathways": [
+   3
+  ]
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 54,
+ "fields": {
+  "curriculum": 1,
+  "name": "Kenyan Sign Language",
+  "code": "KSL",
+  "is_active": true,
+  "class_levels": [
+   10,
+   11,
+   12
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 55,
+ "fields": {
+  "curriculum": 2,
+  "name": "English",
+  "code": "ENG",
+  "is_active": true,
+  "class_levels": [
+   13,
+   14
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 56,
+ "fields": {
+  "curriculum": 2,
+  "name": "Kiswahili",
+  "code": "KISW",
+  "is_active": true,
+  "class_levels": [
+   13,
+   14
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 57,
+ "fields": {
+  "curriculum": 2,
+  "name": "Mathematics",
+  "code": "MATH",
+  "is_active": true,
+  "class_levels": [
+   13,
+   14
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 58,
+ "fields": {
+  "curriculum": 2,
+  "name": "Biology",
+  "code": "BIO",
+  "is_active": true,
+  "class_levels": [
+   13,
+   14
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 59,
+ "fields": {
+  "curriculum": 2,
+  "name": "Chemistry",
+  "code": "CHEM",
+  "is_active": true,
+  "class_levels": [
+   13,
+   14
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 60,
+ "fields": {
+  "curriculum": 2,
+  "name": "Physics",
+  "code": "PHY",
+  "is_active": true,
+  "class_levels": [
+   13,
+   14
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 61,
+ "fields": {
+  "curriculum": 2,
+  "name": "Geography",
+  "code": "GEOG",
+  "is_active": true,
+  "class_levels": [
+   13,
+   14
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 62,
+ "fields": {
+  "curriculum": 2,
+  "name": "History and Government",
+  "code": "HIST",
+  "is_active": true,
+  "class_levels": [
+   13,
+   14
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 63,
+ "fields": {
+  "curriculum": 2,
+  "name": "Christian Religious Education",
+  "code": "CRE",
+  "is_active": true,
+  "class_levels": [
+   13,
+   14
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 64,
+ "fields": {
+  "curriculum": 2,
+  "name": "Agriculture",
+  "code": "AGRI",
+  "is_active": true,
+  "class_levels": [
+   13,
+   14
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 65,
+ "fields": {
+  "curriculum": 2,
+  "name": "Business Studies",
+  "code": "BUS",
+  "is_active": true,
+  "class_levels": [
+   13,
+   14
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 66,
+ "fields": {
+  "curriculum": 2,
+  "name": "Islamic Religious Education",
+  "code": "IRE",
+  "is_active": true,
+  "class_levels": [
+   13,
+   14
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 67,
+ "fields": {
+  "curriculum": 2,
+  "name": "Hindu Religious Education",
+  "code": "HRE",
+  "is_active": true,
+  "class_levels": [
+   13,
+   14
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 68,
+ "fields": {
+  "curriculum": 2,
+  "name": "Home Science",
+  "code": "HOMSCI",
+  "is_active": true,
+  "class_levels": [
+   13,
+   14
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 69,
+ "fields": {
+  "curriculum": 2,
+  "name": "Computer Studies",
+  "code": "COMP",
+  "is_active": true,
+  "class_levels": [
+   13,
+   14
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 70,
+ "fields": {
+  "curriculum": 2,
+  "name": "French",
+  "code": "FRENCH",
+  "is_active": true,
+  "class_levels": [
+   13,
+   14
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 71,
+ "fields": {
+  "curriculum": 2,
+  "name": "German",
+  "code": "GERMAN",
+  "is_active": true,
+  "class_levels": [
+   13,
+   14
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 72,
+ "fields": {
+  "curriculum": 2,
+  "name": "Arabic",
+  "code": "ARABIC",
+  "is_active": true,
+  "class_levels": [
+   13,
+   14
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 73,
+ "fields": {
+  "curriculum": 2,
+  "name": "Art and Design",
+  "code": "ARTDES",
+  "is_active": true,
+  "class_levels": [
+   13,
+   14
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 74,
+ "fields": {
+  "curriculum": 2,
+  "name": "Music",
+  "code": "MUSIC",
+  "is_active": true,
+  "class_levels": [
+   13,
+   14
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 75,
+ "fields": {
+  "curriculum": 2,
+  "name": "Aviation Technology",
+  "code": "AVTECH",
+  "is_active": true,
+  "class_levels": [
+   13,
+   14
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 76,
+ "fields": {
+  "curriculum": 2,
+  "name": "Building Construction",
+  "code": "BUILDCON",
+  "is_active": true,
+  "class_levels": [
+   13,
+   14
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 77,
+ "fields": {
+  "curriculum": 2,
+  "name": "Electricity",
+  "code": "ELECT",
+  "is_active": true,
+  "class_levels": [
+   13,
+   14
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 78,
+ "fields": {
+  "curriculum": 2,
+  "name": "Power Mechanics",
+  "code": "POWER",
+  "is_active": true,
+  "class_levels": [
+   13,
+   14
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 79,
+ "fields": {
+  "curriculum": 2,
+  "name": "Metalwork",
+  "code": "METAL",
+  "is_active": true,
+  "class_levels": [
+   13,
+   14
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 80,
+ "fields": {
+  "curriculum": 2,
+  "name": "Drawing and Design",
+  "code": "DRAW",
+  "is_active": true,
+  "class_levels": [
+   13,
+   14
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 81,
+ "fields": {
+  "curriculum": 2,
+  "name": "Woodwork",
+  "code": "WOOD",
+  "is_active": true,
+  "class_levels": [
+   13,
+   14
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 82,
+ "fields": {
+  "curriculum": 3,
+  "name": "English",
+  "code": "ENG",
+  "is_active": true,
+  "class_levels": [
+   15,
+   16,
+   17,
+   18,
+   19
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 83,
+ "fields": {
+  "curriculum": 3,
+  "name": "English as a Second Language",
+  "code": "ESL",
+  "is_active": true,
+  "class_levels": [
+   15,
+   16,
+   17,
+   18,
+   19
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 84,
+ "fields": {
+  "curriculum": 3,
+  "name": "Mathematics",
+  "code": "MATH",
+  "is_active": true,
+  "class_levels": [
+   15,
+   16,
+   17,
+   18,
+   19
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 85,
+ "fields": {
+  "curriculum": 3,
+  "name": "Science",
+  "code": "SCI",
+  "is_active": true,
+  "class_levels": [
+   15,
+   16,
+   17
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 86,
+ "fields": {
+  "curriculum": 3,
+  "name": "Global Perspectives",
+  "code": "GP",
+  "is_active": true,
+  "class_levels": [
+   15,
+   16,
+   17
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 87,
+ "fields": {
+  "curriculum": 3,
+  "name": "Art and Design",
+  "code": "ART",
+  "is_active": true,
+  "class_levels": [
+   15,
+   16,
+   17,
+   18,
+   19
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 88,
+ "fields": {
+  "curriculum": 3,
+  "name": "Digital Literacy",
+  "code": "DIGLIT",
+  "is_active": true,
+  "class_levels": [
+   15,
+   16,
+   17
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 89,
+ "fields": {
+  "curriculum": 3,
+  "name": "Computer Science",
+  "code": "COMP",
+  "is_active": true,
+  "class_levels": [
+   18,
+   19
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 90,
+ "fields": {
+  "curriculum": 3,
+  "name": "Information and Communication Technology",
+  "code": "ICT",
+  "is_active": true,
+  "class_levels": [
+   18,
+   19
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 91,
+ "fields": {
+  "curriculum": 3,
+  "name": "Biology",
+  "code": "BIO",
+  "is_active": true,
+  "class_levels": [
+   18,
+   19
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 92,
+ "fields": {
+  "curriculum": 3,
+  "name": "Chemistry",
+  "code": "CHEM",
+  "is_active": true,
+  "class_levels": [
+   18,
+   19
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 93,
+ "fields": {
+  "curriculum": 3,
+  "name": "Physics",
+  "code": "PHY",
+  "is_active": true,
+  "class_levels": [
+   18,
+   19
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 94,
+ "fields": {
+  "curriculum": 3,
+  "name": "Combined Science",
+  "code": "COMBS",
+  "is_active": true,
+  "class_levels": [
+   18,
+   19
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 95,
+ "fields": {
+  "curriculum": 3,
+  "name": "Geography",
+  "code": "GEOG",
+  "is_active": true,
+  "class_levels": [
+   18,
+   19
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 96,
+ "fields": {
+  "curriculum": 3,
+  "name": "History",
+  "code": "HIST",
+  "is_active": true,
+  "class_levels": [
+   18,
+   19
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 97,
+ "fields": {
+  "curriculum": 3,
+  "name": "Business Studies",
+  "code": "BUS",
+  "is_active": true,
+  "class_levels": [
+   18,
+   19
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 98,
+ "fields": {
+  "curriculum": 3,
+  "name": "Economics",
+  "code": "ECON",
+  "is_active": true,
+  "class_levels": [
+   18,
+   19
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 99,
+ "fields": {
+  "curriculum": 3,
+  "name": "Accounting",
+  "code": "ACC",
+  "is_active": true,
+  "class_levels": [
+   18,
+   19
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 100,
+ "fields": {
+  "curriculum": 3,
+  "name": "Music",
+  "code": "MUSIC",
+  "is_active": true,
+  "class_levels": [
+   15,
+   16,
+   17,
+   18,
+   19
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 101,
+ "fields": {
+  "curriculum": 3,
+  "name": "Physical Education",
+  "code": "PE",
+  "is_active": true,
+  "class_levels": [
+   15,
+   16,
+   17,
+   18,
+   19
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 102,
+ "fields": {
+  "curriculum": 3,
+  "name": "French",
+  "code": "FRENCH",
+  "is_active": true,
+  "class_levels": [
+   15,
+   16,
+   17,
+   18,
+   19
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 103,
+ "fields": {
+  "curriculum": 3,
+  "name": "Arabic",
+  "code": "ARABIC",
+  "is_active": true,
+  "class_levels": [
+   15,
+   16,
+   17,
+   18,
+   19
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 104,
+ "fields": {
+  "curriculum": 1,
+  "name": "Physical Education",
+  "code": "PE",
+  "is_active": true,
+  "class_levels": [
+   10,
+   11,
+   12
+  ],
+  "pathways": []
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 105,
+ "fields": {
+  "curriculum": 1,
+  "name": "Advanced Mathematics",
+  "code": "ADVMATH",
+  "is_active": true,
+  "class_levels": [
+   10,
+   11,
+   12
+  ],
+  "pathways": [
+   1
+  ]
+ }
+},
+{
+ "model": "schools.subjectdefinition",
+ "pk": 106,
+ "fields": {
+  "curriculum": 1,
+  "name": "Advanced English",
+  "code": "ADVENG",
+  "is_active": true,
+  "class_levels": [
+   10,
+   11,
+   12
+  ],
+  "pathways": [
+   2
+  ]
+ }
+}
+]
