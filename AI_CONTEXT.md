@@ -71,3 +71,19 @@ NOT DONE yet (next, in order):
 6. Analytics beyond dashboard, then AI learning/assessment/early-warning features.
 7. Frontend (after backend is solid).
 PHONE TIP: long pastes get cut off. Send code in pastes of about 30 lines or fewer, using cat > for the first part and cat >> for the rest. If the prompt shows ">" the paste was cut off: close that terminal with the trash icon and open a new one.
+
+## Progress log (session 3) - supersedes the NOT DONE list in session 2
+DONE and tested (135 tests): login rate limit (api/auth_throttle.py, 10/min per IP, test override 1000/min); GET /api/health/ (api/health.py, no login, DB check, for uptime monitors).
+Known issues / decisions to revisit:
+- Teachers can read all marks and students in their own school via list endpoints (not only their assigned classes). Decide whether to restrict.
+- Subject.definition is not validated against the school's curriculum.
+- Login throttle is per IP. Behind a proxy set DJANGO_NUM_PROXIES, otherwise all users share one IP.
+- SECURE_PROXY_SSL_HEADER trusts X-Forwarded-Proto: only deploy behind a proxy that sets it.
+NOT DONE yet (next, in order):
+1. Pagination for list endpoints (function views return full lists; change response shape carefully, update tests and role matrix).
+2. CORS (django-cors-headers) once the frontend origin is known; PostgreSQL via env vars; rotate SECRET_KEY (old one is in git history); JWT blacklist for logout.
+3. Verify IGCSE subject list against the official Cambridge syllabus list. Primary and AS/A Level deliberately deferred.
+4. API docs, backups, monitoring (point an uptime monitor at /api/health/), secure deployment.
+5. Analytics beyond the dashboard, then AI learning, assessment and early-warning features using ExamResult history.
+6. Frontend (after backend is solid).
+PHONE TIP: long pastes get cut off. Send code in pastes of about 30 lines or fewer, using cat > for the first part and cat >> for the rest. If the prompt shows ">" the paste was cut off: close that terminal with the trash icon and open a new one.
