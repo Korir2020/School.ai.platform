@@ -365,3 +365,38 @@ class AllEndpointIsolationTests(APITestCase):
         self.client.force_authenticate(self.root)
         for url in self.URLS:
             self.assertEqual(len(self.client.get(url).json()), 2, url)
+
+
+class AnalyticsTests(APITestCase):
+    payload = MarksEntryTests.payload
+
+    def setUp(self):
+        WorkflowTests.setUp(self)
+        self.pk = WorkflowTests.make_mark(self)
+
+    def summary(self, user):
+        self.client.force_authenticate(user)
+        return self.client.get(f"/api/analytics/term-summary/{self.term.id}/")
+
+    def test_draft_marks_not_counted_but_shown_as_pending(self):
+        data = self.summary(self.admin).json()
+        self.assertEqual(data["subjects"], [])
+        self.assertEqual(data["pending_marks"], 1)
+
+    def test_approved_marks_are_averaged(self):
+        WorkflowTests.act(self, self.good, self.pk, "submit")
+        WorkflowTests.act(self, self.admin, self.pk, "approve")
+        data = self.summary(self.admin).json()
+        self.assertEqual(data["subjects"][0]["average"], 70.0)
+        self.assertEqual(data["pending_marks"], 0)
+
+    def test_teacher_blocked(self):
+        self.assertEqual(self.summary(self.good).status_code, 403)
+
+    def test_other_school_admin_gets_404(self):
+        self.assertEqual(self.summary(self.other_admin).status_code, 404)
+
+    def test_anonymous_gets_401(self):
+        self.client.force_authenticate(None)
+        r = self.client.get(f"/api/analytics/term-summary/{self.term.id}/")
+        self.assertEqual(r.status_code, 401)

@@ -59,3 +59,9 @@ from api.audit import audit_log_list
 urlpatterns += [
     path('api/audit-logs/', audit_log_list),
 ]
+
+from api.analytics import term_summary
+
+urlpatterns += [
+    path('api/analytics/term-summary/<int:term_id>/', term_summary),
+]
