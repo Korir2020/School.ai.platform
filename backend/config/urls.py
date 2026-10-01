@@ -25,3 +25,13 @@ urlpatterns = [
     path('api/subjects/', subject_list),
     path('api/performance/', performance_list),
 ]
+
+
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from api.auth_views import me
+
+urlpatterns += [
+    path('api/auth/login/', TokenObtainPairView.as_view()),
+    path('api/auth/refresh/', TokenRefreshView.as_view()),
+    path('api/auth/me/', me),
+]

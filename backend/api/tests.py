@@ -117,3 +117,27 @@ class MarksEntryTests(APITestCase):
             "/api/performance/", self.payload(student=self.other_student), format="json"
         )
         self.assertEqual(r.status_code, 403)
+
+
+class JWTLoginTests(APITestCase):
+    def setUp(self):
+        self.school = School.objects.create(name="J", code="J1")
+        self.user = User.objects.create_user("jt", password="pass12345")
+        TeacherProfile.objects.create(user=self.user, school=self.school)
+
+    def test_login_and_me(self):
+        r = self.client.post(
+            "/api/auth/login/", {"username": "jt", "password": "pass12345"}, format="json"
+        )
+        self.assertEqual(r.status_code, 200)
+        token = r.json()["access"]
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + token)
+        me = self.client.get("/api/auth/me/").json()
+        self.assertEqual(me["role"], "teacher")
+        self.assertEqual(me["school"]["name"], "J")
+
+    def test_wrong_password_rejected(self):
+        r = self.client.post(
+            "/api/auth/login/", {"username": "jt", "password": "wrong"}, format="json"
+        )
+        self.assertEqual(r.status_code, 401)
