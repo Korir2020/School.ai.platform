@@ -107,9 +107,9 @@ class RoleMatrixTests(APITestCase):
     def test_other_school_admin_sees_nothing(self):
         for url in self.school_lists:
             r = self.get(self.admin_b, url)
-            self.assertEqual((r.status_code, r.json()), (200, []), url)
+            self.assertEqual((r.status_code, r.json()["results"]), (200, []), url)
         schools = self.get(self.admin_b, "/api/schools/").json()
-        self.assertEqual([s["id"] for s in schools], [self.b.id])
+        self.assertEqual([s["id"] for s in schools["results"]], [self.b.id])
         self.assertEqual(self.get(self.admin_b, self.audit).json(), [])
         for url in self.details + self.admin_only_details:
             self.assertEqual(self.get(self.admin_b, url).status_code, 404, url)

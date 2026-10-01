@@ -3,6 +3,7 @@ from decimal import Decimal
 from django.db.models import Exists, OuterRef, Sum
 from rest_framework import serializers
 from rest_framework.decorators import api_view
+from .pagination import paginated_response
 from rest_framework.response import Response
 
 from schools.models import Exam, Performance, SchoolAdminProfile, SubjectPaper
@@ -41,7 +42,7 @@ def subject_paper_list(request):
         subject_id = request.query_params.get("subject")
         if subject_id and subject_id.isdigit():
             papers = papers.filter(subject_id=int(subject_id))
-        return Response(SubjectPaperSerializer(papers, many=True).data)
+        return paginated_response(request, papers, SubjectPaperSerializer)
 
     if not request.user.is_superuser and not SchoolAdminProfile.objects.filter(
         user=request.user

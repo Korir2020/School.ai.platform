@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from rest_framework.decorators import api_view
+from .pagination import paginated_response
 from rest_framework.response import Response
 
 from schools.models import Exam, SchoolAdminProfile
@@ -29,7 +30,7 @@ def exam_list(request):
         term_id = request.query_params.get("term")
         if term_id and term_id.isdigit():
             exams = exams.filter(term_id=int(term_id))
-        return Response(ExamSerializer(exams, many=True).data)
+        return paginated_response(request, exams, ExamSerializer)
 
     if not request.user.is_superuser and not SchoolAdminProfile.objects.filter(
         user=request.user

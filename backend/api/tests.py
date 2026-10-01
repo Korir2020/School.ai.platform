@@ -31,17 +31,17 @@ class SchoolIsolationTests(APITestCase):
 
     def test_teacher_sees_only_own_school(self):
         self.client.force_authenticate(self.teacher_a)
-        names = [s["first_name"] for s in self.client.get("/api/students/").json()]
+        names = [s["first_name"] for s in self.client.get("/api/students/").json()["results"]]
         self.assertEqual(names, ["Ann"])
 
     def test_school_admin_sees_only_own_school(self):
         self.client.force_authenticate(self.admin_b)
-        names = [s["first_name"] for s in self.client.get("/api/students/").json()]
+        names = [s["first_name"] for s in self.client.get("/api/students/").json()["results"]]
         self.assertEqual(names, ["Ben"])
 
     def test_superuser_sees_all(self):
         self.client.force_authenticate(self.super)
-        self.assertEqual(len(self.client.get("/api/students/").json()), 2)
+        self.assertEqual(self.client.get("/api/students/").json()["count"], 2)
 
 
 from datetime import date
@@ -359,12 +359,12 @@ class AllEndpointIsolationTests(APITestCase):
     def test_teacher_sees_exactly_one_row_per_endpoint(self):
         self.client.force_authenticate(self.teacher)
         for url in self.URLS:
-            self.assertEqual(len(self.client.get(url).json()), 1, url)
+            self.assertEqual(self.client.get(url).json()["count"], 1, url)
 
     def test_superuser_sees_both_schools_per_endpoint(self):
         self.client.force_authenticate(self.root)
         for url in self.URLS:
-            self.assertEqual(len(self.client.get(url).json()), 2, url)
+            self.assertEqual(self.client.get(url).json()["count"], 2, url)
 
 
 class AnalyticsTests(APITestCase):
@@ -437,9 +437,9 @@ class SubjectPaperTests(APITestCase):
     def test_teacher_can_list_but_other_school_sees_none(self):
         self.post(self.admin, 1, "100")
         self.client.force_authenticate(self.good)
-        self.assertEqual(len(self.client.get("/api/subject-papers/").json()), 1)
+        self.assertEqual(self.client.get("/api/subject-papers/").json()["count"], 1)
         self.client.force_authenticate(self.other_admin)
-        self.assertEqual(self.client.get("/api/subject-papers/").json(), [])
+        self.assertEqual(self.client.get("/api/subject-papers/").json()["results"], [])
 
     def test_anonymous_gets_401(self):
         self.client.force_authenticate(None)
@@ -507,9 +507,9 @@ class ExamApiTests(APITestCase):
     def test_list_is_school_scoped(self):
         self.post(self.admin)
         self.client.force_authenticate(self.good)
-        self.assertEqual(len(self.client.get("/api/exams/").json()), 1)
+        self.assertEqual(self.client.get("/api/exams/").json()["count"], 1)
         self.client.force_authenticate(self.other_admin)
-        self.assertEqual(self.client.get("/api/exams/").json(), [])
+        self.assertEqual(self.client.get("/api/exams/").json()["results"], [])
 
     def test_anonymous_gets_401(self):
         self.client.force_authenticate(None)
