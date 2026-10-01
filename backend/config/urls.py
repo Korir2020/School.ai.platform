@@ -117,3 +117,9 @@ from api.paper_edit import subject_paper_detail
 urlpatterns += [
     path('api/subject-papers/<int:pk>/', subject_paper_detail),
 ]
+
+from api.dashboard import dashboard
+
+urlpatterns += [
+    path('api/dashboard/', dashboard),
+]

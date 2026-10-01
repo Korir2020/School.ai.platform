@@ -140,3 +140,35 @@ REST_FRAMEWORK = {
         "rest_framework.permissions.IsAuthenticated",
     ],
 }
+
+
+# --- Production hardening ---------------------------------------------------
+import sys
+from datetime import timedelta
+
+from django.core.exceptions import ImproperlyConfigured
+
+if not DEBUG and SECRET_KEY == "dev-only-insecure-key-change-me":
+    raise ImproperlyConfigured("Set DJANGO_SECRET_KEY when DEBUG is off.")
+
+STATIC_ROOT = BASE_DIR / "staticfiles"
+X_FRAME_OPTIONS = "DENY"
+SECURE_REFERRER_POLICY = "same-origin"
+
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SECURE_SSL_REDIRECT = os.environ.get("DJANGO_SSL_REDIRECT", "True") == "True"
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = int(os.environ.get("DJANGO_HSTS_SECONDS", "3600"))
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ROTATE_REFRESH_TOKENS": True,
+}
+
+REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"] = {
+    "login": "1000/min" if "test" in sys.argv else "10/min",
+}
+REST_FRAMEWORK["NUM_PROXIES"] = int(os.environ.get("DJANGO_NUM_PROXIES", "0"))
