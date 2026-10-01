@@ -111,6 +111,7 @@ class Performance(models.Model):
     academic_year = models.ForeignKey(AcademicYear, on_delete=models.CASCADE)
     term = models.ForeignKey(Term, on_delete=models.CASCADE)
     assessment_type = models.CharField(max_length=10, choices=[("opener", "Opener"), ("mid", "Mid-term"), ("end", "End-term")], default="end")
+    paper_number = models.PositiveSmallIntegerField(default=1)
 
     marks = models.DecimalField(max_digits=5, decimal_places=2, validators=[MinValueValidator(0), MaxValueValidator(100)])
     STATUS_CHOICES = [
@@ -129,7 +130,7 @@ class Performance(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["student", "subject", "academic_year", "term", "assessment_type"], name="unique_student_subject_term_performance"),
+            models.UniqueConstraint(fields=["student", "subject", "academic_year", "term", "assessment_type", "paper_number"], name="unique_student_subject_term_performance"),
             models.CheckConstraint(
                 condition=models.Q(marks__gte=0, marks__lte=100),
                 name="performance_marks_0_100",
@@ -258,3 +259,74 @@ class MarkAuditLog(models.Model):
 
     def __str__(self):
         return f"{self.action} by {self.user} at {self.timestamp}"
+
+
+
+class SubjectPaper(models.Model):
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name="papers")
+    paper_number = models.PositiveSmallIntegerField()
+    weight = models.DecimalField(
+        max_digits=5, decimal_places=2,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["subject", "paper_number"], name="unique_paper_per_subject"
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.subject} paper {self.paper_number} ({self.weight}%)"
+
+
+class Exam(models.Model):
+    STATUS_CHOICES = [("draft", "Draft"), ("published", "Published")]
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name="exams")
+    name = models.CharField(max_length=200)
+    term = models.ForeignKey(Term, on_delete=models.CASCADE, related_name="exams")
+    assessment_type = models.CharField(
+        max_length=10,
+        choices=[("opener", "Opener"), ("mid", "Mid-term"), ("end", "End-term")],
+        default="end",
+    )
+    class_level = models.ForeignKey(ClassLevel, on_delete=models.PROTECT, related_name="exams")
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="draft")
+    published_at = models.DateTimeField(null=True, blank=True)
+    published_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name="+",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["term", "assessment_type", "class_level"],
+                name="unique_exam_per_term_type_level",
+            )
+        ]
+
+    def __str__(self):
+        return self.name
+
+
+class ExamResult(models.Model):
+    exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name="results")
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="exam_results")
+    overall_average = models.DecimalField(max_digits=5, decimal_places=2)
+    stream_rank = models.PositiveIntegerField(null=True, blank=True)
+    class_rank = models.PositiveIntegerField(null=True, blank=True)
+    subject_scores = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["exam", "student"], name="unique_result_per_exam_student"
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.student} - {self.exam} - {self.overall_average}"
