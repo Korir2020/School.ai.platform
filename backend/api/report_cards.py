@@ -3,7 +3,7 @@ from decimal import Decimal
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
-from schools.models import Performance, Student, Term
+from schools.models import ExamResult, Performance, SchoolAdminProfile, Student, Term
 from .permissions import get_user_school_id
 
 
@@ -48,7 +48,7 @@ def report_card(request, student_id, term_id):
         })
     overall = _avg([Decimal(s["average"]) for s in subjects])
 
-    return Response({
+    data = {
         "student": {
             "id": student.id,
             "name": f"{student.first_name} {student.last_name}",
@@ -59,4 +59,27 @@ def report_card(request, student_id, term_id):
         "subjects": subjects,
         "overall_average": str(overall) if overall is not None else None,
         "pending_marks": pending,
-    })
+    }
+
+    is_admin = request.user.is_superuser or SchoolAdminProfile.objects.filter(
+        user=request.user
+    ).exists()
+    if is_admin:
+        results = (
+            ExamResult.objects.filter(
+                student=student, exam__term=term, exam__status="published"
+            )
+            .select_related("exam")
+            .order_by("exam__published_at")
+        )
+        data["published_results"] = [
+            {
+                "exam": r.exam.name,
+                "assessment_type": r.exam.assessment_type,
+                "overall_average": str(r.overall_average),
+                "stream_rank": r.stream_rank,
+                "class_rank": r.class_rank,
+            }
+            for r in results
+        ]
+    return Response(data)
