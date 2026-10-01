@@ -71,3 +71,9 @@ from api.papers import subject_paper_list
 urlpatterns += [
     path('api/subject-papers/', subject_paper_list),
 ]
+
+from api.exams import exam_list
+
+urlpatterns += [
+    path('api/exams/', exam_list),
+]

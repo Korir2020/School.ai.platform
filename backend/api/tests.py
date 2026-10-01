@@ -466,3 +466,51 @@ class PaperNumberValidationTests(APITestCase):
 
     def test_undefined_paper_rejected(self):
         self.assertEqual(self.post_mark(5).status_code, 400)
+
+
+class ExamApiTests(APITestCase):
+    payload = MarksEntryTests.payload
+
+    def setUp(self):
+        WorkflowTests.setUp(self)
+        self.level = self.stream.class_level
+
+    def post(self, user, **extra):
+        self.client.force_authenticate(user)
+        data = {
+            "name": "Form 4 End-Term", "term": self.term.id,
+            "assessment_type": "end", "class_level": self.level.id,
+        }
+        data.update(extra)
+        return self.client.post("/api/exams/", data, format="json")
+
+    def test_admin_creates_draft_exam_for_own_school(self):
+        r = self.post(self.admin)
+        self.assertEqual(r.status_code, 201)
+        self.assertEqual(r.json()["status"], "draft")
+        self.assertEqual(r.json()["school"], self.school.id)
+
+    def test_status_cannot_be_forced(self):
+        r = self.post(self.admin, status="published")
+        self.assertEqual(r.json()["status"], "draft")
+
+    def test_teacher_cannot_create(self):
+        self.assertEqual(self.post(self.good).status_code, 403)
+
+    def test_other_school_admin_blocked(self):
+        self.assertEqual(self.post(self.other_admin).status_code, 403)
+
+    def test_duplicate_exam_rejected(self):
+        self.post(self.admin)
+        self.assertEqual(self.post(self.admin).status_code, 400)
+
+    def test_list_is_school_scoped(self):
+        self.post(self.admin)
+        self.client.force_authenticate(self.good)
+        self.assertEqual(len(self.client.get("/api/exams/").json()), 1)
+        self.client.force_authenticate(self.other_admin)
+        self.assertEqual(self.client.get("/api/exams/").json(), [])
+
+    def test_anonymous_gets_401(self):
+        self.client.force_authenticate(None)
+        self.assertEqual(self.client.get("/api/exams/").status_code, 401)
