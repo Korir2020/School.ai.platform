@@ -174,3 +174,27 @@ REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"] = {
     "login": "1000/min" if "test" in sys.argv else "10/min",
 }
 REST_FRAMEWORK["NUM_PROXIES"] = int(os.environ.get("DJANGO_NUM_PROXIES", "0"))
+
+# --- PostgreSQL via env vars (sqlite stays the default for dev and tests) ---
+if os.environ.get("DB_NAME"):
+    DATABASES["default"] = {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.environ["DB_NAME"],
+        "USER": os.environ.get("DB_USER", ""),
+        "PASSWORD": os.environ.get("DB_PASSWORD", ""),
+        "HOST": os.environ.get("DB_HOST", "localhost"),
+        "PORT": os.environ.get("DB_PORT", "5432"),
+        "CONN_MAX_AGE": 60,
+    }
+elif not DEBUG:
+    raise ImproperlyConfigured("Set DB_NAME (PostgreSQL) when DEBUG is off.")
+
+# --- CORS and CSRF origins via env vars (off until the frontend URL is set) ---
+_cors = [o for o in os.environ.get("DJANGO_CORS_ORIGINS", "").split(",") if o]
+if _cors:
+    INSTALLED_APPS += ["corsheaders"]
+    MIDDLEWARE.insert(0, "corsheaders.middleware.CorsMiddleware")
+    CORS_ALLOWED_ORIGINS = _cors
+CSRF_TRUSTED_ORIGINS = [
+    o for o in os.environ.get("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",") if o
+]

@@ -101,3 +101,6 @@ wcwidth==0.8.3
 webcolors==25.10.0
 webencodings==0.6.1
 websocket-client==1.9.2
+django-cors-headers==4.9.0
+psycopg==3.3.6
+psycopg-binary==3.3.6
