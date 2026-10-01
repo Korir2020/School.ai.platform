@@ -65,3 +65,9 @@ from api.analytics import term_summary
 urlpatterns += [
     path('api/analytics/term-summary/<int:term_id>/', term_summary),
 ]
+
+from api.papers import subject_paper_list
+
+urlpatterns += [
+    path('api/subject-papers/', subject_paper_list),
+]

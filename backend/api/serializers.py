@@ -85,4 +85,15 @@ class PerformanceSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 "Term does not belong to the selected academic year."
             )
+        subject = attrs.get("subject")
+        if subject:
+            from schools.models import SubjectPaper
+            numbers = list(
+                SubjectPaper.objects.filter(subject=subject)
+                .values_list("paper_number", flat=True)
+            )
+            if numbers and attrs.get("paper_number", 1) not in numbers:
+                raise serializers.ValidationError(
+                    "Paper number is not defined for this subject."
+                )
         return attrs

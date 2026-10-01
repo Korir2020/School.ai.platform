@@ -400,3 +400,69 @@ class AnalyticsTests(APITestCase):
         self.client.force_authenticate(None)
         r = self.client.get(f"/api/analytics/term-summary/{self.term.id}/")
         self.assertEqual(r.status_code, 401)
+
+
+class SubjectPaperTests(APITestCase):
+    payload = MarksEntryTests.payload
+
+    def setUp(self):
+        WorkflowTests.setUp(self)
+
+    def post(self, user, number=1, weight="60"):
+        self.client.force_authenticate(user)
+        return self.client.post(
+            "/api/subject-papers/",
+            {"subject": self.subject.id, "paper_number": number, "weight": weight},
+            format="json",
+        )
+
+    def test_admin_can_add_paper(self):
+        self.assertEqual(self.post(self.admin).status_code, 201)
+
+    def test_teacher_cannot_add_paper(self):
+        self.assertEqual(self.post(self.good).status_code, 403)
+
+    def test_other_school_admin_blocked(self):
+        self.assertEqual(self.post(self.other_admin).status_code, 403)
+
+    def test_weights_cannot_exceed_100(self):
+        self.post(self.admin, 1, "60")
+        self.assertEqual(self.post(self.admin, 2, "50").status_code, 400)
+        self.assertEqual(self.post(self.admin, 2, "40").status_code, 201)
+
+    def test_duplicate_paper_number_rejected(self):
+        self.post(self.admin, 1, "50")
+        self.assertEqual(self.post(self.admin, 1, "30").status_code, 400)
+
+    def test_teacher_can_list_but_other_school_sees_none(self):
+        self.post(self.admin, 1, "100")
+        self.client.force_authenticate(self.good)
+        self.assertEqual(len(self.client.get("/api/subject-papers/").json()), 1)
+        self.client.force_authenticate(self.other_admin)
+        self.assertEqual(self.client.get("/api/subject-papers/").json(), [])
+
+    def test_anonymous_gets_401(self):
+        self.client.force_authenticate(None)
+        self.assertEqual(self.client.get("/api/subject-papers/").status_code, 401)
+
+
+class PaperNumberValidationTests(APITestCase):
+    payload = MarksEntryTests.payload
+
+    def setUp(self):
+        WorkflowTests.setUp(self)
+        from schools.models import SubjectPaper
+        SubjectPaper.objects.create(subject=self.subject, paper_number=1, weight=50)
+        SubjectPaper.objects.create(subject=self.subject, paper_number=2, weight=50)
+
+    def post_mark(self, paper):
+        self.client.force_authenticate(self.good)
+        data = self.payload()
+        data["paper_number"] = paper
+        return self.client.post("/api/performance/", data, format="json")
+
+    def test_defined_paper_accepted(self):
+        self.assertEqual(self.post_mark(2).status_code, 201)
+
+    def test_undefined_paper_rejected(self):
+        self.assertEqual(self.post_mark(5).status_code, 400)
