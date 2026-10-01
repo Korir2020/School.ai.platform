@@ -315,3 +315,53 @@ class TermYearMismatchTests(APITestCase):
         data["academic_year"] = self.year2.id
         r = self.client.post("/api/performance/", data, format="json")
         self.assertEqual(r.status_code, 400)
+
+
+class AllEndpointIsolationTests(APITestCase):
+    URLS = [
+        "/api/schools/", "/api/students/", "/api/academic-years/",
+        "/api/terms/", "/api/streams/", "/api/enrollments/",
+        "/api/subjects/", "/api/performance/",
+    ]
+
+    def setUp(self):
+        from schools.models import Performance
+        cur = Curriculum.objects.create(name="C", code="CX")
+        level = ClassLevel.objects.create(curriculum=cur, name="G7", level_number=7)
+        self.schools = {}
+        for tag in ("A", "B"):
+            school = School.objects.create(name=tag, code=tag + "9")
+            year = AcademicYear.objects.create(
+                school=school, name="2026",
+                start_date=date(2026, 1, 1), end_date=date(2026, 12, 31),
+            )
+            term = Term.objects.create(
+                academic_year=year, name="T1",
+                start_date=date(2026, 1, 1), end_date=date(2026, 4, 1),
+            )
+            stream = Stream.objects.create(school=school, class_level=level, name="E")
+            student = Student.objects.create(
+                school=school, first_name=tag, last_name="S", admission_number=tag + "-1"
+            )
+            Enrollment.objects.create(
+                student=student, academic_year=year, class_level=level, stream=stream
+            )
+            subject = Subject.objects.create(school=school, name="M", code="M" + tag)
+            Performance.objects.create(
+                student=student, subject=subject, academic_year=year,
+                term=term, assessment_type="end", marks=50,
+            )
+            self.schools[tag] = school
+        self.teacher = User.objects.create_user("iso_t", password="pass12345")
+        TeacherProfile.objects.create(user=self.teacher, school=self.schools["A"])
+        self.root = User.objects.create_superuser("iso_root", "r@x.com", "pass12345")
+
+    def test_teacher_sees_exactly_one_row_per_endpoint(self):
+        self.client.force_authenticate(self.teacher)
+        for url in self.URLS:
+            self.assertEqual(len(self.client.get(url).json()), 1, url)
+
+    def test_superuser_sees_both_schools_per_endpoint(self):
+        self.client.force_authenticate(self.root)
+        for url in self.URLS:
+            self.assertEqual(len(self.client.get(url).json()), 2, url)
