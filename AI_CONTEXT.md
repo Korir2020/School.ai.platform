@@ -59,3 +59,15 @@ Responsive for low-end Android phones and computers: Marian branding, animated p
 - Known issues: Student.admission_number is unique across ALL schools (should be unique per school: needs migration). Subject.definition not yet validated against the school's curriculum.
 - Next: fix admission_number uniqueness, then Remaining backend items 2 and 3.
 - Cambridge catalogue scope (decided): Lower Secondary (Stages 7-9) and IGCSE (Years 10-11) only. Primary and AS/A Level deferred. Command extend_cambridge_catalogue adds Computing and ICT Starters (Stages 7-9); run after loaddata on a fresh DB. IGCSE subject list not yet verified against the official syllabus list. French/Arabic at Stages 7-9 are school extras, not Cambridge Lower Secondary frameworks.
+
+## Progress log (session 2)
+DONE and tested (131 tests): admin create/edit APIs for students, years, terms, streams, subjects, enrollments, teacher assignments (api/students_api.py, admin_create.py, admin_edit.py); admission_number unique per school; published rank on report card (admins only); paper weight edit/delete with publish lock (api/paper_edit.py); role matrix security tests (api/test_role_matrix.py); GET /api/dashboard/ role-aware (api/dashboard.py); Cambridge catalogue scoped to Lower Secondary + IGCSE (management command extend_cambridge_catalogue adds Computing and ICT Starters, run after loaddata on fresh DB); production hardening block at end of config/settings.py (secret-key guard, HTTPS cookies, JWT 15min/7day, login throttle rate defined).
+NOT DONE yet (next, in order):
+1. Login rate limit view: create api/auth_throttle.py (LoginRateThrottle scope "login" + LoginView subclass of TokenObtainPairView), point /api/auth/login/ at it, test with mock.patch.object(LoginRateThrottle, "THROTTLE_RATES", {"login": "3/min"}) and cache.clear().
+2. Pagination for list endpoints (function views currently return full lists; change response shape carefully, update tests).
+3. CORS (django-cors-headers) once the frontend origin is known; PostgreSQL via env vars; rotate SECRET_KEY (old one is in git history); set DJANGO_NUM_PROXIES when deployed behind a proxy; consider JWT blacklist.
+4. Verify IGCSE subject list against the official Cambridge syllabus list (structure of Cambridge Pathway already verified). Primary and AS/A Level deliberately deferred.
+5. API docs, backups, monitoring, secure deployment.
+6. Analytics beyond dashboard, then AI learning/assessment/early-warning features.
+7. Frontend (after backend is solid).
+PHONE TIP: long pastes get cut off. Send code in pastes of about 30 lines or fewer, using cat > for the first part and cat >> for the rest. If the prompt shows ">" the paste was cut off: close that terminal with the trash icon and open a new one.
