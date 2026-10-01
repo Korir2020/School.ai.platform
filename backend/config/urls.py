@@ -1,3 +1,4 @@
+from api.auth_throttle import LoginView
 from api.admin_create import academic_year_collection, term_collection, stream_collection, subject_collection, enrollment_collection, teacher_assignment_collection
 from api.students_api import student_collection
 from django.contrib import admin
@@ -33,7 +34,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from api.auth_views import me
 
 urlpatterns += [
-    path('api/auth/login/', TokenObtainPairView.as_view()),
+    path('api/auth/login/', LoginView.as_view()),
     path('api/auth/refresh/', TokenRefreshView.as_view()),
     path('api/auth/me/', me),
 ]
@@ -122,4 +123,10 @@ from api.dashboard import dashboard
 
 urlpatterns += [
     path('api/dashboard/', dashboard),
+]
+
+from api.health import health
+
+urlpatterns += [
+    path('api/health/', health),
 ]
