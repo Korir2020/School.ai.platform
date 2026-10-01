@@ -113,6 +113,18 @@ class Performance(models.Model):
     assessment_type = models.CharField(max_length=10, choices=[("opener", "Opener"), ("mid", "Mid-term"), ("end", "End-term")], default="end")
 
     marks = models.DecimalField(max_digits=5, decimal_places=2, validators=[MinValueValidator(0), MaxValueValidator(100)])
+    STATUS_CHOICES = [
+        ("draft", "Draft"),
+        ("submitted", "Submitted"),
+        ("approved", "Approved"),
+        ("locked", "Locked"),
+    ]
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="draft")
+    entered_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name="+",
+    )
+    updated_at = models.DateTimeField(auto_now=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -224,3 +236,25 @@ class SchoolAdminProfile(models.Model):
         return f"{self.user.username} - {self.school.name}"
 
 
+
+
+
+class MarkAuditLog(models.Model):
+    performance = models.ForeignKey(
+        Performance, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="audit_logs",
+    )
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name="mark_audit_logs")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name="+",
+    )
+    action = models.CharField(max_length=30)
+    details = models.JSONField(default=dict, blank=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-timestamp"]
+
+    def __str__(self):
+        return f"{self.action} by {self.user} at {self.timestamp}"

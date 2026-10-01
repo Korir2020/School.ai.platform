@@ -6,6 +6,7 @@ from schools.models import (
     Stream, Enrollment, Subject, Performance,
 )
 from .permissions import get_user_school_id
+from schools.models import MarkAuditLog
 from .serializers import (
     SchoolSerializer, StudentSerializer, AcademicYearSerializer,
     TermSerializer, CurriculumSerializer, ClassLevelSerializer,
@@ -129,5 +130,9 @@ def performance_list(request):
                     status=403,
                 )
 
-    serializer.save()
+    perf = serializer.save(entered_by=request.user, status="draft")
+    MarkAuditLog.objects.create(
+        performance=perf, school_id=perf.student.school_id, user=request.user,
+        action="created", details={"marks": str(perf.marks)},
+    )
     return Response(serializer.data, status=201)

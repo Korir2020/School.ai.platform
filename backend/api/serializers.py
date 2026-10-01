@@ -76,3 +76,4 @@ class PerformanceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Performance
         fields = '__all__'
+        read_only_fields = ('status', 'entered_by', 'updated_at')

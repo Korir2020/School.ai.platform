@@ -35,3 +35,9 @@ urlpatterns += [
     path('api/auth/refresh/', TokenRefreshView.as_view()),
     path('api/auth/me/', me),
 ]
+
+from api.workflow import performance_action
+
+urlpatterns += [
+    path('api/performance/<int:pk>/<str:action>/', performance_action),
+]

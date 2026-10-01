@@ -141,3 +141,68 @@ class JWTLoginTests(APITestCase):
             "/api/auth/login/", {"username": "jt", "password": "wrong"}, format="json"
         )
         self.assertEqual(r.status_code, 401)
+
+
+from schools.models import MarkAuditLog, Performance
+
+
+class WorkflowTests(APITestCase):
+    payload = MarksEntryTests.payload
+
+    def setUp(self):
+        MarksEntryTests.setUp(self)
+        self.admin = User.objects.create_user("adm", password="pass12345")
+        SchoolAdminProfile.objects.create(user=self.admin, school=self.school)
+        other = School.objects.create(name="Other2", code="O2")
+        self.other_admin = User.objects.create_user("oadm", password="pass12345")
+        SchoolAdminProfile.objects.create(user=self.other_admin, school=other)
+
+    def make_mark(self):
+        self.client.force_authenticate(self.good)
+        r = self.client.post("/api/performance/", self.payload(), format="json")
+        return r.json()["id"]
+
+    def act(self, user, pk, action):
+        self.client.force_authenticate(user)
+        return self.client.post(f"/api/performance/{pk}/{action}/")
+
+    def test_new_mark_is_draft_and_cannot_force_status(self):
+        self.client.force_authenticate(self.good)
+        data = self.payload()
+        data["status"] = "locked"
+        r = self.client.post("/api/performance/", data, format="json")
+        self.assertEqual(r.status_code, 201)
+        self.assertEqual(Performance.objects.get(pk=r.json()["id"]).status, "draft")
+        self.assertTrue(MarkAuditLog.objects.filter(action="created").exists())
+
+    def test_assigned_teacher_can_submit(self):
+        pk = self.make_mark()
+        self.assertEqual(self.act(self.good, pk, "submit").status_code, 200)
+        self.assertEqual(Performance.objects.get(pk=pk).status, "submitted")
+
+    def test_teacher_cannot_approve(self):
+        pk = self.make_mark()
+        self.act(self.good, pk, "submit")
+        self.assertEqual(self.act(self.good, pk, "approve").status_code, 403)
+
+    def test_unassigned_teacher_cannot_submit(self):
+        pk = self.make_mark()
+        self.assertEqual(self.act(self.bad, pk, "submit").status_code, 403)
+
+    def test_full_flow_then_locked_is_final(self):
+        pk = self.make_mark()
+        self.assertEqual(self.act(self.good, pk, "submit").status_code, 200)
+        self.assertEqual(self.act(self.admin, pk, "approve").status_code, 200)
+        self.assertEqual(self.act(self.admin, pk, "lock").status_code, 200)
+        self.assertEqual(self.act(self.good, pk, "submit").status_code, 409)
+        self.assertEqual(self.act(self.admin, pk, "reject").status_code, 409)
+        actions = set(MarkAuditLog.objects.values_list("action", flat=True))
+        self.assertTrue({"created", "submit", "approve", "lock"} <= actions)
+
+    def test_other_school_admin_gets_404(self):
+        pk = self.make_mark()
+        self.assertEqual(self.act(self.other_admin, pk, "approve").status_code, 404)
+
+    def test_cannot_skip_steps(self):
+        pk = self.make_mark()
+        self.assertEqual(self.act(self.admin, pk, "approve").status_code, 409)
