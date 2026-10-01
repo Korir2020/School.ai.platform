@@ -206,3 +206,36 @@ class WorkflowTests(APITestCase):
     def test_cannot_skip_steps(self):
         pk = self.make_mark()
         self.assertEqual(self.act(self.admin, pk, "approve").status_code, 409)
+
+
+class ReportCardTests(APITestCase):
+    def setUp(self):
+        MarksEntryTests.setUp(self)
+        self.admin = User.objects.create_user("radm", password="pass12345")
+        SchoolAdminProfile.objects.create(user=self.admin, school=self.school)
+        other = School.objects.get(code="O1")
+        self.other_admin = User.objects.create_user("roadm", password="pass12345")
+        SchoolAdminProfile.objects.create(user=self.other_admin, school=other)
+        common = dict(student=self.student, subject=self.subject,
+                      academic_year=self.year, term=self.term)
+        Performance.objects.create(assessment_type="end", marks=80, status="approved", **common)
+        Performance.objects.create(assessment_type="mid", marks=50, status="draft", **common)
+
+    def url(self):
+        return f"/api/report-card/{self.student.id}/{self.term.id}/"
+
+    def test_only_approved_marks_counted(self):
+        self.client.force_authenticate(self.admin)
+        r = self.client.get(self.url())
+        self.assertEqual(r.status_code, 200)
+        data = r.json()
+        self.assertEqual(len(data["subjects"]), 1)
+        self.assertEqual(data["overall_average"], "80.00")
+        self.assertEqual(data["pending_marks"], 1)
+
+    def test_other_school_gets_404(self):
+        self.client.force_authenticate(self.other_admin)
+        self.assertEqual(self.client.get(self.url()).status_code, 404)
+
+    def test_anonymous_gets_401(self):
+        self.assertEqual(self.client.get(self.url()).status_code, 401)

@@ -41,3 +41,9 @@ from api.workflow import performance_action
 urlpatterns += [
     path('api/performance/<int:pk>/<str:action>/', performance_action),
 ]
+
+from api.report_cards import report_card
+
+urlpatterns += [
+    path('api/report-card/<int:student_id>/<int:term_id>/', report_card),
+]
