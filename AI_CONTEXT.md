@@ -30,6 +30,7 @@ School, Student, AcademicYear, Term, Curriculum, ClassLevel, Stream, Enrollment,
 - Analytics: GET /api/analytics/term-summary/<term>/ (admin). If api/analytics.py also has stream_ranking, it is an old per-term ranking, replaced by exam publishing: safe to remove.
 - Paper weights: GET/POST /api/subject-papers/ (admin posts; total per subject cannot exceed 100)
 - Exams: GET/POST /api/exams/ (admin posts), POST /api/exams/<id>/publish/
+- Results (admin only): GET /api/exams/<id>/results/ (published exams), GET /api/students/<id>/exam-history/
 
 ## Ranking design (owner's requirement)
 Ranking is per complete exam (all papers, e.g. Paper 1, 2, 3), not automatic each term. The school admin presses publish. Papers have admin-set weights totalling 100. Publish refuses if any paper is missing or not approved. It then computes weighted subject scores and each student's overall average, ranks in stream and class level (ties share a rank), stores one ExamResult per student (subject_scores optional extra), locks the marks used, and writes audit entries. Overall results are for tracking progress over time.
@@ -39,7 +40,7 @@ Auth and roles, school isolation on all list APIs, teacher assignments gating ma
 
 ## Remaining backend (priority order)
 1. Admin create/update APIs: only performance, papers and exams are writable via API today. Schools, students, years, terms, streams, enrollments, subjects and teacher assignments are created through Django admin only.
-2. GET exam results API (per exam, and a student's history across exams) with visibility rules; put published rank/overall on report cards.
+2. Put published rank/overall on report cards; decide whether teachers or parents may see results (results APIs are admin-only for now).
 3. Edit/delete SubjectPaper; block weight changes once an exam using them is published.
 4. More role edge-case tests across all endpoints.
 5. Verify 8-4-4 and Cambridge catalogues against official sources (CBC done; Forms 3-4 are the last 8-4-4 cohort; consider Kenya Sign Language).

@@ -83,3 +83,10 @@ from api.exam_publish import exam_publish
 urlpatterns += [
     path('api/exams/<int:pk>/publish/', exam_publish),
 ]
+
+from api.results import exam_results, student_exam_history
+
+urlpatterns += [
+    path('api/exams/<int:pk>/results/', exam_results),
+    path('api/students/<int:student_id>/exam-history/', student_exam_history),
+]

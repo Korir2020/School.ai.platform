@@ -627,3 +627,54 @@ class ExamPublishTests(APITestCase):
         self.client.force_authenticate(None)
         r = self.client.post(f"/api/exams/{self.exam.id}/publish/")
         self.assertEqual(r.status_code, 401)
+
+
+class ExamResultsApiTests(APITestCase):
+    payload = MarksEntryTests.payload
+
+    def setUp(self):
+        ExamPublishTests.setUp(self)
+
+    def published(self):
+        ExamPublishTests.mark(self, self.student, 1, 70)
+        self.client.force_authenticate(self.admin)
+        self.client.post(f"/api/exams/{self.exam.id}/publish/")
+
+    def get(self, user, url):
+        self.client.force_authenticate(user)
+        return self.client.get(url)
+
+    def test_admin_reads_published_results(self):
+        self.published()
+        r = self.get(self.admin, f"/api/exams/{self.exam.id}/results/")
+        self.assertEqual(r.status_code, 200)
+        rows = r.json()["results"]
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["class_rank"], 1)
+
+    def test_unpublished_exam_returns_409(self):
+        r = self.get(self.admin, f"/api/exams/{self.exam.id}/results/")
+        self.assertEqual(r.status_code, 409)
+
+    def test_teacher_blocked(self):
+        self.published()
+        r = self.get(self.good, f"/api/exams/{self.exam.id}/results/")
+        self.assertEqual(r.status_code, 403)
+
+    def test_other_school_admin_gets_404(self):
+        self.published()
+        r = self.get(self.other_admin, f"/api/exams/{self.exam.id}/results/")
+        self.assertEqual(r.status_code, 404)
+
+    def test_anonymous_gets_401(self):
+        self.client.force_authenticate(None)
+        r = self.client.get(f"/api/exams/{self.exam.id}/results/")
+        self.assertEqual(r.status_code, 401)
+
+    def test_student_history(self):
+        self.published()
+        url = f"/api/students/{self.student.id}/exam-history/"
+        r = self.get(self.admin, url)
+        self.assertEqual(len(r.json()["history"]), 1)
+        self.assertEqual(self.get(self.other_admin, url).status_code, 404)
+        self.assertEqual(self.get(self.good, url).status_code, 403)
