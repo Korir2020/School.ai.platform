@@ -30,3 +30,4 @@ Both are read-only and explainable; they never change records.
    Screen order: login (POST /api/auth/login/, refresh /api/auth/refresh/, access token 15 min, refresh 7 days, logout POST /api/auth/logout/), role dashboard (GET /api/dashboard/, role from GET /api/auth/me/), teacher mark entry, admin approvals, exams + publish + results, students/setup, report cards, analytics + early-warning + progress. Offline sync and extra languages last.
    Lists return {count,next,previous,results}, 50 per page, ?page_size= up to 200.
 4. Before real schools: paid Render plan, new admin password, backups. No real student data on the free tier.
+Last full test run 2026-10-02: OK 
