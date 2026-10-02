@@ -8,13 +8,13 @@ Django REST backend in backend/. requirements.txt is a full freeze; requirements
 - JWT blacklist and POST /api/auth/logout/ (api/auth_logout.py)
 - Env-driven settings: PostgreSQL (DB_*), CORS (DJANGO_CORS_ORIGINS), CSRF origins; whitenoise and gunicorn added
 - LIVE on Render free plan: https://school-ai-platform.onrender.com ; /api/health/ ok; /admin/ works; login, list, logout and blacklist verified live
+- API docs: drf-spectacular, /api/docs/ and /api/schema/ admin-only (anonymous gets 401), api/test_api_docs.py, 142 tests pass on sqlite, live on Render
+- Uptime monitor: UptimeRobot free, 5-minute checks on /api/health/. Check their terms before real schools (free plan may be non-commercial)
 ## Render setup (values only in Render, never in git)
 Build: pip install -r requirements-prod.txt && cd backend && python manage.py collectstatic --noinput && python manage.py migrate && python manage.py loaddata schools/fixtures/catalogues.json && python manage.py extend_cambridge_catalogue && (python manage.py createsuperuser --noinput || true)
 Start: cd backend && gunicorn config.wsgi. Root directory blank. Region Frankfurt. Env vars: DJANGO_SECRET_KEY, DJANGO_DEBUG, DJANGO_ALLOWED_HOSTS, DJANGO_NUM_PROXIES, DB_NAME/USER/PASSWORD/HOST/PORT, DJANGO_SUPERUSER_USERNAME/EMAIL/PASSWORD. Render Shell is paid, so seeding is in the build command.
 ## NOT DONE (in order)
-1. API docs: pip install drf-spectacular; add "drf_spectacular" to INSTALLED_APPS; REST_FRAMEWORK DEFAULT_SCHEMA_CLASS = drf_spectacular.openapi.AutoSchema; SPECTACULAR_SETTINGS with SERVE_PERMISSIONS IsAdminUser; urls api/schema/ and api/docs/; a test (anonymous blocked, admin gets 200); add the package to requirements-prod.txt.
-2. Free uptime monitor on /api/health/ (free Render sleeps after 15 min idle).
-3. Before real schools: PAID Render plan (check current prices), fresh SECRET_KEY, new admin password, database backups.
-4. Verify IGCSE subject list against the official Cambridge list; analytics; AI learning and early-warning features (ExamResult history); frontend; set DJANGO_CORS_ORIGINS when the frontend URL is known.
+1. Before real schools: PAID Render plan (check current prices), fresh SECRET_KEY, new admin password, database backups.
+2. Verify IGCSE subject list against the official Cambridge list; analytics; AI learning and early-warning features (ExamResult history); frontend; set DJANGO_CORS_ORIGINS when the frontend URL is known.
 ## Gotchas learned
 Free Render Postgres expires after about 30 days: NO real student data on the free tier. Local test DB: sudo service postgresql start, then export DB_NAME=marian DB_USER=marian DB_PASSWORD=devpass DB_HOST=localhost; create the DB user with: echo "SQL" | sudo su postgres -c psql. On Render, tap Edit before Add Environment Variable appears. Stuck terminal: tap the trash icon and open a new one.
