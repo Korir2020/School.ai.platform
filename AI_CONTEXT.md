@@ -116,3 +116,4 @@ Start Command: cd backend && gunicorn config.wsgi. Root directory blank (require
 Render env var names (values only in Render, never in git): DJANGO_SECRET_KEY, DJANGO_DEBUG=False, DJANGO_ALLOWED_HOSTS=.onrender.com, DJANGO_NUM_PROXIES=1, DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DJANGO_SUPERUSER_USERNAME, DJANGO_SUPERUSER_EMAIL, DJANGO_SUPERUSER_PASSWORD. Render Shell is a paid feature, so seeding happens in the build command.
 NOT DONE yet: test live API login/logout with curl; before real schools: paid plan (about 13 USD a month web plus small Postgres), backups, uptime monitor on /api/health/, IGCSE list check, API docs, analytics, AI features, frontend.
 VERIFIED LIVE (Render free plan): login OK, /api/schools/ paginated (200, keys count/next/previous/results), logout 205, refresh after logout 401. Test script idea: login, list, logout, refresh via urllib (not stored in repo).
+See HANDOFF.md for the latest summary and next steps.
