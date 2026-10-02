@@ -14,7 +14,7 @@ Django REST backend in backend/. requirements.txt is a full freeze; requirements
 Build: pip install -r requirements-prod.txt && cd backend && python manage.py collectstatic --noinput && python manage.py migrate && python manage.py loaddata schools/fixtures/catalogues.json && python manage.py extend_cambridge_catalogue && (python manage.py createsuperuser --noinput || true)
 Start: cd backend && gunicorn config.wsgi. Root directory blank. Region Frankfurt. Env vars: DJANGO_SECRET_KEY, DJANGO_DEBUG, DJANGO_ALLOWED_HOSTS, DJANGO_NUM_PROXIES, DB_NAME/USER/PASSWORD/HOST/PORT, DJANGO_SUPERUSER_USERNAME/EMAIL/PASSWORD. Render Shell is paid, so seeding is in the build command.
 ## NOT DONE (in order)
-1. Before real schools: PAID Render plan (check current prices), fresh SECRET_KEY, new admin password, database backups.
+1. Before real schools (SECRET_KEY already rotated 2 Oct 2026; owner stays on free plan until the first school; if the free Postgres expires, create a new one and update DB_* in Render, the build command reseeds): PAID Render plan (check current prices), new admin password, database backups.
 2. Verify IGCSE subject list against the official Cambridge list; analytics; AI learning and early-warning features (ExamResult history); frontend; set DJANGO_CORS_ORIGINS when the frontend URL is known.
 ## Gotchas learned
 Free Render Postgres expires after about 30 days: NO real student data on the free tier. Local test DB: sudo service postgresql start, then export DB_NAME=marian DB_USER=marian DB_PASSWORD=devpass DB_HOST=localhost; create the DB user with: echo "SQL" | sudo su postgres -c psql. On Render, tap Edit before Add Environment Variable appears. Stuck terminal: tap the trash icon and open a new one.
