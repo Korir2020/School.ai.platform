@@ -45,3 +45,17 @@ class CambridgeCatalogueTests(APITestCase):
         counts = (ClassLevel.objects.count(), SubjectDefinition.objects.count())
         run()
         self.assertEqual((ClassLevel.objects.count(), SubjectDefinition.objects.count()), counts)
+
+    def test_adds_igcse_subjects_for_years_10_and_11(self):
+        run()
+        expected = {
+            "ADDMATH": "Mathematics - Additional",
+            "COORDSCI": "Sciences - Co-ordinated (Double Award)",
+            "LITENG": "English - Literature in English",
+            "GP": "Global Perspectives",
+        }
+        for code, name in expected.items():
+            sd = SubjectDefinition.objects.get(curriculum=self.cur, code=code)
+            self.assertEqual(sd.name, name)
+            levels = set(sd.class_levels.values_list("level_number", flat=True))
+            self.assertEqual(levels, {10, 11})
