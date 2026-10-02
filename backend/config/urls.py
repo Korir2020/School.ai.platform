@@ -139,3 +139,15 @@ urlpatterns += [
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='docs'),
 ]
+
+from api.progress_api import student_progress
+
+urlpatterns += [
+    path('api/students/<int:student_id>/progress/', student_progress),
+]
+
+from api.early_warning import early_warning
+
+urlpatterns += [
+    path('api/analytics/early-warning/', early_warning),
+]
