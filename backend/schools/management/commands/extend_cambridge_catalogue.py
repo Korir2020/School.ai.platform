@@ -11,6 +11,14 @@ LEVELS = {
 # Cambridge Lower Secondary subjects missing from the original catalogue.
 NEW_SUBJECTS = {"COMPUTING": "Computing", "ICTSTART": "ICT Starters"}
 
+# Cambridge IGCSE subjects (Years 10-11) missing from the original catalogue.
+NEW_IGCSE_SUBJECTS = {
+    "ADDMATH": "Mathematics - Additional",
+    "COORDSCI": "Sciences - Co-ordinated (Double Award)",
+    "LITENG": "English - Literature in English",
+    "GP": "Global Perspectives",
+}
+
 
 class Command(BaseCommand):
     help = "Add missing Cambridge Lower Secondary subjects (safe to re-run)."
@@ -31,5 +39,11 @@ class Command(BaseCommand):
                 curriculum=cur, code=code, defaults={"name": name}
             )
             sd.class_levels.add(levels[7], levels[8], levels[9])
+            made += created
+        for code, name in NEW_IGCSE_SUBJECTS.items():
+            sd, created = SubjectDefinition.objects.get_or_create(
+                curriculum=cur, code=code, defaults={"name": name}
+            )
+            sd.class_levels.add(levels[10], levels[11])
             made += created
         self.stdout.write(f"Subject definitions added: {made}.")
