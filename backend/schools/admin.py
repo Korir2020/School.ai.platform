@@ -21,3 +21,13 @@ class MarkAuditLogAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+from django.apps import apps
+from django.contrib.admin.sites import AlreadyRegistered
+
+for _m in apps.get_app_config("schools").get_models():
+    try:
+        admin.site.register(_m)
+    except AlreadyRegistered:
+        pass
