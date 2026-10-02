@@ -1,4 +1,5 @@
 # Marian (School.ai.platform) - Handoff Guide
+> STATUS: read HANDOFF.md "SESSION 5 STATE" first. The logs below are history only.
 
 Multi-school Django 6.1 + DRF + SimpleJWT school management and AI learning platform, meant for commercialization.
 Owner is a beginner working in GitHub Codespaces on a phone. Give very brief steps, one action at a time, with the exact terminal location. Review existing code before changing it. Never assume a feature is complete without evidence. Security, data integrity and tests come before speed. Finish the backend before the frontend.
