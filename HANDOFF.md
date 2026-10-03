@@ -48,3 +48,12 @@ Last full test run 2026-10-02: OK
 - Logo in the app is a redrawn SVG and simplified PNG icons; swap in the real logo files.
 - Before real schools: paid Render plan, strong admin password, backups. No real student data on the free tier.
 - Early warning screen skipped by owner.
+
+## How marks, ranks and analytics work (from the code)
+- Exam subject score = sum of (paper marks x paper weight / 100). No paper setup means one paper at 100%. Paper weights must total 100 or publish is refused.
+- Exam overall average = plain average of a student's subject scores (all subjects equal), 2 decimals.
+- Rank = 1 + number of students with a strictly higher average, so ties share a rank (1, 1, 3). Class rank covers the class level, stream rank covers the stream.
+- Ranks are fixed at publish as a snapshot. Publish is refused unless every paper is approved or locked.
+- Report card: subject average = mean of that subject's approved or locked marks across opener, mid and end. Overall = mean of subject averages. Unapproved marks are excluded and shown as pending.
+- Analytics term summary: per subject average, highest, lowest and entry count from approved or locked marks only, plus the pending count.
+- Open rule question: report cards average all assessments equally. If the school wants weights for opener, mid and end, change the backend (api/report_cards.py).
