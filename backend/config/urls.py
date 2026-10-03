@@ -151,3 +151,9 @@ from api.early_warning import early_warning
 urlpatterns += [
     path('api/analytics/early-warning/', early_warning),
 ]
+
+from api.teachers import teacher_collection
+
+urlpatterns += [
+    path('api/teachers/', teacher_collection),
+]
