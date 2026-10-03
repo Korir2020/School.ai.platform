@@ -63,3 +63,12 @@ Last full test run 2026-10-02: OK
 - DONE, tested and live: POST /api/auth/change-password/ (api/auth_password.py, 5 tests in test_password.py, all pass) and a Change password box at the bottom of Home for every role (frontend/src/Password.jsx). Checked live with teacher1.
 - NOTE: Term 3 2026 starts 11 Oct but the 2026 year starts 21 Oct (entered in Django admin, which does not check). Editing that term's dates in the app will be refused until the dates agree.
 - STILL OPEN: owner decision on teacher/parent view of ranks and results; parent and student screens; creating schools and first admin in-app; real logo files; paid Render plan, strong admin password and backups before real schools.
+
+## Session 6, part 2 (3 Oct 2026)
+- DONE, tested and live: Edit dates for academic years and terms (Terms.jsx). The school sets its own dates. Term dates must stay inside the year. Practice data fixed (year 2026 now starts 1 Sep).
+- DONE, tested and live: DEPUTY role. A deputy is a SchoolAdminProfile with is_deputy=True (migration 0025), so every existing admin check applies to deputies unchanged: approvals, exams, ranks, report cards, analytics, setup, adding and assigning teachers.
+- Only a non-deputy school administrator can use /api/deputies/ (GET, POST) and /api/deputies/<id>/ (DELETE). Deputies get 403. Removing a deputy deletes the profile and deactivates the login, so it cannot sign in again. Deputies get a separate new login.
+- /api/auth/me/ now returns is_deputy. The Deputies box (Deputies.jsx) shows in the People tab for the administrator only.
+- DECIDED by owner: ranks and results are seen by the school administrator and the deputies he appoints. Teachers and parents do not see ranks or results.
+- Full test run: 171 tests OK (api/test_deputies.py has 9, api/test_password.py has 5).
+- NEXT: item 3, fixes to the look of the app (owner to name the first thing that looks wrong). Still open: parent and student screens, creating schools and the first admin in-app, real logo files, paid Render plan, strong admin password and backups before real schools.
