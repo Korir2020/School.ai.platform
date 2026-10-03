@@ -57,3 +57,9 @@ Last full test run 2026-10-02: OK
 - Report card: subject average = mean of that subject's approved or locked marks across opener, mid and end. Overall = mean of subject averages. Unapproved marks are excluded and shown as pending.
 - Analytics term summary: per subject average, highest, lowest and entry count from approved or locked marks only, plus the pending count.
 - Open rule question: report cards average all assessments equally. If the school wants weights for opener, mid and end, change the backend (api/report_cards.py).
+
+## Session 6 (3 Oct 2026)
+- DONE, tested and live: Setup tab now has Academic years and terms (frontend/src/Terms.jsx): add year, add term, turn term on or off.
+- DONE, tested and live: POST /api/auth/change-password/ (api/auth_password.py, 5 tests in test_password.py, all pass) and a Change password box at the bottom of Home for every role (frontend/src/Password.jsx). Checked live with teacher1.
+- NOTE: Term 3 2026 starts 11 Oct but the 2026 year starts 21 Oct (entered in Django admin, which does not check). Editing that term's dates in the app will be refused until the dates agree.
+- STILL OPEN: owner decision on teacher/parent view of ranks and results; parent and student screens; creating schools and first admin in-app; real logo files; paid Render plan, strong admin password and backups before real schools.
