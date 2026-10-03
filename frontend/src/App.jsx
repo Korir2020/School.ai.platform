@@ -1,43 +1,46 @@
 import { useState, useEffect } from "react";
 import { login, api, logout } from "./api";
-import Teachers from "./Teachers";
-import Setup from "./Setup";
-import Students from "./Students";
-import ReportCards from "./ReportCards";
-import Exams from "./Exams";
-import Approvals from "./Approvals";
+import Logo from "./Logo";
 import Marks from "./Marks";
+import Approvals from "./Approvals";
+import Exams from "./Exams";
+import ReportCards from "./ReportCards";
+import Students from "./Students";
+import Setup from "./Setup";
+import Teachers from "./Teachers";
+import "./app.css";
 
-const Show = ({ v }) => v && typeof v === "object"
-  ? <ul>{Object.entries(v).map(([k, x]) => <li key={k}><b>{k.replace(/_/g, " ")}</b>: <Show v={x} /></li>)}</ul>
-  : <span>{String(v)}</span>;
+const flat = (o, p = "") => Object.entries(o || {}).flatMap(([k, v]) => v && typeof v === "object" ? (Array.isArray(v) || k === "active_term" ? [] : flat(v, k + " ")) : k === "role" ? [] : [[p + k, v]]);
 
 function Login({ onDone }) {
-  const [u, setU] = useState(""), [p, setP] = useState(""), [err, setErr] = useState("");
-  const go = async (e) => { e.preventDefault(); try { await login(u, p); onDone(); } catch (x) { setErr(x.message); } };
-  return (<form onSubmit={go} className="card"><h1>Marian</h1>
-    <input placeholder="Username" value={u} onChange={(e) => setU(e.target.value)} />
+  const [u, setU] = useState(""), [p, setP] = useState(""), [err, setErr] = useState(""), [busy, setBusy] = useState(false);
+  const go = async (e) => { e.preventDefault(); setBusy(true); setErr(""); try { await login(u.trim(), p); onDone(); } catch (x) { setErr(x.message === "Failed to fetch" ? "Cannot reach the server. Try again." : x.message); } setBusy(false); };
+  return (<div className="auth"><form onSubmit={go} className="card"><Logo size={72} /><h1>MARIAN</h1><p className="sub">Intelligent School Management</p>
+    <input placeholder="Username" autoCapitalize="none" value={u} onChange={(e) => setU(e.target.value)} />
     <input placeholder="Password" type="password" value={p} onChange={(e) => setP(e.target.value)} />
-    <button>Log in</button>{err && <p className="err">{err}</p>}</form>);
+    <button disabled={busy}>{busy ? "Signing in..." : "Log in"}</button>{err && <p className="err">{err}</p>}</form></div>);
 }
 
+const Home = ({ me, d }) => (<div className="plain"><h2>Welcome{me ? ", " + me.username : ""}</h2>
+  <p className="sub">{me && me.school ? me.school.name + " · " : ""}{d.active_term ? d.active_term.name + " " + d.active_term.academic_year : "No active term"}</p>
+  <div className="stats">{flat(d).map(([k, v]) => <div className="stat" key={k}><b>{String(v)}</b><span>{k.replace(/_/g, " ")}</span></div>)}</div></div>);
+
 function Dash({ onOut }) {
-  const [me, setMe] = useState(null), [d, setD] = useState(null);
+  const [me, setMe] = useState(null), [d, setD] = useState(null), [tab, setTab] = useState("Home");
   useEffect(() => { (async () => {
     const a = await api("/api/auth/me/"); if (a.status === 401) return onOut(); setMe(await a.json());
     const b = await api("/api/dashboard/"); if (b.ok) setD(await b.json());
   })(); }, []);
-  return (<div className="card"><h1>Marian</h1>
-    {me && <p>{me.username} ({me.role}){me.school ? " - " + me.school.name : ""}</p>}
-    {d ? <Show v={d} /> : <p>Loading...</p>}
-    {d && d.role === "teacher" && <Marks d={d} />}
-    {d && d.role === "school_admin" && <Approvals />}
-    {d && d.role === "school_admin" && <Exams d={d} />}
-    {d && d.role === "school_admin" && <ReportCards d={d} />}
-    {d && d.role === "school_admin" && <Students d={d} />}
-    {d && d.role === "school_admin" && <Setup />}
-    {d && d.role === "school_admin" && <Teachers />}
-    <button onClick={async () => { await logout(); onOut(); }}>Log out</button></div>);
+  const role = d && d.role;
+  const need = (el) => (d.active_term ? el : <p className="plain">No active term yet. Create one in Setup first.</p>);
+  const home = d && <Home me={me} d={d} />;
+  const tabs = role === "teacher" ? { Home: home, Marks: need(<Marks d={d} />) }
+    : role === "school_admin" ? { Home: home, Approve: <Approvals />, Exams: need(<Exams d={d} />), Reports: need(<ReportCards d={d} />), People: need(<><Students d={d} /><Teachers /></>), Setup: <Setup /> }
+    : d ? { Home: home } : {};
+  return (<div className="shell"><header><Logo size={30} /><b>MARIAN</b><span>{me ? me.username : ""}</span>
+    <button className="ghost" onClick={async () => { await logout(); onOut(); }}>Log out</button></header>
+    <main>{d ? tabs[tab] : <p className="sub">Loading...</p>}</main>
+    <nav>{Object.keys(tabs).map((t) => <button key={t} className={t === tab ? "on" : ""} onClick={() => setTab(t)}>{t}</button>)}</nav></div>);
 }
 
 export default function App() {
