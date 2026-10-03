@@ -7,6 +7,7 @@ import Exams from "./Exams";
 import ReportCards from "./ReportCards";
 import Students from "./Students";
 import Setup from "./Setup";
+import Terms from "./Terms";
 import Teachers from "./Teachers";
 import Analytics from "./Analytics";
 import "./app.css";
@@ -36,7 +37,7 @@ function Dash({ onOut }) {
   const need = (el) => (d.active_term ? el : <p className="plain">No active term yet. Create one in Setup first.</p>);
   const home = d && <Home me={me} d={d} />;
   const tabs = role === "teacher" ? { Home: home, Marks: need(<Marks d={d} />) }
-    : role === "school_admin" ? { Home: home, Approve: <Approvals />, Exams: need(<Exams d={d} />), Reports: need(<ReportCards d={d} />), Analytics: need(<Analytics d={d} />), People: need(<><Students d={d} /><Teachers /></>), Setup: <Setup /> }
+    : role === "school_admin" ? { Home: home, Approve: <Approvals />, Exams: need(<Exams d={d} />), Reports: need(<ReportCards d={d} />), Analytics: need(<Analytics d={d} />), People: need(<><Students d={d} /><Teachers /></>), Setup: <><Terms /><Setup /></> }
     : d ? { Home: home } : {};
   return (<div className="shell"><header><Logo size={30} /><b>MARIAN</b><span>{me ? me.username : ""}</span>
     <button className="ghost" onClick={async () => { await logout(); onOut(); }}>Log out</button></header>
