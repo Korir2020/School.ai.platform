@@ -31,3 +31,20 @@ Both are read-only and explainable; they never change records.
    Lists return {count,next,previous,results}, 50 per page, ?page_size= up to 200.
 4. Before real schools: paid Render plan, new admin password, backups. No real student data on the free tier.
 Last full test run 2026-10-02: OK 
+
+## Frontend status (Oct 2026)
+- Live site: https://marian-app-1mzf.onrender.com (Render static site: root frontend, build "npm install && npm run build", publish dist, env VITE_API_URL=https://school-ai-platform.onrender.com). Backend env DJANGO_CORS_ORIGINS is set to that URL.
+- Dev: cd frontend && npm run dev (vite.config.js proxies /api to Render; frontend/.env has VITE_API_URL empty).
+- Built: splash, branded login, tab layout, installable PWA (manifest + icons, no offline mode).
+- Teacher tabs: Home, Marks. Admin tabs: Home, Approve, Exams, Reports (print), Analytics, People (add students, add teachers, assign), Setup (streams, subjects).
+- Backend added: /api/teachers/ (GET list, POST create), all schools models registered in Django admin.
+- Practice data on Render: Marian test school, admin Joscheryoto, teachers teacher1 and teacher2.
+
+## Pending
+- Owner to review splash and layout on phone and request fixes.
+- No in-app screens yet for: creating schools or the first admin, academic years and terms (Django admin only).
+- No password change/reset; no parent or student screens.
+- Open decision: may teachers or parents see ranks and results (admin only today).
+- Logo in the app is a redrawn SVG and simplified PNG icons; swap in the real logo files.
+- Before real schools: paid Render plan, strong admin password, backups. No real student data on the free tier.
+- Early warning screen skipped by owner.
