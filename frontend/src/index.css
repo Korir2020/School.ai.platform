@@ -110,7 +110,7 @@ code {
   background: var(--code-bg);
 }
 
-.splash{position:fixed;inset:0;z-index:99;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:48px;background:radial-gradient(120% 90% at 50% 20%,#0b2a6b 0%,#041a45 45%,#020b24 100%);color:#F8FAFC;overflow:hidden;transition:opacity .6s ease,transform .6s ease;cursor:pointer}
+.splash{position:fixed;inset:0;z-index:99;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:48px;background:radial-gradient(120% 90% at 50% 20%,#0b2a6b 0%,#041a45 45%,#020b24 100%);color:#F8FAFC;overflow:hidden;transition:opacity 3s ease,transform 3s ease;cursor:pointer}
 .splash.out{opacity:0;transform:scale(1.04);pointer-events:none}
 .glow{position:absolute;width:140vmax;height:140vmax;background:conic-gradient(from 0deg,transparent,#2563EB33,transparent 40%,#06B6D422,transparent 70%,#22C55E22,transparent);animation:spin 18s linear infinite;filter:blur(40px)}
 .brand{position:relative;display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center;animation:rise .9s ease both}

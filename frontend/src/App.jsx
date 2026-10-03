@@ -18,12 +18,12 @@ import "./app.css";
 const flat = (o, p = "") => Object.entries(o || {}).flatMap(([k, v]) => v && typeof v === "object" ? (Array.isArray(v) || k === "active_term" ? [] : flat(v, k + " ")) : k === "role" ? [] : [[p + k, v]]);
 
 function Login({ onDone }) {
-  const [u, setU] = useState(""), [p, setP] = useState(""), [err, setErr] = useState(""), [busy, setBusy] = useState(false);
-  const go = async (e) => { e.preventDefault(); setBusy(true); setErr(""); try { await login(u.trim(), p); onDone(); } catch (x) { setErr(x.message === "Failed to fetch" ? "Cannot reach the server. Try again." : x.message); } setBusy(false); };
-  return (<div className="auth"><form onSubmit={go} className="card"><Logo size={72} /><h1>MARIAN</h1><p className="sub">Intelligent School Management</p>
+  const [u, setU] = useState(""), [p, setP] = useState(""), [err, setErr] = useState(""), [busy, setBusy] = useState(false), [st, setSt] = useState(""), [shake, setShake] = useState(false);
+  const go = async (e) => { e.preventDefault(); setBusy(true); setErr(""); setSt("show"); try { await login(u.trim(), p); setSt("show happy"); setTimeout(() => setSt("show happy open"), 500); setTimeout(onDone, 1500); return; } catch (x) { setSt("show sad"); setShake(true); setTimeout(() => { setSt(""); setShake(false); }, 1300); setErr(x.message === "Failed to fetch" ? "Cannot reach the server. Try again." : x.message); } setBusy(false); };
+  return (<div className="auth"><form onSubmit={go} className={"card" + (shake ? " shake" : "")}><Logo size={72} /><h1>MARIAN</h1><p className="sub">Intelligent School Management</p>
     <input placeholder="Username" autoCapitalize="none" value={u} onChange={(e) => setU(e.target.value)} />
     <input placeholder="Password" type="password" value={p} onChange={(e) => setP(e.target.value)} />
-    <button disabled={busy}>{busy ? "Signing in..." : "Log in"}</button>{err && <p className="err">{err}</p>}</form></div>);
+    <button disabled={busy}>{busy ? "Signing in..." : "Log in"}</button>{err && <p className="err">{err}</p>}</form><div className={"eleph " + st} aria-hidden="true"><div className="door" /><div className="ele"><svg viewBox="0 0 60 90"><g className="arm"><path d="M46 54 L55 34" stroke="#5b3a29" strokeWidth="7" strokeLinecap="round" /><circle cx="55" cy="33" r="4.5" fill="#5b3a29" /></g><rect x="13" y="44" width="34" height="46" rx="11" fill="#2563EB" /><rect x="4" y="60" width="15" height="19" rx="2" fill="#F8FAFC" /><g className="head"><circle cx="30" cy="30" r="15" fill="#5b3a29" /><path d="M15 26 Q30 8 45 26 Q30 19 15 26Z" fill="#1b1209" /><circle cx="25" cy="30" r="1.8" fill="#111" /><circle cx="35" cy="30" r="1.8" fill="#111" /><path d="M25 36 Q30 41 35 36" stroke="#111" strokeWidth="1.7" fill="none" strokeLinecap="round" /></g></svg></div></div></div>);
 }
 
 const Home = ({ me, d }) => (<div className="plain"><h2>Welcome{me ? ", " + me.username : ""}</h2>

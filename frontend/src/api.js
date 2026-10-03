@@ -4,6 +4,7 @@ const save = (d) => { localStorage.setItem("access", d.access); if (d.refresh) l
 
 export async function login(username, password) {
   const r = await fetch(`${BASE}/api/auth/login/`, { method: "POST", headers: J, body: JSON.stringify({ username, password }) });
+  if (r.status === 429) throw new Error("Too many attempts. Wait a minute and try again.");
   if (!r.ok) throw new Error("Wrong username or password");
   save(await r.json());
 }

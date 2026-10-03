@@ -5,7 +5,7 @@ const stages = ["Students", "Learning", "Assessment", "Analytics", "Insights"];
 
 export default function Splash({ onDone }) {
   const [out, setOut] = useState(false);
-  const leave = () => { setOut(true); setTimeout(onDone, 600); };
+  const leave = () => { setOut(true); setTimeout(onDone, 3000); };
   useEffect(() => { const t = setTimeout(leave, 3200); return () => clearTimeout(t); }, []);
   return (
     <div className={"splash" + (out ? " out" : "")} onClick={leave}>

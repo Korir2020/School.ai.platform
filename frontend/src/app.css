@@ -45,3 +45,28 @@ nav button.on{color:#fff;background:var(--line)}
   main>div>h3{display:none}
   .reportcard h4{font-size:1.4rem}
 }
+
+/* Login elephant + door */
+.auth{position:relative;z-index:1}
+.eleph{position:fixed;right:5%;bottom:5%;width:145px;height:185px;z-index:10;pointer-events:none;opacity:0;transform:translateY(25px) scale(.85);transition:.55s}
+.eleph.show{opacity:1;transform:none}
+.eleph .door{position:absolute;right:4px;bottom:0;width:82px;height:135px;border-radius:42px 42px 5px 5px;background:linear-gradient(90deg,#6e381e,#a96837);border:4px solid #e0b17a;transform-origin:right center;transition:transform 1s cubic-bezier(.2,.8,.2,1);box-shadow:0 0 30px #ffbe4b73}
+.eleph .door::after{content:"M";position:absolute;top:44%;left:50%;transform:translate(-50%,-50%);color:#fff4d1;font-size:28px;font-weight:800}
+.eleph.open .door{transform:perspective(400px) rotateY(-72deg)}
+.eleph .ele{position:absolute;left:0;bottom:2px;font-size:70px;filter:drop-shadow(0 8px 8px #0006);transform-origin:50% 90%}
+.eleph.happy .ele{animation:happy .7s ease-in-out 2}
+.eleph.sad .ele{animation:sad .65s ease-in-out 2}
+@keyframes happy{0%,100%{transform:rotate(0)}30%{transform:rotate(-8deg) translateY(-5px)}65%{transform:rotate(8deg) translateY(-5px)}}
+@keyframes sad{0%,100%{transform:rotate(0)}30%{transform:rotate(-13deg)}65%{transform:rotate(13deg)}}
+.card.shake{animation:shk .42s ease-in-out}
+@keyframes shk{0%,100%{transform:translateX(0)}20%{transform:translateX(-9px)}40%{transform:translateX(9px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}}
+@media(max-height:700px){.eleph{display:none}}
+
+.eleph .ele svg{width:64px;height:96px;display:block;overflow:visible}
+.eleph .arm{transform-origin:46px 54px}
+.eleph.happy .arm{animation:wave .45s ease-in-out 5}
+@keyframes wave{0%,100%{transform:rotate(-15deg)}50%{transform:rotate(25deg)}}
+.eleph .head{transform-origin:30px 45px}
+.eleph.sad .ele{animation:none}
+.eleph.sad .head{animation:nod .6s ease-in-out 2}
+@keyframes nod{0%,100%{transform:rotate(0)}30%{transform:rotate(-14deg)}65%{transform:rotate(14deg)}}
