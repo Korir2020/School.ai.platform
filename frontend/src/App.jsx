@@ -8,6 +8,7 @@ import ReportCards from "./ReportCards";
 import Students from "./Students";
 import Setup from "./Setup";
 import Terms from "./Terms";
+import Password from "./Password";
 import Teachers from "./Teachers";
 import Analytics from "./Analytics";
 import "./app.css";
@@ -35,7 +36,7 @@ function Dash({ onOut }) {
   })(); }, []);
   const role = d && d.role;
   const need = (el) => (d.active_term ? el : <p className="plain">No active term yet. Create one in Setup first.</p>);
-  const home = d && <Home me={me} d={d} />;
+  const home = d && <><Home me={me} d={d} /><Password /></>;
   const tabs = role === "teacher" ? { Home: home, Marks: need(<Marks d={d} />) }
     : role === "school_admin" ? { Home: home, Approve: <Approvals />, Exams: need(<Exams d={d} />), Reports: need(<ReportCards d={d} />), Analytics: need(<Analytics d={d} />), People: need(<><Students d={d} /><Teachers /></>), Setup: <><Terms /><Setup /></> }
     : d ? { Home: home } : {};
