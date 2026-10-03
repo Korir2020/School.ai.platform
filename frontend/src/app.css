@@ -27,3 +27,21 @@ nav button.on{color:#fff;background:var(--line)}
 .stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column}
 .stat b{font-size:1.6rem;color:var(--cyan)}
 .stat span{color:var(--mut);font-size:.8rem;text-transform:capitalize}
+
+@media print{
+  header,nav,select,button,.splash{display:none!important}
+  body{background:#fff!important}
+  *{color:#000!important;background:none!important;border:0!important;box-shadow:none!important}
+  main{max-width:none;padding:0}
+  main>div>h3{display:none}
+  .reportcard h4{font-size:1.4rem}
+}
+
+@media print{
+  header,nav,select,button,.splash{display:none!important}
+  body{background:#fff!important}
+  *{color:#000!important;background:none!important;border:0!important;box-shadow:none!important}
+  main{max-width:none;padding:0}
+  main>div>h3{display:none}
+  .reportcard h4{font-size:1.4rem}
+}
