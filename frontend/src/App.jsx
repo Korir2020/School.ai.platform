@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { login, api, logout } from "./api";
+import Approvals from "./Approvals";
 import Marks from "./Marks";
 
 const Show = ({ v }) => v && typeof v === "object"
@@ -25,6 +26,7 @@ function Dash({ onOut }) {
     {me && <p>{me.username} ({me.role}){me.school ? " - " + me.school.name : ""}</p>}
     {d ? <Show v={d} /> : <p>Loading...</p>}
     {d && d.role === "teacher" && <Marks d={d} />}
+    {d && d.role === "school_admin" && <Approvals />}
     <button onClick={async () => { await logout(); onOut(); }}>Log out</button></div>);
 }
 
