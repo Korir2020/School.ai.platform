@@ -7,18 +7,19 @@ from schools.models import SchoolAdminProfile, TeacherProfile
 @api_view(["GET"])
 def me(request):
     user = request.user
-    role, school = "none", None
+    role, school, is_deputy = "none", None, False
     if user.is_superuser:
         role = "superadmin"
     else:
         admin = SchoolAdminProfile.objects.select_related("school").filter(user=user).first()
         teacher = TeacherProfile.objects.select_related("school").filter(user=user).first()
         if admin:
-            role, school = "school_admin", admin.school
+            role, school, is_deputy = "school_admin", admin.school, admin.is_deputy
         elif teacher:
             role, school = "teacher", teacher.school
     return Response({
         "username": user.username,
         "role": role,
+        "is_deputy": is_deputy,
         "school": {"id": school.id, "name": school.name} if school else None,
     })

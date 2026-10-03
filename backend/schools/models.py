@@ -239,6 +239,7 @@ class SchoolAdminProfile(models.Model):
         on_delete=models.CASCADE,
         related_name="school_admins",
     )
+    is_deputy = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

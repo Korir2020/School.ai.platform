@@ -159,3 +159,10 @@ from api.teachers import teacher_collection
 urlpatterns += [
     path('api/teachers/', teacher_collection),
 ]
+
+from api.deputies import deputy_collection, deputy_detail
+
+urlpatterns += [
+    path('api/deputies/', deputy_collection),
+    path('api/deputies/<int:pk>/', deputy_detail),
+]
