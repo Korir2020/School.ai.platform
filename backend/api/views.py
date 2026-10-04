@@ -37,8 +37,11 @@ def _list(request, model, serializer_class, school_field):
     return paginated_response(request, queryset, serializer_class)
 
 
-@api_view(["GET"])
+@api_view(["GET", "POST"])
 def school_list(request):
+    if request.method == "POST":
+        from .school_create import create_school
+        return create_school(request)
     return _list(request, School, SchoolSerializer, "id")
 
 
