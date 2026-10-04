@@ -102,3 +102,12 @@ header .ghost{font-size:.8rem;padding:6px 12px;border-radius:999px}
 .arow span{flex:1;min-width:0;color:var(--mut)}
 .arow span b{color:var(--txt);font-weight:600}
 .arow em{flex:0 0 auto;font-style:normal;font-size:.72rem;color:var(--mut)}
+/* Bottom dock */
+.dock{position:fixed;bottom:0;left:0;right:0;display:flex;padding:6px 6px max(6px,env(safe-area-inset-bottom));background:#0b0b0bf5;border-top:1px solid var(--line);z-index:6}
+.dock button{flex:1;min-width:0;margin:0;padding:8px 2px 6px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:.68rem;font-weight:500;background:transparent;color:var(--mut);border-radius:12px}
+.dock button.on{color:var(--blue-hi);background:#0d1a33;box-shadow:inset 0 -3px 0 var(--blue)}
+.more{position:fixed;inset:0;z-index:5;background:#000a;display:flex;align-items:flex-end;justify-content:flex-end;padding:0 10px 78px}
+.more>div{display:flex;flex-direction:column;min-width:170px;background:#131313;border:1px solid var(--line);border-radius:var(--r);padding:6px}
+.more button{margin:0;text-align:left;padding:13px 14px;background:transparent;color:var(--txt);border-radius:10px}
+.more button.on{color:var(--blue-hi);background:#0d1a33}
+@media print{.dock,.more{display:none!important}}

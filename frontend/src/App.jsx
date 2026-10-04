@@ -4,6 +4,7 @@ import Logo from "./Logo";
 import Hero from "./Hero";
 import Stats from "./Stats";
 import Quick from "./Quick";
+import Dock from "./Dock";
 import Activity from "./Activity";
 import Login from "./Login";
 import Marks from "./Marks";
@@ -40,7 +41,7 @@ function Dash({ onOut }) {
   return (<div className="shell"><header><Logo size={30} /><b>MARIAN</b><span>{me ? me.username : ""}</span>
     <button className="ghost" onClick={async () => { await logout(); onOut(); }}>Log out</button></header>
     <main>{d ? tabs[tab] : <p className="sub">Loading...</p>}</main>
-    <nav>{Object.keys(tabs).map((t) => <button key={t} className={t === tab ? "on" : ""} onClick={() => setTab(t)}>{t}</button>)}</nav></div>);
+    <Dock tabs={Object.keys(tabs)} tab={tab} go={setTab} /></div>);
 }
 
 export default function App() {
