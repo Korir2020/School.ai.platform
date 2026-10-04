@@ -128,3 +128,25 @@ LOGIN SPEC STILL TO BUILD: username first; password field appears once the usern
 CHECK JSX WITHOUT node_modules (Claude sandbox): typescript.transpileModule (jsx ReactJSX) then react-dom/server renderToString; tools are in /home/claude/.npm-global/lib/node_modules.
 STILL OPEN: owner's other look fixes (ask for a numbered list with the screen name); parent and student screens; create schools and the first admin in-app; real logo files; teacher screens limited to own classes; IGCSE list verification; paid Render plan, strong admin password and backups before real schools; offline sync and extra languages last.
 Starter for a new chat: "I am building Marian. Read AI_CONTEXT.md and HANDOFF.md from my repo. Continue with the login redesign: Login.jsx, Mascot.jsx, login.css. One action at a time."
+## Session 7 (4 Oct 2026): login redesign
+DONE (checked in a browser preview; owner likes the design):
+- New login: transparent black/gold glass box, "Welcome Back", username + password with eye button, yellow Sign In. Files: frontend/src/Login.jsx, login.css, backgrounds.css. App.jsx now imports Login from ./Login; the old function was renamed OldLogin (unused, safe to delete with the Scene import).
+- Two corners (top-left, bottom-right) look folded like dog-ears.
+- Success animation just pasted, NOT yet confirmed on the phone: corners fold inward, gold creases cover the box, MARIAN logo seal, box zooms into the dashboard (.shell fades in).
+- Left out on purpose (no backend): Google/Apple login, Sign Up, Remember me, password reset ("Forgot password?" says ask the administrator).
+- Why old background edits never worked: the Scene.jsx SVG covers CSS backgrounds, and body in app.css paints the app blue.
+
+REMAINING (in order):
+1. Save Login.jsx and login.css, then confirm the new login animation on the phone.
+2. Login background: still a placeholder gold gradient (--bg-login in backgrounds.css). Owner uploaded pictures to frontend/src/assets. Need exact file names, then use url(./assets/NAME).
+3. Picture inside the login box (student at the door, top banner replacing the logo row). CSS class .lgpic already exists. Import the picture from assets and add <img className="lgpic"> in Login.jsx.
+4. Welcome background (Welcome.jsx, Scene.jsx, welcome.css). Owner has uncommitted experiments: Universe.jsx, universe.css, Welcome.jsx.backup.
+5. Background inside the app tabs (body gradient in app.css). Move it to backgrounds.css. A light background also needs the card and text colors changed.
+6. Small fixes: splash tagline overlaps MARIAN; delete unused App.css (capital A, Vite leftover).
+7. git add, commit and push so Render rebuilds the live site.
+## Session 8 (4 Oct 2026) READ HANDOFF.md "SESSION 8" FIRST
+IGNORE the old "Remaining backend" and NOT DONE lists above: all backend items are done. Backend and frontend are live on Render; 171 backend tests pass.
+Frontend files in frontend/src: App.jsx (Dash, Home and the tab map), Login.jsx and login.css (gold login), app.css (shared theme, v2 block at the end), Logo.jsx, Welcome.jsx and Scene.jsx (pre-login page).
+LEFT ALONE ON PURPOSE, ask the owner before touching or committing: Welcome.jsx and welcome.css edits, Universe.jsx, universe.css, *.backup files, images in frontend/src/assets and login3.jpg.png.png, welcome2.jpg..png. Mascot.jsx is unused and can be deleted.
+OPEN ITEMS: login background is still a gold gradient placeholder (--bg-login in backgrounds.css; use the exact image file name from assets); dashboard redesign steps 2 to 7 in HANDOFF.md; teacher screens limited to own classes; parent and student screens; creating schools and the first admin in-app; real logo files; IGCSE list check; paid Render plan, strong admin password and backups before real schools (free Postgres expires, no real student data).
+Starter for a new chat: "I am building Marian. Read HANDOFF.md SESSION 8 and AI_CONTEXT.md in my repo. Continue the dashboard redesign at step 2. One action at a time."

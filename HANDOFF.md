@@ -72,3 +72,31 @@ Last full test run 2026-10-02: OK
 - DECIDED by owner: ranks and results are seen by the school administrator and the deputies he appoints. Teachers and parents do not see ranks or results.
 - Full test run: 171 tests OK (api/test_deputies.py has 9, api/test_password.py has 5).
 - NEXT: item 3, fixes to the look of the app (owner to name the first thing that looks wrong). Still open: parent and student screens, creating schools and the first admin in-app, real logo files, paid Render plan, strong admin password and backups before real schools.
+## Session 7 (4 Oct 2026): login redesign
+DONE (checked in a browser preview; owner likes the design):
+- New login: transparent black/gold glass box, "Welcome Back", username + password with eye button, yellow Sign In. Files: frontend/src/Login.jsx, login.css, backgrounds.css. App.jsx now imports Login from ./Login; the old function was renamed OldLogin (unused, safe to delete with the Scene import).
+- Two corners (top-left, bottom-right) look folded like dog-ears.
+- Success animation just pasted, NOT yet confirmed on the phone: corners fold inward, gold creases cover the box, MARIAN logo seal, box zooms into the dashboard (.shell fades in).
+- Left out on purpose (no backend): Google/Apple login, Sign Up, Remember me, password reset ("Forgot password?" says ask the administrator).
+- Why old background edits never worked: the Scene.jsx SVG covers CSS backgrounds, and body in app.css paints the app blue.
+
+REMAINING (in order):
+1. Save Login.jsx and login.css, then confirm the new login animation on the phone.
+2. Login background: still a placeholder gold gradient (--bg-login in backgrounds.css). Owner uploaded pictures to frontend/src/assets. Need exact file names, then use url(./assets/NAME).
+3. Picture inside the login box (student at the door, top banner replacing the logo row). CSS class .lgpic already exists. Import the picture from assets and add <img className="lgpic"> in Login.jsx.
+4. Welcome background (Welcome.jsx, Scene.jsx, welcome.css). Owner has uncommitted experiments: Universe.jsx, universe.css, Welcome.jsx.backup.
+5. Background inside the app tabs (body gradient in app.css). Move it to backgrounds.css. A light background also needs the card and text colors changed.
+6. Small fixes: splash tagline overlaps MARIAN; delete unused App.css (capital A, Vite leftover).
+7. git add, commit and push so Render rebuilds the live site.
+## SESSION 8 (4 Oct 2026) READ THIS FIRST. Older NEXT and REMAINING lists are done or stale.
+OWNER RULES: phone only, Codespaces. ONE action per message, pastes <=30 lines (cat > then cat >>), exact folder, ask for exact output. Owner wants a batch of changes finished, then tests everything and sends a numbered fix list (screen + problem). Before any mv or cat > on an existing name, run ls first (a mv once wiped Login.jsx).
+DONE and pushed: gold glass login (Login.jsx, login.css, backgrounds.css): Welcome Back box, username then password, Sign In after 4 chars, password spin while checking, shake on wrong password, success fold+seal+zoom (slowed). Logo.jsx: book blue, chart gold/black. Black and gold theme: app.css, Analytics.jsx, index.css, Scene.jsx. Blue kept only as accent (active tab, Log out, stat top line).
+DONE this session: Inter font (npm install @fontsource-variable/inter, import is line 1 of frontend/src/main.jsx) and a "Marian theme v2" block at the end of app.css (tokens, blue buttons, gold numbers, subtle gold-dark borders). Owner has NOT reviewed v2 on the phone yet.
+DASHBOARD REDESIGN (owner prompt, agreed). Keep the Marian palette: near-black, gold for numbers and brand, electric blue for nav, buttons, active states. Premium instrument-panel look, mobile first (360-430px), radius 14-18px, thin low-opacity borders, no heavy glow, no fake data, nothing removed. Decisions: blue in-app buttons, gold numbers; bottom dock with 5 items (Home, Approve, Exams, Reports, Analytics) plus a More item that opens Students, Teachers, Setup; Inter font. The owner has the full prompt text and can paste it again.
+BUILD ORDER (one commit per step, owner tests at the end):
+2. Header (logo + MARIAN, user, outlined Log out) and compact welcome with an "active term" dot (frontend/src/App.jsx Home and Dash).
+3. Stat cards: small uppercase label, controlled number, short description, blue top edge. One MARKS OVERVIEW module (Draft, Submitted, Approved, Locked) with a thin meter from real counts in GET /api/dashboard/.
+4. Quick Actions row (Approve Marks, Exams, Reports, Students, Analytics) that switch tabs.
+5. Recent activity from GET /api/audit-logs/ (admin, max 200 rows).
+6. Bottom dock with icons plus More.
+7. Split the People tab into Students and Teachers tabs (Deputies box goes under Teachers, non-deputy admin only). Teachers get a simpler Home.
