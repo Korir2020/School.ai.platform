@@ -90,3 +90,7 @@ header .ghost{font-size:.8rem;padding:6px 12px;border-radius:999px}
 .legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px}
 .legend b{color:var(--txt);margin-left:4px}
 .s-draft{background:#6b6455}.s-submitted{background:#facc15}.s-approved{background:#22c55e}.s-locked{background:#60a5fa}
+/* Quick actions */
+.qa h3{margin:8px 0 10px;font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--mut)}
+.qrow{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px}
+.qrow button{flex:0 0 auto;margin:0;padding:10px 14px;border-radius:999px;font-size:.82rem;background:#0d1a33;color:var(--blue-hi);border:1px solid #1d3a73}
