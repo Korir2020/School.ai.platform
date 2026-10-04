@@ -20,6 +20,8 @@ import Deputies from "./Deputies";
 import Intro from "./Intro";
 import Teachers from "./Teachers";
 import Analytics from "./Analytics";
+import Platform from "./Platform";
+import Accounts from "./Accounts";
 import "./app.css";
 
 const flat = (o, p = "") => Object.entries(o || {}).flatMap(([k, v]) => v && typeof v === "object" ? (Array.isArray(v) || k === "active_term" ? [] : flat(v, k + " ")) : k === "role" ? [] : [[p + k, v]]);
@@ -38,6 +40,7 @@ function Dash({ onOut }) {
   const home = d && <><Home me={me} d={d} />{role === "teacher" && <Mine d={d} />}{role === "school_admin" && <Quick go={setTab} tabs={{ Approve: 1, Exams: 1, Reports: 1, Students: 1, Analytics: 1 }} />}{role === "school_admin" && <Activity />}<Password /></>;
   const tabs = role === "teacher" ? { Home: home, Marks: need(<Marks d={d} />) }
     : role === "school_admin" ? { Home: home, Approve: <Approvals />, Exams: need(<Exams d={d} />), Reports: need(<ReportCards d={d} />), Analytics: need(<Analytics d={d} />), Students: need(<Students d={d} />), Teachers: need(<><Teachers />{me && !me.is_deputy && <Deputies />}</>), Setup: <><Terms /><Setup /></> }
+    : role === "superadmin" ? { Home: home, Schools: <Platform d={d} />, Admins: <Accounts /> }
     : d ? { Home: home } : {};
   return (<div className="shell"><header><Logo size={30} /><b>MARIAN</b><span>{me ? me.username : ""}</span>
     <button className="ghost" onClick={async () => { await logout(); onOut(); }}>Log out</button></header>
