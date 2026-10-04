@@ -1,10 +1,13 @@
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, throttle_classes
 from rest_framework.response import Response
+
+from .password_throttle import PasswordRateThrottle
 
 
 @api_view(["POST"])
+@throttle_classes([PasswordRateThrottle])
 def change_password(request):
     """Let the logged-in user change their own password."""
     old = request.data.get("old_password") or ""

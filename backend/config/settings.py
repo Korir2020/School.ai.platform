@@ -174,6 +174,7 @@ SIMPLE_JWT = {
 
 REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"] = {
     "login": "1000/min" if "test" in sys.argv else "10/min",
+    "password": "1000/min" if "test" in sys.argv else "5/min",
 }
 REST_FRAMEWORK["NUM_PROXIES"] = int(os.environ.get("DJANGO_NUM_PROXIES", "0"))
 
