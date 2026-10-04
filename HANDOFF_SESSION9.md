@@ -34,7 +34,6 @@ Deployed on Render (practice only). Repo root: /workspaces/School.ai.platform.
 
 ## BACKEND PLAN
 P1 (B1 and B2 are DONE, see the DONE list):
-B3 Django admin must not silently edit locked Performance/Exam/ExamResult.
 B4 account mgmt: deactivate/reset teacher password, POST /api/schools/ + first admin
 (superuser only), throttle change_password + blacklist refresh tokens.
 B5 refresh token to HttpOnly cookie (late; CSRF/CORS care; test two-origin Render).
@@ -75,7 +74,7 @@ compress login-pic.png (2.2 MB) to WebP. F11 offline marks. F12 reports/print. F
   reads must create a TeacherAssignment AND an Enrollment of the student in that stream.
 - Phase 1 ui.jsx / ui.css / Marks.jsx rewrite were NOT in the repo (F1-F3, F7 redo them).
 
-## DONE (committed and pushed). Test baseline: 179 tests, all OK.
+## DONE (committed and pushed). Test baseline: 182 tests, all OK.
 - Frontend: listAll() in api.js; 8 screens load every page (no 200-row cap).
 - exam_publish: exam row locked, so a concurrent publish returns 409.
 - B1 teacher scoping: permissions.py is_teacher_only + restrict_for_teacher, applied in
@@ -84,9 +83,15 @@ compress login-pic.png (2.2 MB) to WebP. F11 offline marks. F12 reports/print. F
 - B18: settings.py uses a fast hasher only when "test" is in sys.argv.
 - B2 fair ranking: see OWNER DECISIONS MADE. Files: api/exam_publish.py,
   api/ranking_checks.py, api/test_publish_fairness.py.
+- B3 Django admin guard (schools/admin.py): locked Performance and published Exam cannot
+  be changed or deleted in admin; ExamResult is read-only (no add/change/delete); other
+  admin edits/deletes are logged (audit actions admin_edit/admin_create/admin_delete).
+  Side effect: students/schools with locked marks or results cannot be deleted in admin.
+  Tests: api/test_admin_audit.py.
 
 ## NEXT (in order)
-B3 Django admin audit bypass, B20 CI, then F1-F3 (theme, shell, ui.jsx).
+B20 CI (GitHub Actions: backend tests + npm build + lint), then B4 account management,
+B11/B14, and F1-F3 (theme, app shell, ui.jsx). Follow the plan's 8-week order.
 
 ## CHECK LATER (teachers may still read too much)
 dashboard, analytics, progress, early warning, exam results, mine.
@@ -105,3 +110,12 @@ DECISION 2 (4 Oct 2026) ranking with missing marks - IMPLEMENTED in B2:
 TEST CONVENTION: in new test files use "from . import tests as base" and base.XTests.
 Never "from .tests import XTests" (the runner would run those classes again).
 Test baseline now: 179 tests.
+
+## OPEN QUESTIONS FOR OWNER (ask one at a time)
+- Reject a mark of 0 (minimum 1)? Model still allows 0-100.
+- Decisions 1, 3, 4, 5, 6 above are still open (theme, grading, weights, portals, PDF).
+
+## HOW THIS SESSION WORKED (for the next AI)
+- Owner pastes blocks of 30 lines or fewer into the Codespaces terminal and sends a
+  screenshot. Read the screenshot carefully: "no issue" was wrong once (FAILED).
+- Every step was tested before commit. Verify with "Ran N tests / OK" from the real output.
