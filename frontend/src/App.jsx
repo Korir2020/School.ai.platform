@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { api, logout } from "./api";
 import Logo from "./Logo";
 import Hero from "./Hero";
+import Stats from "./Stats";
 import Login from "./Login";
 import Marks from "./Marks";
 import Approvals from "./Approvals";
@@ -20,7 +21,7 @@ import "./app.css";
 const flat = (o, p = "") => Object.entries(o || {}).flatMap(([k, v]) => v && typeof v === "object" ? (Array.isArray(v) || k === "active_term" ? [] : flat(v, k + " ")) : k === "role" ? [] : [[p + k, v]]);
 
 const Home = ({ me, d }) => (<div className="plain"><Hero me={me} d={d} />
-  <div className="stats">{flat(d).map(([k, v]) => <div className="stat" key={k}><b>{String(v)}</b><span>{k.replace(/_/g, " ")}</span></div>)}</div></div>);
+  <Stats d={d} /></div>);
 
 function Dash({ onOut }) {
   const [me, setMe] = useState(null), [d, setD] = useState(null), [tab, setTab] = useState("Home");
