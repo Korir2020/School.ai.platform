@@ -24,3 +24,21 @@ export async function logout() {
   try { await api("/api/auth/logout/", "POST", { refresh: localStorage.getItem("refresh") }); } catch (e) {}
   localStorage.clear();
 }
+
+// Fetch every page of a list endpoint (also accepts plain arrays).
+export async function listAll(path) {
+  const sep = path.includes("?") ? "&" : "?";
+  let url = `${path}${sep}page_size=200`;
+  const out = [];
+  for (let i = 0; i < 200 && url; i++) {
+    const r = await api(url);
+    if (!r.ok) return out;
+    const d = await r.json();
+    if (Array.isArray(d)) return d;
+    out.push(...(d.results || []));
+    if (!d.next) break;
+    const n = new URL(d.next, "http://x");
+    url = `${n.pathname}${n.search}`;
+  }
+  return out;
+}

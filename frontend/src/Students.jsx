@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
-import { api } from "./api";
+import { api, listAll as list } from "./api";
 
-const list = async (p) => { const r = await api(p + "?page_size=200"); return r.ok ? (await r.json()).results : []; };
 
 export default function Students({ d }) {
   const [x, setX] = useState(null), [f, setF] = useState({ first: "", last: "", adm: "", stream: "" }), [msg, setMsg] = useState("");
