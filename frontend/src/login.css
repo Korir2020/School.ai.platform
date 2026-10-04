@@ -83,3 +83,8 @@
 .gbox .pwf{background:rgba(0,0,0,.6)}
 .gbox .pwf input{font-size:1.15rem;letter-spacing:.12em;font-weight:800;color:#fff;text-shadow:0 1px 4px #000}
 .gbox .pwf input::placeholder{letter-spacing:0;font-size:1rem}
+
+/* Yellow tick like the reference */
+.gbox .rm input{appearance:none;-webkit-appearance:none;position:relative;width:18px;height:18px;border-radius:5px;border:1.5px solid rgba(255,255,255,.6);background:rgba(0,0,0,.35)}
+.gbox .rm input:checked{background:#facc15;border-color:#facc15}
+.gbox .rm input:checked::after{content:"";position:absolute;left:5px;top:1px;width:5px;height:10px;border:solid #111;border-width:0 2.5px 2.5px 0;transform:rotate(45deg)}

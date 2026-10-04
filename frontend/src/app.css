@@ -37,14 +37,6 @@ nav button.on{color:#fff;background:var(--line)}
   .reportcard h4{font-size:1.4rem}
 }
 
-@media print{
-  header,nav,select,button,.splash{display:none!important}
-  body{background:#fff!important}
-  *{color:#000!important;background:none!important;border:0!important;box-shadow:none!important}
-  main{max-width:none;padding:0}
-  main>div>h3{display:none}
-  .reportcard h4{font-size:1.4rem}
-}
 h1,h2,h3,h4{color:var(--txt)}
 .auth{position:relative;z-index:1;align-items:flex-start;padding-top:6vh}
 .card.shake{animation:shk .42s ease-in-out}
