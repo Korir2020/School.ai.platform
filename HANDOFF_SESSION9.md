@@ -33,8 +33,7 @@ Deployed on Render (practice only). Repo root: /workspaces/School.ai.platform.
 5 Student/parent portals (not building). 6 PDF: browser print vs server PDF.
 
 ## BACKEND PLAN
-P1: B1 teacher scoping (IN PROGRESS). B2 fair ranking in exam_publish: missing student
-or subject -> 409 with capped list+counts; admin-only allow_incomplete audited; ties 1,1,3.
+P1 (B1 and B2 are DONE, see the DONE list):
 B3 Django admin must not silently edit locked Performance/Exam/ExamResult.
 B4 account mgmt: deactivate/reset teacher password, POST /api/schools/ + first admin
 (superuser only), throttle change_password + blacklist refresh tokens.
@@ -47,7 +46,7 @@ ReportComment model, keep approved/locked only. B8 Student.status + POST /api/pr
 P3: B11 audit filters+pagination+more events. B12 /api/search/. B13 /api/notifications/
 (computed). B14 /api/approvals/summary/ (DB aggregation, flag 0/100/outliers).
 B15 analytics: official vs draft separate. B16 /api/students/<id>/profile/ (no attendance).
-P4: B17 indexes + select_related. B18 MD5 hasher when "test" in sys.argv. B19 cleanup:
+P4: B17 indexes + select_related. B19 cleanup:
 dead MAILERS, urls.py imports, students_api.py "if False" hack, split requirements,
 HSTS later, stale docs. B20 GitHub Actions CI (tests + build + lint).
 
@@ -76,19 +75,21 @@ compress login-pic.png (2.2 MB) to WebP. F11 offline marks. F12 reports/print. F
   reads must create a TeacherAssignment AND an Enrollment of the student in that stream.
 - Phase 1 ui.jsx / ui.css / Marks.jsx rewrite were NOT in the repo (F1-F3, F7 redo them).
 
-## PROGRESS LOG (update after every commit+push)
-DONE+pushed: listAll in api.js; 8 screens use it. select_for_update in exam_publish.
-B1 DONE (teacher scoping), 176 tests OK: permissions.py (is_teacher_only,
-restrict_for_teacher); applied in views.py _list + performance_list, admin_edit._find,
-report_cards. Teachers see only their own classes (404 otherwise). New tests:
-api/test_teacher_scope.py. Old tests fixed: tests.py, test_report_card_ranks.py,
-test_admin_edit.py (teachers now need TeacherAssignment + Enrollment).
-B18 DONE: settings.py uses MD5 hasher only when 'test' in sys.argv (tests much faster).
-B2 DONE (fair ranking), 179 tests OK. Files: api/exam_publish.py, api/ranking_checks.py,
-api/test_publish_fairness.py.
-NEXT: B3 (Django admin audit bypass), B20 (CI), then F1-F3 (theme, shell, ui.jsx).
-CHECK LATER for teachers still reading too much: dashboard, analytics, progress,
-early warning, exam results, mine.
+## DONE (committed and pushed). Test baseline: 179 tests, all OK.
+- Frontend: listAll() in api.js; 8 screens load every page (no 200-row cap).
+- exam_publish: exam row locked, so a concurrent publish returns 409.
+- B1 teacher scoping: permissions.py is_teacher_only + restrict_for_teacher, applied in
+  views.py (_list, performance_list), admin_edit._find, report_cards. A teacher sees only
+  streams/subjects they are assigned (else 404). Tests: api/test_teacher_scope.py.
+- B18: settings.py uses a fast hasher only when "test" is in sys.argv.
+- B2 fair ranking: see OWNER DECISIONS MADE. Files: api/exam_publish.py,
+  api/ranking_checks.py, api/test_publish_fairness.py.
+
+## NEXT (in order)
+B3 Django admin audit bypass, B20 CI, then F1-F3 (theme, shell, ui.jsx).
+
+## CHECK LATER (teachers may still read too much)
+dashboard, analytics, progress, early warning, exam results, mine.
 
 ## OWNER DECISIONS MADE
 DECISION 2 (4 Oct 2026) ranking with missing marks - IMPLEMENTED in B2:
