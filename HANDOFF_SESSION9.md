@@ -119,3 +119,29 @@ Test baseline now: 179 tests.
 - Owner pastes blocks of 30 lines or fewer into the Codespaces terminal and sends a
   screenshot. Read the screenshot carefully: "no issue" was wrong once (FAILED).
 - Every step was tested before commit. Verify with "Ran N tests / OK" from the real output.
+
+## PROGRESS LOG
+- B20 DONE (4 Oct 2026, commit 63169b1): .github/workflows/ci.yml, two jobs.
+  backend: Python 3.12, requirements-prod.txt, DJANGO_DEBUG=True, manage.py test.
+  frontend: Node 22, npm ci, build, lint. First run green: Ran 182 tests, OK.
+- B4 parts 1-3 DONE (4 Oct 2026). Test baseline now 199, CI green on each push.
+  Part 1 (cedec75, then 1b): api/teacher_accounts.py. PATCH /api/teachers/<id>/
+  {is_active: bool}; POST /api/teachers/<id>/reset-password/ {password}. Admin or
+  deputy, own school only (other school 404, teacher 403). Audited (teacher_activated,
+  teacher_deactivated, teacher_password_reset). Reset blacklists that teacher's
+  refresh tokens. GET /api/teachers/ now returns is_active.
+  Part 2: api/password_throttle.py. change-password 5/min per user (1000 in tests).
+  Part 3: api/session_cleanup.py end_other_sessions(). change-password signs out the
+  other devices and keeps this one when the body has "refresh" (Password.jsx sends
+  it). Missing, invalid or foreign token = every session signed out. Owner delegated
+  this choice ("you know better").
+- B4 STILL TO DO: POST /api/schools/ + first admin (superuser only).
+- GAP: no password reset for school admins or deputies (teachers only). A forgotten
+  admin password needs a superuser in Django admin. Consider deputy reset by the
+  school admin, plus a superuser reset endpoint.
+- Frontend not wired yet: no UI for teacher deactivate or reset (F-series).
+- HANDOFF.md (old doc) had uncommitted edits from before this session; not touched.
+- Workflow that worked: new file guard [ ! -e f ] && cat > f; sed edits guarded by a
+  wc -l check; verify CI with gh run list and gh run view <id> --log | grep Ran.
+- The "NEXT (in order)" section above is OUTDATED. Real NEXT: POST /api/schools/
+  (B4), then B11/B14, B5, F1-F3.
