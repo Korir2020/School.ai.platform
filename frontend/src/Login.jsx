@@ -27,7 +27,7 @@ export default function Login({ onDone }) {
         <input id="lp" onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ block: "center", behavior: "smooth" }), 350)} placeholder="Your password" type={see ? "text" : "password"} autoComplete="current-password" value={p} onChange={(e) => setP(e.target.value)} />
         <button type="button" className="eye" onClick={() => setSee(!see)} aria-label={see ? "Hide password" : "Show password"}><Ic d={EYE} /></button></div></div>
     {u.trim() && <div className="rmrow fade"><label className="rm"><input type="checkbox" defaultChecked /><span>Remember me</span></label>
-      <button type="button" className="lnk" onClick={() => setNote("Password reset is not available yet. Ask your school admin.")}>Forgot password?</button></div>}
+      <button type="button" className="lnk" onClick={() => setNote("Forgot your password? Teachers and deputies: ask your school administrator. Administrators: contact the Marian platform owner.")}>Forgot password?</button></div>}
     {p.length >= 4 && <button className="sign fade" disabled={!!st}>{st === "wait" ? "Checking..." : "Sign In  →"}</button>}
     {err && <p className="lerr">{err}</p>}
     {p.length >= 4 && <div className="alt fade"><p className="orc">OR CONTINUE WITH</p>
