@@ -4,6 +4,7 @@ from rest_framework.decorators import api_view, throttle_classes
 from rest_framework.response import Response
 
 from .password_throttle import PasswordRateThrottle
+from .session_cleanup import end_other_sessions
 
 
 @api_view(["POST"])
@@ -23,4 +24,5 @@ def change_password(request):
         return Response({"detail": " ".join(e.messages)}, status=400)
     user.set_password(new)
     user.save()
+    end_other_sessions(user, request.data.get("refresh"))
     return Response({"detail": "Password changed."})
