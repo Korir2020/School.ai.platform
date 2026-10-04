@@ -102,6 +102,9 @@ def exam_publish(request, pk):
         stream_values[stream_of[sid]].append(value)
 
     with transaction.atomic():
+        locked = Exam.objects.select_for_update().get(pk=exam.pk)
+        if locked.status != "draft":
+            return Response({"detail": "Exam is already published."}, status=409)
         ExamResult.objects.bulk_create([
             ExamResult(
                 exam=exam, student_id=sid, overall_average=value,
