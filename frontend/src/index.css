@@ -110,16 +110,16 @@ code {
   background: var(--code-bg);
 }
 
-.splash{position:fixed;inset:0;z-index:99;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:48px;background:radial-gradient(120% 90% at 50% 20%,#0b2a6b 0%,#041a45 45%,#020b24 100%);color:#F8FAFC;overflow:hidden;transition:opacity 3s ease,transform 3s ease;cursor:pointer}
+.splash{position:fixed;inset:0;z-index:99;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:48px;background:radial-gradient(120% 90% at 50% 20%,#4a3410 0%,#0b0b0b 45%,#000000 100%);color:#F8FAFC;overflow:hidden;transition:opacity 3s ease,transform 3s ease;cursor:pointer}
 .splash.out{opacity:0;transform:scale(1.04);pointer-events:none}
-.glow{position:absolute;width:140vmax;height:140vmax;background:conic-gradient(from 0deg,transparent,#2563EB33,transparent 40%,#06B6D422,transparent 70%,#22C55E22,transparent);animation:spin 18s linear infinite;filter:blur(40px)}
+.glow{position:absolute;width:140vmax;height:140vmax;background:conic-gradient(from 0deg,transparent,#facc1533,transparent 40%,#facc1522,transparent 70%,#fde04722,transparent);animation:spin 18s linear infinite;filter:blur(40px)}
 .brand{position:relative;display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center;animation:rise .9s ease both}
 .brand h1{margin:0;font-size:2.4rem;letter-spacing:.4em;padding-left:.4em;font-weight:600}
 .brand p{margin:6px 0 0;font-size:1rem;opacity:.85}
 .path{position:relative;display:flex;gap:18px;list-style:none;margin:0;padding:0 16px;flex-wrap:wrap;justify-content:center;font-size:.85rem}
 .path li{display:flex;flex-direction:column;align-items:center;gap:8px;opacity:0;animation:rise .6s ease both}
-.path i{width:12px;height:12px;border-radius:50%;background:#06B6D4;box-shadow:0 0 0 4px #06B6D433,0 0 14px #06B6D4}
-.path li:last-child i{background:#22C55E;box-shadow:0 0 0 4px #22C55E33,0 0 14px #22C55E}
+.path i{width:12px;height:12px;border-radius:50%;background:#facc15;box-shadow:0 0 0 4px #facc1533,0 0 14px #facc15}
+.path li:last-child i{background:#fde047;box-shadow:0 0 0 4px #fde04733,0 0 14px #fde047}
 .bar{transform-origin:bottom;transform-box:fill-box;animation:grow .7s ease both}
 @keyframes grow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
 @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}

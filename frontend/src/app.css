@@ -49,3 +49,19 @@ h1,h2,h3,h4{color:var(--txt)}
 .auth{position:relative;z-index:1;align-items:flex-start;padding-top:6vh}
 .card.shake{animation:shk .42s ease-in-out}
 @keyframes shk{0%,100%{transform:translateX(0)}20%{transform:translateX(-9px)}40%{transform:translateX(9px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}}
+
+/* Marian black and gold theme (blue kept as accent) */
+:root{--card:#111111;--line:#3b2f10;--mut:#b8ad8a}
+body{background:radial-gradient(120% 80% at 70% 0%,#4a3410,#0b0b0b 55%,#000) fixed}
+input,select{background:#0c0c0c}
+input:focus,select:focus{outline:0;border-color:#facc15;box-shadow:0 0 0 3px rgba(250,204,21,.18)}
+button{color:#111;background:linear-gradient(180deg,#fde047,#facc15)}
+.ghost{background:transparent;color:#7dd3fc;border:1px solid #2563EB}
+.card{background:#111111cc}
+header{background:#0a0a0acc}
+header b{color:#facc15}
+nav{background:#0a0a0af2}
+nav button.on{color:#7dd3fc;background:#0c1a33;box-shadow:inset 0 -3px 0 #2563EB}
+.stat{border-top:2px solid #2563EB}
+.stat b{color:#facc15}
+main h3,main h4{color:#facc15}

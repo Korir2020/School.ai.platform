@@ -10,5 +10,5 @@ export default function Analytics({ d }) {
     {s.subjects.length === 0 && <p>No approved marks yet.</p>}
     {s.subjects.map((x) => (<div key={x.subject} style={{ margin: "12px 0" }}>
       <b>{x.subject}</b> <span className="sub">avg {x.average}% · high {x.highest} · low {x.lowest} · {x.entries} entries</span>
-      <div style={{ height: 10, borderRadius: 6, background: "#06153a", overflow: "hidden" }}><div style={{ width: Math.min(x.average, 100) + "%", height: "100%", background: "linear-gradient(90deg,#2563EB,#22C55E)" }} /></div></div>))}</div>);
+      <div style={{ height: 10, borderRadius: 6, background: "#1a1a1a", overflow: "hidden" }}><div style={{ width: Math.min(x.average, 100) + "%", height: "100%", background: "linear-gradient(90deg,#facc15,#f59e0b)" }} /></div></div>))}</div>);
 }

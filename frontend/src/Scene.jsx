@@ -17,7 +17,7 @@ function Kid({ x, skin, shirt, i = 0, girl, cls = "", look = 0, children }) {
 export default function Scene({ stage = "" }) {
   return (<svg className={"bg scene " + stage} viewBox="28 0 310 640" preserveAspectRatio="xMidYMax meet" aria-hidden="true">
     <defs>
-      <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#020b24" /><stop offset=".55" stopColor="#0b2a6b" /><stop offset=".85" stopColor="#0e7490" /><stop offset="1" stopColor="#f59e0b" /></linearGradient>
+      <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#000000" /><stop offset=".55" stopColor="#1a1203" /><stop offset=".85" stopColor="#7a5200" /><stop offset="1" stopColor="#f59e0b" /></linearGradient>
       <radialGradient id="lt" cx=".5" cy=".75" r=".8"><stop offset="0" stopColor="#fffbe0" /><stop offset=".55" stopColor="#ffd45a" /><stop offset="1" stopColor="#f59e0b" /></radialGradient>
       <linearGradient id="spill" x1="1" y1="0" x2="0" y2="0"><stop offset="0" stopColor="#ffd27a" stopOpacity=".55" /><stop offset="1" stopColor="#ffd27a" stopOpacity="0" /></linearGradient>
       <radialGradient id="halo" cx=".5" cy=".5" r=".5"><stop offset="0" stopColor="#ffd45a" stopOpacity=".5" /><stop offset="1" stopColor="#ffd45a" stopOpacity="0" /></radialGradient>
@@ -25,11 +25,11 @@ export default function Scene({ stage = "" }) {
     <rect width="360" height="640" fill="url(#sky)" />
     <g fill="#fff">{[[40, 70], [326, 110], [44, 200], [322, 260], [38, 330], [328, 400]].map(([a, b]) => <circle key={a} cx={a} cy={b} r="1.2" opacity=".7" />)}</g>
     <circle cx="92" cy="548" r="44" fill="#fbbf24" opacity=".9" />
-    <path d="M0 560 Q90 520 180 555 T360 540 L360 640 L0 640Z" fill="#0b3b4a" />
-    <path d="M0 596 Q120 572 240 598 T360 590 L360 640 L0 640Z" fill="#06202b" />
+    <path d="M0 560 Q90 520 180 555 T360 540 L360 640 L0 640Z" fill="#1c1405" />
+    <path d="M0 596 Q120 572 240 598 T360 590 L360 640 L0 640Z" fill="#0a0a0a" />
     <circle className="halo" cx="296" cy="565" r="78" fill="url(#halo)" />
-    <rect x="262" y="480" width="68" height="134" rx="5" fill="#0b2f3d" stroke="#1e3a78" />
-    <rect x="266" y="487" width="60" height="19" rx="4" fill="#0b1d46" stroke="#e0b17a" />
+    <rect x="262" y="480" width="68" height="134" rx="5" fill="#14110a" stroke="#4a3a12" />
+    <rect x="266" y="487" width="60" height="19" rx="4" fill="#111111" stroke="#e0b17a" />
     <text x="296" y="500.5" textAnchor="middle" fontSize="10.5" fontWeight="800" letterSpacing="2.4" fill="#fff4d1" fontFamily="system-ui,sans-serif">MARIAN</text>
     <path d="M274 612 V534 Q274 514 296 514 Q318 514 318 534 V612Z" fill="#2a1a0c" />
     <path className="lgt" d="M274 612 V534 Q274 514 296 514 Q318 514 318 534 V612Z" fill="url(#lt)" />
