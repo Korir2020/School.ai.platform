@@ -111,3 +111,7 @@ header .ghost{font-size:.8rem;padding:6px 12px;border-radius:999px}
 .more button{margin:0;text-align:left;padding:13px 14px;background:transparent;color:var(--txt);border-radius:10px}
 .more button.on{color:var(--blue-hi);background:#0d1a33}
 @media print{.dock,.more{display:none!important}}
+/* Splash text spacing */
+.brand h1{line-height:1.25;margin:0 0 10px}
+.brand p{line-height:1.4;margin:0}
+.brand>div{display:flex;flex-direction:column;align-items:center}
