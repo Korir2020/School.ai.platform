@@ -14,9 +14,22 @@ export default function Teachers() {
   if (!x) return <p>Loading teachers...</p>;
   const post = async (path, body, ok) => { const r = await api(path, "POST", body), j = await r.json(); setMsg(r.ok ? ok : "Failed: " + (j.detail || JSON.stringify(j))); load(); return r.ok; };
   const nm = (arr, id) => arr.find((z) => z.id === id) || {};
+  const toggle = async (t) => {
+    if (t.is_active && !window.confirm("Deactivate " + t.name + "? They will not be able to log in.")) return;
+    const r = await api("/api/teachers/" + t.id + "/", "PATCH", { is_active: !t.is_active });
+    setMsg(r.ok ? (t.is_active ? "Deactivated " : "Activated ") + t.name : "Failed to update " + t.name);
+    load();
+  };
+  const reset = async (t) => {
+    const pw = window.prompt("New password for " + t.username + " (they will be signed out everywhere):");
+    if (!pw) return;
+    const r = await api("/api/teachers/" + t.id + "/reset-password/", "POST", { password: pw }), j = await r.json().catch(() => ({}));
+    setMsg(r.ok ? "Password reset for " + t.username : "Failed: " + (j.detail || JSON.stringify(j)));
+  };
   const sel = (k, ph, opts) => <select value={a[k]} onChange={(e) => setA({ ...a, [k]: e.target.value })}><option value="">{ph}</option>{opts.map((o) => <option key={o.id} value={o.id}>{o.label || o.name}</option>)}</select>;
   return (<div><h3>Teachers</h3>
-    <p>{x.tc.map((t) => t.name + " (" + t.username + ")").join(", ") || "No teachers yet"}</p>
+    {x.tc.length === 0 && <p>No teachers yet</p>}
+    {x.tc.map((t) => <p key={t.id}>{t.name} ({t.username}{t.is_active ? "" : ", inactive"}) <button className="ghost" onClick={() => toggle(t)}>{t.is_active ? "Deactivate" : "Activate"}</button> <button className="ghost" onClick={() => reset(t)}>Reset password</button></p>)}
     {Object.keys(blank).map((k) => <input key={k} type={k === "password" ? "password" : "text"} placeholder={k.replace("_", " ")} value={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.value })} />)}
     <button disabled={!f.username || !f.password} onClick={async () => { if (await post("/api/teachers/", f, "Teacher created")) setF(blank); }}>Add teacher</button>
     <h4>Assign to class</h4>
