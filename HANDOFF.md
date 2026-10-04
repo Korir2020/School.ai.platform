@@ -100,3 +100,12 @@ BUILD ORDER (one commit per step, owner tests at the end):
 5. Recent activity from GET /api/audit-logs/ (admin, max 200 rows).
 6. Bottom dock with icons plus More.
 7. Split the People tab into Students and Teachers tabs (Deputies box goes under Teachers, non-deputy admin only). Teachers get a simpler Home.
+
+## SESSION 8 RESULT (4 Oct 2026) READ THIS FIRST. Pushed as 9fb1420.
+DONE, tested in preview, pushed (live on Render):
+- Dashboard redesign steps 2 to 7: Hero.jsx (welcome + active term dot), Stats.jsx (stat cards + Marks overview meter), Quick.jsx (quick actions, admin only), Activity.jsx (recent activity from /api/audit-logs/, admin only), Dock.jsx (bottom dock: Home, Approve, Exams, Reports, Analytics, Marks + More), Mine.jsx (teacher "My classes"). People split into Students and Teachers (both under More; Deputies box under Teachers, non-deputy admin only). Styles appended at the end of app.css.
+- New intro: Intro.jsx + intro.css (blue/green/gold blend, book opens, bars rise, graph line draws, MARIAN + cards 92% Pass rate and +14% Improvement, auto-goes to login at ~6s, tap skips). App.jsx now imports Intro, not Welcome.
+- New glass login: Login.jsx + login.css rewritten (cut corners top-left and bottom-right with triangle pieces, fold-close success animation, logo seal, then app). Old files saved as Login.jsx.bak and login.css.bak. Google/Apple/Sign Up/Remember me left out on purpose (no backend).
+LEFT OVER, not committed (owner experiments): Welcome.jsx (M), welcome.css (M), Universe.jsx, universe.css, Mascot.jsx, *.backup, login pictures in assets. Welcome.jsx and Universe.jsx are now unused.
+STILL OPEN: small cleanup (splash tagline overlaps MARIAN, delete unused App.css with capital A, remove .bak files); real logo files; background inside app tabs; parent and student screens; creating schools and first admin in-app; paid Render plan, strong admin password and backups before real schools (no real student data on the free tier).
+OWNER RULES unchanged: phone only, ONE action per message, pastes of 30 lines or fewer, exact folder, ask for exact output, ls before mv or cat > on an existing name.
