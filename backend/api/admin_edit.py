@@ -10,6 +10,7 @@ from .serializers import (
     AcademicYearSerializer, EnrollmentSerializer, StreamSerializer,
     StudentSerializer, SubjectSerializer, TermSerializer,
 )
+from .permissions import restrict_for_teacher
 from .views import _scope
 
 
@@ -20,6 +21,7 @@ def _find(request, pk, model, school_path):
     qs = model.objects.all()
     if school_id is not None:
         qs = qs.filter(**{school_path: school_id})
+    qs = restrict_for_teacher(request.user, qs)
     obj = qs.filter(pk=pk).first()
     if obj is None:
         return None, Response({"detail": "Not found."}, status=404)

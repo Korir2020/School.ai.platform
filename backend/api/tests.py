@@ -29,10 +29,10 @@ class SchoolIsolationTests(APITestCase):
         self.client.force_authenticate(self.nobody)
         self.assertEqual(self.client.get("/api/students/").status_code, 403)
 
-    def test_teacher_sees_only_own_school(self):
+    def test_unassigned_teacher_sees_no_students(self):
         self.client.force_authenticate(self.teacher_a)
         names = [s["first_name"] for s in self.client.get("/api/students/").json()["results"]]
-        self.assertEqual(names, ["Ann"])
+        self.assertEqual(names, [])  # no assignments, no classes
 
     def test_school_admin_sees_only_own_school(self):
         self.client.force_authenticate(self.admin_b)
@@ -353,7 +353,12 @@ class AllEndpointIsolationTests(APITestCase):
             )
             self.schools[tag] = school
         self.teacher = User.objects.create_user("iso_t", password="pass12345")
-        TeacherProfile.objects.create(user=self.teacher, school=self.schools["A"])
+        tp = TeacherProfile.objects.create(user=self.teacher, school=self.schools["A"])
+        sa = self.schools["A"]
+        TeacherAssignment.objects.create(
+            teacher=tp, school=sa, subject=Subject.objects.get(school=sa),
+            stream=Stream.objects.get(school=sa),
+        )
         self.root = User.objects.create_superuser("iso_root", "r@x.com", "pass12345")
 
     def test_teacher_sees_exactly_one_row_per_endpoint(self):

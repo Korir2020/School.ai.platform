@@ -4,7 +4,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
 from schools.models import ExamResult, Performance, SchoolAdminProfile, Student, Term
-from .permissions import get_user_school_id
+from .permissions import get_user_school_id, restrict_for_teacher
 
 
 def _avg(values):
@@ -19,6 +19,7 @@ def report_card(request, student_id, term_id):
         if school_id is None:
             return Response({"detail": "School access not assigned."}, status=403)
         students = students.filter(school_id=school_id)
+    students = restrict_for_teacher(request.user, students)
     student = students.filter(pk=student_id).first()
     if student is None:
         return Response({"detail": "Not found."}, status=404)

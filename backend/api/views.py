@@ -6,7 +6,7 @@ from schools.models import (
     Stream, Enrollment, Subject, Performance,
 )
 from .pagination import paginated_response
-from .permissions import get_user_school_id
+from .permissions import get_user_school_id, restrict_for_teacher
 from schools.models import MarkAuditLog
 from .serializers import (
     SchoolSerializer, StudentSerializer, AcademicYearSerializer,
@@ -33,6 +33,7 @@ def _list(request, model, serializer_class, school_field):
     queryset = model.objects.all()
     if school_id is not None and school_field:
         queryset = queryset.filter(**{school_field: school_id})
+    queryset = restrict_for_teacher(request.user, queryset)
     return paginated_response(request, queryset, serializer_class)
 
 
@@ -93,6 +94,7 @@ def performance_list(request):
         queryset = Performance.objects.all()
         if school_id is not None:
             queryset = queryset.filter(student__school_id=school_id)
+        queryset = restrict_for_teacher(request.user, queryset)
         return paginated_response(request, queryset, PerformanceSerializer)
 
     serializer = PerformanceSerializer(data=request.data)

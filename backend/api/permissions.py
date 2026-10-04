@@ -33,3 +33,39 @@ def get_user_school_id(user):
     if profile:
         return profile.school_id
     return None
+
+
+def is_teacher_only(user):
+    if not user or not user.is_authenticated or user.is_superuser:
+        return False
+    if SchoolAdminProfile.objects.filter(user=user).exists():
+        return False
+    return TeacherProfile.objects.filter(user=user).exists()
+
+
+def restrict_for_teacher(user, qs):
+    """Plain teachers see only their own classes. Others unchanged."""
+    if not is_teacher_only(user):
+        return qs
+    from django.db.models import Q
+    from schools.models import (
+        Enrollment, Performance, Student, Subject, TeacherAssignment,
+    )
+    rows = TeacherAssignment.objects.filter(teacher__user=user)
+    mine = list(rows.values_list("subject_id", "stream_id"))
+    streams = {st for _, st in mine}
+    m = qs.model
+    if m is TeacherAssignment:
+        return qs.filter(teacher__user=user)
+    if m is Subject:
+        return qs.filter(id__in={s for s, _ in mine})
+    if m is Enrollment:
+        return qs.filter(stream_id__in=streams)
+    if m is Student:
+        return qs.filter(enrollment__stream_id__in=streams).distinct()
+    if m is Performance:
+        q = Q(pk__in=[])
+        for subj, st in mine:
+            q |= Q(subject_id=subj, student__enrollment__stream_id=st)
+        return qs.filter(q).distinct()
+    return qs

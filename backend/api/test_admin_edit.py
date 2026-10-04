@@ -48,6 +48,9 @@ class AdminEditTests(APITestCase):
         self.assertEqual(self.client.patch(f"/api/students/{self.student.id}/", {}).status_code, 401)
 
     def test_teacher_can_read_but_not_edit(self):
+        Enrollment.objects.create(
+            student=self.student, academic_year=self.year,
+            class_level=self.l1, stream=self.stream)
         self.client.force_authenticate(self.t_user)
         self.assertEqual(self.client.get(f"/api/students/{self.student.id}/").status_code, 200)
         r = self.patch(self.t_user, f"/api/students/{self.student.id}/", {"first_name": "X"})

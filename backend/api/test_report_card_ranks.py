@@ -5,6 +5,7 @@ from django.utils import timezone
 from rest_framework.test import APITestCase
 
 from schools.models import (
+    Enrollment, Stream, Subject, TeacherAssignment,
     AcademicYear, ClassLevel, Curriculum, Exam, ExamResult, School,
     SchoolAdminProfile, Student, TeacherProfile, Term,
 )
@@ -39,7 +40,13 @@ class ReportCardRankTests(APITestCase):
         self.admin = User.objects.create_user("admin", password="pass12345")
         SchoolAdminProfile.objects.create(user=self.admin, school=self.school)
         self.teacher = User.objects.create_user("teacher", password="pass12345")
-        TeacherProfile.objects.create(user=self.teacher, school=self.school)
+        tp = TeacherProfile.objects.create(user=self.teacher, school=self.school)
+        stream = Stream.objects.create(school=self.school, class_level=level, name="E")
+        Enrollment.objects.create(
+            student=self.student, academic_year=year, class_level=level, stream=stream)
+        subj = Subject.objects.create(school=self.school, name="M", code="M")
+        TeacherAssignment.objects.create(
+            teacher=tp, school=self.school, subject=subj, stream=stream)
         self.other_admin = User.objects.create_user("other", password="pass12345")
         SchoolAdminProfile.objects.create(user=self.other_admin, school=other)
         self.url = f"/api/report-card/{self.student.id}/{self.term.id}/"
