@@ -166,3 +166,10 @@ urlpatterns += [
     path('api/deputies/', deputy_collection),
     path('api/deputies/<int:pk>/', deputy_detail),
 ]
+
+from api.teacher_accounts import teacher_detail, teacher_reset_password
+
+urlpatterns += [
+    path('api/teachers/<int:pk>/', teacher_detail),
+    path('api/teachers/<int:pk>/reset-password/', teacher_reset_password),
+]
