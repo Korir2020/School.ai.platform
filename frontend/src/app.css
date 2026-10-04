@@ -94,3 +94,11 @@ header .ghost{font-size:.8rem;padding:6px 12px;border-radius:999px}
 .qa h3{margin:8px 0 10px;font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--mut)}
 .qrow{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px}
 .qrow button{flex:0 0 auto;margin:0;padding:10px 14px;border-radius:999px;font-size:.82rem;background:#0d1a33;color:var(--blue-hi);border:1px solid #1d3a73}
+/* Recent activity */
+.act h3{margin:8px 0 10px;font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--mut)}
+.arow{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line);font-size:.82rem}
+.arow:first-of-type{border-top:0}
+.arow i{flex:0 0 8px;height:8px;border-radius:50%}
+.arow span{flex:1;min-width:0;color:var(--mut)}
+.arow span b{color:var(--txt);font-weight:600}
+.arow em{flex:0 0 auto;font-style:normal;font-size:.72rem;color:var(--mut)}

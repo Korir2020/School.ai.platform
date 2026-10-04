@@ -4,6 +4,7 @@ import Logo from "./Logo";
 import Hero from "./Hero";
 import Stats from "./Stats";
 import Quick from "./Quick";
+import Activity from "./Activity";
 import Login from "./Login";
 import Marks from "./Marks";
 import Approvals from "./Approvals";
@@ -32,7 +33,7 @@ function Dash({ onOut }) {
   })(); }, []);
   const role = d && d.role;
   const need = (el) => (d.active_term ? el : <p className="plain">No active term yet. Create one in Setup first.</p>);
-  const home = d && <><Home me={me} d={d} />{role === "school_admin" && <Quick go={setTab} tabs={{ Approve: 1, Exams: 1, Reports: 1, People: 1, Analytics: 1 }} />}<Password /></>;
+  const home = d && <><Home me={me} d={d} />{role === "school_admin" && <Quick go={setTab} tabs={{ Approve: 1, Exams: 1, Reports: 1, People: 1, Analytics: 1 }} />}{role === "school_admin" && <Activity />}<Password /></>;
   const tabs = role === "teacher" ? { Home: home, Marks: need(<Marks d={d} />) }
     : role === "school_admin" ? { Home: home, Approve: <Approvals />, Exams: need(<Exams d={d} />), Reports: need(<ReportCards d={d} />), Analytics: need(<Analytics d={d} />), People: need(<><Students d={d} /><Teachers />{me && !me.is_deputy && <Deputies />}</>), Setup: <><Terms /><Setup /></> }
     : d ? { Home: home } : {};
