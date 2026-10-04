@@ -7,7 +7,7 @@
 .gbox label{display:block;margin:14px 0 0 2px;font-size:.82rem;font-weight:600}
 .fld{position:relative;display:flex;align-items:center;margin:7px 3px 0;border:1px solid rgba(255,255,255,.09);border-radius:12px;background:rgba(255,255,255,.04);color:#8b8576;padding:0 12px;overflow:hidden}
 .fld:focus-within{border-color:#facc15;box-shadow:0 0 0 3px rgba(250,204,21,.16)}
-.fld .ic{width:18px;height:18px;flex:none}
+.fld .lic{width:18px;height:18px;flex:none}
 .gbox .fld input{flex:1;min-width:0;max-width:none;margin:0;border:0;background:transparent;color:#f8fafc;padding:14px 8px;outline:0}
 .gbox .eye{background:none;margin:0;padding:6px;color:#8b8576;border-radius:8px}
 .pwrow{max-height:0;opacity:0;overflow:hidden;transition:max-height .4s,opacity .4s}
@@ -41,3 +41,45 @@
 @keyframes lseal{from{opacity:0;transform:scale(.3) rotate(-25deg)}to{opacity:1;transform:none}}
 @keyframes lzoom{to{transform:scale(1.15);opacity:0}}
 @media (prefers-reduced-motion:reduce){.lg,.lg *{animation:none!important;transition:none!important}.fade{opacity:1}}
+
+/* Picture behind the login box only */
+.gbox{isolation:isolate;font-weight:700;border:1px solid rgba(255,255,255,.22)}
+.gbox::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:28px;background:linear-gradient(rgba(0,0,0,.42),rgba(0,0,0,.55)),url(./assets/login-pic.png) 28% center/cover no-repeat;opacity:.82}
+/* Thick writing */
+.gbox h2{font-weight:800;text-shadow:0 2px 8px rgba(0,0,0,.8)}
+.gbox label{font-weight:800;font-size:.88rem;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.9)}
+.lsub{color:#f1ede0;font-weight:600;text-shadow:0 1px 6px rgba(0,0,0,.9)}
+.gbox .fld input{font-weight:700;color:#fff}
+.gbox .fld input::placeholder{color:#d6d0bf;font-weight:600}
+.gbox .fld{background:rgba(0,0,0,.35);border-color:rgba(255,255,255,.22)}
+.gbox .sign{font-weight:800}
+.lerr{font-weight:700}
+
+/* Box styled like the reference: glass, thin outline, corner pieces with a gap */
+.gbox::before{opacity:.7}
+.gbox::after{content:"";position:absolute;inset:0;z-index:2;pointer-events:none;border-radius:28px;border:1px solid rgba(255,255,255,.3);background:linear-gradient(135deg,transparent 36px,rgba(255,255,255,.45) 37px,transparent 38px) 0 0/60px 60px no-repeat,linear-gradient(-45deg,transparent 36px,rgba(255,255,255,.45) 37px,transparent 38px) 100% 100%/60px 60px no-repeat}
+.dog{width:42px;height:42px;transform-origin:21px 21px;clip-path:none;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 42 42'%3E%3Cpath d='M2 2H38Q41 2 39 5L5 39Q2 41 2 38Z' fill='rgba(255,255,255,0.12)' stroke='rgba(255,255,255,0.6)' stroke-width='1.4' stroke-linejoin='round'/%3E%3C/svg%3E") center/100% 100% no-repeat}
+.dog.br{clip-path:none;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 42 42'%3E%3Cpath d='M40 40H4Q1 40 3 37L37 3Q40 1 40 4Z' fill='rgba(255,255,255,0.12)' stroke='rgba(255,255,255,0.6)' stroke-width='1.4' stroke-linejoin='round'/%3E%3C/svg%3E") center/100% 100% no-repeat}
+.lg.ok .dog.tl{clip-path:polygon(0 0,100% 0,0 100%);background:linear-gradient(135deg,#a16207,#facc15 45%,#fff3b0)}
+.lg.ok .dog.br{clip-path:polygon(100% 0,100% 100%,0 100%);background:linear-gradient(-45deg,#a16207,#facc15 45%,#fff3b0)}
+
+/* Extra rows in reference order */
+.rmrow{display:flex;justify-content:space-between;align-items:center;margin:12px 3px 0;font-size:.82rem;font-weight:700;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.9)}
+.gbox .rm{display:flex;align-items:center;gap:8px;margin:0;font-size:.82rem;cursor:pointer}
+.gbox .rm input{display:inline-block;width:16px;height:16px;margin:0;padding:0;accent-color:#facc15}
+.gbox .lnk{border:0;background:none;margin:0;padding:2px 0;border-radius:0;color:#f1ede0;font-weight:700;font-size:inherit;box-shadow:none}
+.gbox .lnk.gold{color:#facc15;padding:0}
+.alt{text-align:center}
+.orc{margin:20px 0 10px;font-size:.68rem;letter-spacing:.14em;font-weight:700;color:#d6d0bf;text-shadow:0 1px 6px rgba(0,0,0,.9)}
+.soc{display:flex;gap:10px;margin:0 3px}
+.gbox .soc button{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;margin:0;padding:12px;border-radius:12px;font-weight:700;color:#fff;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.22)}
+.su{margin:16px 0 0;font-size:.82rem;font-weight:700;color:#e5dfc8;text-shadow:0 1px 6px rgba(0,0,0,.9)}
+.lnote{margin:12px 0 0;color:#fde68a;font-size:.88rem;font-weight:700}
+.pwrow.show{max-height:120px}
+
+/* Keep password visible while typing (keyboard + busy picture) */
+.lg{min-height:100vh;min-height:100dvh;align-items:flex-start}
+.gwrap{margin:auto}
+.gbox .pwf{background:rgba(0,0,0,.6)}
+.gbox .pwf input{font-size:1.15rem;letter-spacing:.12em;font-weight:800;color:#fff;text-shadow:0 1px 4px #000}
+.gbox .pwf input::placeholder{letter-spacing:0;font-size:1rem}

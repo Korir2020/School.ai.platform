@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1200" preserveAspectRatio="xMidYMid slice">
+<defs>
+<linearGradient id="gold" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#7a4a10" stop-opacity="0"/><stop offset=".35" stop-color="#c9822a"/><stop offset=".6" stop-color="#ffd25a"/><stop offset="1" stop-color="#8a5412" stop-opacity="0"/></linearGradient>
+<linearGradient id="cop" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#5a2f08" stop-opacity="0"/><stop offset=".5" stop-color="#b8681c"/><stop offset="1" stop-color="#5a2f08" stop-opacity="0"/></linearGradient>
+<linearGradient id="blk" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2a2a2c"/><stop offset=".5" stop-color="#0c0c0d"/><stop offset="1" stop-color="#3a3a3e"/></linearGradient>
+<radialGradient id="vig" cx=".5" cy=".5" r=".75"><stop offset=".55" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".7"/></radialGradient>
+<filter id="b6"><feGaussianBlur stdDeviation="6"/></filter><filter id="b18"><feGaussianBlur stdDeviation="18"/></filter><filter id="b2"><feGaussianBlur stdDeviation="1.5"/></filter>
+</defs>
+<rect width="800" height="1200" fill="#050505"/>
+<path d="M-100 80C200 120 420 300 900 520L900 640C440 470 180 300 -100 200Z" fill="url(#blk)"/>
+<path d="M-100 80C200 120 420 300 900 520" fill="none" stroke="url(#gold)" stroke-width="26" filter="url(#b18)" opacity=".55"/>
+<path d="M-100 80C200 120 420 300 900 520" fill="none" stroke="url(#gold)" stroke-width="7" filter="url(#b2)"/>
+<path d="M-100 200C180 300 440 470 900 640" fill="none" stroke="url(#cop)" stroke-width="4" filter="url(#b2)"/>
+<path d="M120 -60C260 80 330 170 520 260C640 320 760 330 900 300" fill="none" stroke="url(#cop)" stroke-width="40" filter="url(#b18)" opacity=".5"/>
+<path d="M120 -60C260 80 330 170 520 260C640 320 760 330 900 300" fill="none" stroke="url(#gold)" stroke-width="5" filter="url(#b2)"/>
+<path d="M-120 420C120 520 260 760 560 1000C640 1070 720 1130 900 1180L900 1300L-120 1300Z" fill="url(#blk)"/>
+<path d="M-120 420C120 520 260 760 560 1000C640 1070 720 1130 900 1180" fill="none" stroke="url(#gold)" stroke-width="22" filter="url(#b18)" opacity=".5"/>
+<path d="M-120 420C120 520 260 760 560 1000C640 1070 720 1130 900 1180" fill="none" stroke="url(#gold)" stroke-width="6" filter="url(#b2)"/>
+<path d="M-120 520C100 640 220 860 520 1100" fill="none" stroke="url(#cop)" stroke-width="3" filter="url(#b2)"/>
+<path d="M-60 820C100 900 160 1000 300 1220" fill="none" stroke="#e9e9ee" stroke-opacity=".18" stroke-width="3" filter="url(#b2)"/>
+<path d="M860 760C760 860 700 960 640 1260" fill="none" stroke="url(#cop)" stroke-width="30" filter="url(#b18)" opacity=".4"/>
+<path d="M700 -40C760 120 800 220 900 300" fill="none" stroke="#fff" stroke-opacity=".12" stroke-width="4" filter="url(#b6)"/>
+<rect width="800" height="1200" fill="url(#vig)"/>
+</svg>
