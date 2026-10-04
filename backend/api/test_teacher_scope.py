@@ -5,12 +5,12 @@ from schools.models import (
     Enrollment, Performance, SchoolAdminProfile, Stream, Student,
     TeacherAssignment, TeacherProfile,
 )
-from .tests import MarksEntryTests
+from . import tests as base
 
 
 class TeacherScopeTests(APITestCase):
     def setUp(self):
-        MarksEntryTests.setUp(self)
+        base.MarksEntryTests.setUp(self)
         level = self.stream.class_level
         w = Stream.objects.create(school=self.school, class_level=level, name="W")
         self.student2 = Student.objects.create(

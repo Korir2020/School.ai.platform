@@ -11,6 +11,7 @@ from schools.models import (
     SchoolAdminProfile, SubjectPaper,
 )
 from .permissions import get_user_school_id
+from .ranking_checks import missing_subjects
 
 HUNDRED = Decimal("100")
 READY = ("approved", "locked")
@@ -67,6 +68,25 @@ def exam_publish(request, pk):
     for m in marks:
         grouped[m.student_id][m.subject_id][m.paper_number] = m
         names[m.subject_id] = m.subject.name
+
+    gaps = missing_subjects(
+        exam.school_id, stream_of, grouped, {m.subject_id for m in marks})
+    if gaps:
+        found = [{
+            "admission_number": students[s].admission_number,
+            "name": f"{students[s].first_name} {students[s].last_name}",
+            "missing_subjects": g,
+        } for s, g in gaps.items()]
+        return Response({
+            "detail": "Some students have marks for some subjects but not all. "
+                      "Enter at least 1 for any subject a student missed.",
+            "count": len(found), "problems": found[:20],
+        }, status=409)
+    not_ranked = [{
+        "admission_number": st.admission_number,
+        "name": f"{st.first_name} {st.last_name}",
+        "reason": "No exam marks entered (did not sit)",
+    } for sid, st in students.items() if sid not in grouped]
 
     problems, scores, counted = [], {}, []
     for student_id, subjects in grouped.items():
@@ -130,9 +150,15 @@ def exam_publish(request, pk):
             )
             for m in approved
         ])
+        MarkAuditLog.objects.create(
+            school_id=exam.school_id, user=request.user, action="publish",
+            details={"exam": exam.id, "ranked": len(overall),
+                     "not_ranked": [n["admission_number"] for n in not_ranked]},
+        )
         exam.status = "published"
         exam.published_at = timezone.now()
         exam.published_by = request.user
         exam.save()
 
-    return Response({"exam": exam.id, "status": "published", "students_ranked": len(overall)})
+    return Response({"exam": exam.id, "status": "published", "students_ranked": len(overall),
+                     "not_ranked": not_ranked})

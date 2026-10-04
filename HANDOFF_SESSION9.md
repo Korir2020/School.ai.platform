@@ -84,6 +84,23 @@ report_cards. Teachers see only their own classes (404 otherwise). New tests:
 api/test_teacher_scope.py. Old tests fixed: tests.py, test_report_card_ranks.py,
 test_admin_edit.py (teachers now need TeacherAssignment + Enrollment).
 B18 DONE: settings.py uses MD5 hasher only when 'test' in sys.argv (tests much faster).
-NEXT: B2 (needs owner decision 2), B3, B20, then F1-F3.
+B2 DONE (fair ranking), 179 tests OK. Files: api/exam_publish.py, api/ranking_checks.py,
+api/test_publish_fairness.py.
+NEXT: B3 (Django admin audit bypass), B20 (CI), then F1-F3 (theme, shell, ui.jsx).
 CHECK LATER for teachers still reading too much: dashboard, analytics, progress,
 early warning, exam results, mine.
+
+## OWNER DECISIONS MADE
+DECISION 2 (4 Oct 2026) ranking with missing marks - IMPLEMENTED in B2:
+- Student has SOME marks but lacks a subject assigned to their stream: publish is
+  BLOCKED (409) and the admin sees the student + missing subjects. The teacher must
+  enter at least 1 (1 = absent) for each missed subject; it counts in the overall like
+  any other mark. There is NO override flag.
+- Student has NO marks at all: NOT blocked. Excluded from ranks and class overall.
+  Listed in the publish response (not_ranked) and the audit log (action publish,
+  details.not_ranked). TODO B13: notify admin + deputies. TODO B7: report cards and
+  newsletters must show "did not sit" (derive: enrolled, no ExamResult in published exam).
+- OPEN QUESTION for owner: reject a mark of 0 (minimum 1)? Model still allows 0-100.
+TEST CONVENTION: in new test files use "from . import tests as base" and base.XTests.
+Never "from .tests import XTests" (the runner would run those classes again).
+Test baseline now: 179 tests.
