@@ -4,7 +4,7 @@ import { api } from "./api";
 export default function Password() {
   const [o, setO] = useState(""), [n, setN] = useState(""), [c, setC] = useState(""), [msg, setMsg] = useState(""), [open, setOpen] = useState(false);
   const go = async () => {
-    const r = await api("/api/auth/change-password/", "POST", { old_password: o, new_password: n, refresh: localStorage.getItem("refresh") });
+    const r = await api("/api/auth/change-password/", "POST", { old_password: o, new_password: n });
     const e = await r.json().catch(() => ({}));
     setMsg(r.ok ? "Password changed" : "Failed: " + (e.detail || "try again"));
     if (r.ok) { setO(""); setN(""); setC(""); setOpen(false); }

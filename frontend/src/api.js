@@ -1,28 +1,63 @@
-const BASE = import.meta.env.VITE_API_URL;
+const BASE = import.meta.env.VITE_API_URL || "";
 const J = { "Content-Type": "application/json" };
-const save = (d) => { localStorage.setItem("access", d.access); if (d.refresh) localStorage.setItem("refresh", d.refresh); };
+let access = null, inflight = null;
+const mark = (on) => {
+  try {
+    if (on) localStorage.setItem("in", "1");
+    else localStorage.removeItem("in");
+  } catch (e) {}
+};
+try {
+  localStorage.removeItem("access");
+  localStorage.removeItem("refresh");
+} catch (e) {}
+const post = (path, body) => fetch(`${BASE}${path}`, {
+  method: "POST", headers: J, body: JSON.stringify(body),
+  credentials: "include",
+});
 
 export async function login(username, password) {
-  const r = await fetch(`${BASE}/api/auth/login/`, { method: "POST", headers: J, body: JSON.stringify({ username, password }) });
-  if (r.status === 429) throw new Error("Too many attempts. Wait a minute and try again.");
+  const r = await post("/api/auth/login/", { username, password });
+  if (r.status === 429) {
+    throw new Error("Too many attempts. Wait a minute and try again.");
+  }
   if (!r.ok) throw new Error("Wrong username or password");
-  save(await r.json());
+  access = (await r.json()).access;
+  mark(true);
 }
-async function refresh() {
-  const r = await fetch(`${BASE}/api/auth/refresh/`, { method: "POST", headers: J, body: JSON.stringify({ refresh: localStorage.getItem("refresh") }) });
-  if (!r.ok) return false;
-  save(await r.json());
-  return true;
+
+function refresh() {
+  inflight = inflight || post("/api/auth/refresh/", {})
+    .then(async (r) => {
+      if (r.ok) { access = (await r.json()).access; return true; }
+      if (r.status === 401 || r.status === 400) {
+        access = null;
+        mark(false);
+      }
+      return false;
+    })
+    .catch(() => false)
+    .finally(() => { inflight = null; });
+  return inflight;
 }
+
 export async function api(path, method = "GET", body) {
-  const run = () => fetch(`${BASE}${path}`, { method, headers: { ...J, Authorization: `Bearer ${localStorage.getItem("access")}` }, body: body ? JSON.stringify(body) : undefined });
+  const run = () => fetch(`${BASE}${path}`, {
+    method,
+    headers: { ...J, Authorization: `Bearer ${access}` },
+    body: body ? JSON.stringify(body) : undefined,
+    credentials: "include",
+  });
+  if (!access) await refresh();
   let r = await run();
   if (r.status === 401 && (await refresh())) r = await run();
   return r;
 }
+
 export async function logout() {
-  try { await api("/api/auth/logout/", "POST", { refresh: localStorage.getItem("refresh") }); } catch (e) {}
-  localStorage.clear();
+  try { await post("/api/auth/logout/", {}); } catch (e) {}
+  access = null;
+  mark(false);
 }
 
 // Fetch every page of a list endpoint (also accepts plain arrays).

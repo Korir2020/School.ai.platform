@@ -49,6 +49,6 @@ function Dash({ onOut }) {
 }
 
 export default function App() {
-  const [ok, setOk] = useState(!!localStorage.getItem("access")), [go, setGo] = useState(false);
+  const [ok, setOk] = useState(!!localStorage.getItem("in")), [go, setGo] = useState(false);
   return ok ? <Dash onOut={() => setOk(false)} /> : go ? <Login onDone={() => setOk(true)} /> : <Intro onStart={() => setGo(true)} />;
 }
