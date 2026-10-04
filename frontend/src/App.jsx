@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { login, api, logout } from "./api";
+import { api, logout } from "./api";
 import Logo from "./Logo";
+import Login from "./Login";
 import Marks from "./Marks";
 import Approvals from "./Approvals";
 import Exams from "./Exams";
@@ -11,21 +12,11 @@ import Terms from "./Terms";
 import Password from "./Password";
 import Deputies from "./Deputies";
 import Welcome from "./Welcome";
-import Scene from "./Scene";
 import Teachers from "./Teachers";
 import Analytics from "./Analytics";
 import "./app.css";
 
 const flat = (o, p = "") => Object.entries(o || {}).flatMap(([k, v]) => v && typeof v === "object" ? (Array.isArray(v) || k === "active_term" ? [] : flat(v, k + " ")) : k === "role" ? [] : [[p + k, v]]);
-
-function Login({ onDone }) {
-  const [u, setU] = useState(""), [p, setP] = useState(""), [err, setErr] = useState(""), [busy, setBusy] = useState(false), [st, setSt] = useState(""), [shake, setShake] = useState(false);
-  const go = async (e) => { e.preventDefault(); setBusy(true); setErr(""); setSt(""); try { await login(u.trim(), p); setSt("ok"); setTimeout(onDone, 2400); return; } catch (x) { setSt("sad"); setShake(true); setTimeout(() => { setSt(""); setShake(false); }, 1300); setErr(x.message === "Failed to fetch" ? "Cannot reach the server. Try again." : x.message); } setBusy(false); };
-  return (<div className={"auth" + (st === "ok" ? " ok" : "")}><Scene stage={st} /><form onSubmit={go} className={"card" + (shake ? " shake" : "")}><Logo size={72} /><h1>MARIAN</h1><p className="sub">Intelligent School Management</p>
-    <input placeholder="Username" autoCapitalize="none" value={u} onChange={(e) => setU(e.target.value)} />
-    <input placeholder="Password" type="password" value={p} onChange={(e) => setP(e.target.value)} />
-    <button disabled={busy}>{busy ? "Signing in..." : "Log in"}</button>{err && <p className="err">{err}</p>}</form></div>);
-}
 
 const Home = ({ me, d }) => (<div className="plain"><h2>Welcome{me ? ", " + me.username : ""}</h2>
   <p className="sub">{me && me.school ? me.school.name + " · " : ""}{d.active_term ? d.active_term.name + " " + d.active_term.academic_year : "No active term"}</p>
