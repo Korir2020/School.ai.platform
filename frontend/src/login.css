@@ -44,7 +44,7 @@
 
 /* Picture behind the login box only */
 .gbox{isolation:isolate;font-weight:700;border:1px solid rgba(255,255,255,.22)}
-.gbox::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:28px;background:linear-gradient(rgba(0,0,0,.42),rgba(0,0,0,.55)),url(./assets/login-pic.png) 28% center/cover no-repeat;opacity:.82}
+.gbox::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:28px;background:linear-gradient(rgba(0,0,0,.42),rgba(0,0,0,.55)),url(./assets/login-pic.webp) 28% center/cover no-repeat;opacity:.82}
 /* Thick writing */
 .gbox h2{font-weight:800;text-shadow:0 2px 8px rgba(0,0,0,.8)}
 .gbox label{font-weight:800;font-size:.88rem;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.9)}
