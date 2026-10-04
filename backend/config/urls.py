@@ -34,10 +34,11 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from api.auth_views import me
 from api.auth_logout import logout
 from api.auth_password import change_password
+from api.auth_cookie import CookieLoginView, CookieRefreshView
 
 urlpatterns += [
-    path('api/auth/login/', LoginView.as_view()),
-    path('api/auth/refresh/', TokenRefreshView.as_view()),
+    path('api/auth/login/', CookieLoginView.as_view()),
+    path('api/auth/refresh/', CookieRefreshView.as_view()),
     path('api/auth/me/', me),
     path('api/auth/logout/', logout),
     path('api/auth/change-password/', change_password),
