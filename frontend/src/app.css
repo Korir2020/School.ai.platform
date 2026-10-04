@@ -115,3 +115,7 @@ header .ghost{font-size:.8rem;padding:6px 12px;border-radius:999px}
 .brand h1{line-height:1.25;margin:0 0 10px}
 .brand p{line-height:1.4;margin:0}
 .brand>div{display:flex;flex-direction:column;align-items:center}
+/* App background (set in backgrounds.css) */
+body{background:#05070d}
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:var(--bg-app)}
+@media print{body::before{display:none}}
