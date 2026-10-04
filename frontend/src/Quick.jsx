@@ -2,7 +2,7 @@ const A = [
   ["Approve", "Approve Marks", "Approve"],
   ["Exams", "Exams", "Exams"],
   ["Reports", "Reports", "Reports"],
-  ["People", "Students", "People"],
+  ["Students", "Students", "Students"],
   ["Analytics", "Analytics", "Analytics"],
 ];
 export default function Quick({ go, tabs }) {
