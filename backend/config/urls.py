@@ -173,3 +173,9 @@ urlpatterns += [
     path('api/teachers/<int:pk>/', teacher_detail),
     path('api/teachers/<int:pk>/reset-password/', teacher_reset_password),
 ]
+
+from api.approvals_summary import approvals_summary
+
+urlpatterns += [
+    path('api/approvals/summary/', approvals_summary),
+]
