@@ -37,6 +37,7 @@ class OtherSessionsTests(APITestCase):
 
     def test_no_token_sent_signs_out_everywhere(self):
         a, b = self.token("su"), self.token("su")
+        self.client.cookies.clear()
         self.assertEqual(self.change(), 200)
         self.assertEqual(self.renew(a), 401)
         self.assertEqual(self.renew(b), 401)

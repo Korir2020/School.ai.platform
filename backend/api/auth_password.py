@@ -24,5 +24,6 @@ def change_password(request):
         return Response({"detail": " ".join(e.messages)}, status=400)
     user.set_password(new)
     user.save()
-    end_other_sessions(user, request.data.get("refresh"))
+    end_other_sessions(user, request.data.get("refresh")
+        or request.COOKIES.get("marian_rt"))
     return Response({"detail": "Password changed."})

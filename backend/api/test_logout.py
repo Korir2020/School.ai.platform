@@ -28,5 +28,6 @@ class LogoutTests(APITestCase):
         self.assertEqual(r.status_code, 400)
 
     def test_missing_or_bad_token_is_400(self):
+        self.client.cookies.clear()
         self.assertEqual(self.client.post(LOGOUT, {}).status_code, 400)
         self.assertEqual(self.client.post(LOGOUT, {"refresh": "junk"}).status_code, 400)
