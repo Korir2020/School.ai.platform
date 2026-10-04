@@ -20,10 +20,16 @@ export default function Deputies() {
     setMsg(r.ok ? "Deputy removed" : "Failed to remove");
     load();
   };
+  const reset = async (d) => {
+    const pw = window.prompt("New password for " + d.username + " (they will be signed out everywhere):");
+    if (!pw) return;
+    const r = await api("/api/admin-accounts/" + d.id + "/reset-password/", "POST", { password: pw }), j = await r.json().catch(() => ({}));
+    setMsg(r.ok ? "Password reset for " + d.username : "Failed: " + (j.detail || JSON.stringify(j)));
+  };
   return (<div><h3>Deputies</h3>
     <p className="sub">A deputy can do everything you can, except appoint or remove deputies.</p>
     {ds.length === 0 && <p>No deputies yet</p>}
-    {ds.map((d) => <p key={d.id}>{d.name} ({d.username}) <button className="ghost" onClick={() => remove(d)}>Remove</button></p>)}
+    {ds.map((d) => <p key={d.id}>{d.name} ({d.username}) <button className="ghost" onClick={() => reset(d)}>Reset password</button> <button className="ghost" onClick={() => remove(d)}>Remove</button></p>)}
     {Object.keys(blank).map((k) => <input key={k} type={k === "password" ? "password" : "text"} placeholder={k.replace("_", " ")} value={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.value })} />)}
     <button disabled={!f.username || !f.password} onClick={add}>Appoint deputy</button><p>{msg}</p></div>);
 }
