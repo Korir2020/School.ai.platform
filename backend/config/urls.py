@@ -179,3 +179,10 @@ from api.approvals_summary import approvals_summary
 urlpatterns += [
     path('api/approvals/summary/', approvals_summary),
 ]
+
+from api.admin_accounts import admin_account_list, admin_reset_password
+
+urlpatterns += [
+    path('api/admin-accounts/', admin_account_list),
+    path('api/admin-accounts/<int:pk>/reset-password/', admin_reset_password),
+]
