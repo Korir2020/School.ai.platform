@@ -83,6 +83,7 @@ restrict_for_teacher); applied in views.py _list + performance_list, admin_edit.
 report_cards. Teachers see only their own classes (404 otherwise). New tests:
 api/test_teacher_scope.py. Old tests fixed: tests.py, test_report_card_ranks.py,
 test_admin_edit.py (teachers now need TeacherAssignment + Enrollment).
-NEXT: B18, B2 (needs owner decision 2), B3, B20, then F1-F3.
+B18 DONE: settings.py uses MD5 hasher only when 'test' in sys.argv (tests much faster).
+NEXT: B2 (needs owner decision 2), B3, B20, then F1-F3.
 CHECK LATER for teachers still reading too much: dashboard, analytics, progress,
 early warning, exam results, mine.
