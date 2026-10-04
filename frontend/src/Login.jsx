@@ -15,11 +15,11 @@ export default function Login({ onDone }) {
   const go = async (e) => {
     e.preventDefault(); if (st) return; setErr(""); setSt("wait");
     const t0 = Date.now(), hold = () => new Promise((r) => setTimeout(r, Math.max(0, 1500 - (Date.now() - t0))));
-    try { await login(u.trim(), p); await hold(); setSt("ok"); setTimeout(onDone, calm ? 400 : 4300); }
+    try { await login(u.trim(), p); await hold(); setSt("ok"); setTimeout(onDone, calm ? 400 : 3900); }
     catch (x) { await hold(); setP(""); setSt("bad"); setErr(x.message === "Failed to fetch" ? "Cannot reach the server. Try again." : x.message); setTimeout(() => setSt(""), 900); }
   };
-  return (<div className={"lg " + st}><form className="gbox" onSubmit={go}><i className="dog tl" /><i className="dog br" />
-    <Logo size={40} /><h2>Welcome <b>Back</b></h2><p className="lsub">Enter your credentials to access your secure account</p>
+  return (<div className={"lg " + st}><div className="gwrap"><i className="dog tl" /><i className="dog br" /><form className="gbox" onSubmit={go}>
+    <h2>Welcome <b>Back</b></h2><p className="lsub">Enter your credentials to access your secure account</p>
     <label htmlFor="lu">Username</label>
     <div className="fld"><Ic d={USER} /><input id="lu" placeholder="Your username" autoCapitalize="none" autoComplete="username" value={u} onChange={(e) => setU(e.target.value)} /></div>
     <div className={"pwrow" + (u.trim() ? " show" : "")}><label htmlFor="lp">Password</label>
@@ -28,5 +28,5 @@ export default function Login({ onDone }) {
         <button type="button" className="eye" onClick={() => setSee(!see)} aria-label={see ? "Hide password" : "Show password"}><Ic d={EYE} /></button></div></div>
     {p.length >= 4 && <button className="sign fade" disabled={!!st}>{st === "wait" ? "Checking..." : "Sign In  →"}</button>}
     {err && <p className="lerr">{err}</p>}
-    <div className="creases" /><div className="seal"><Logo size={84} /></div></form></div>);
+    </form><div className="seal"><Logo size={96} /></div></div></div>);
 }

@@ -17,7 +17,7 @@ import Setup from "./Setup";
 import Terms from "./Terms";
 import Password from "./Password";
 import Deputies from "./Deputies";
-import Welcome from "./Welcome";
+import Intro from "./Intro";
 import Teachers from "./Teachers";
 import Analytics from "./Analytics";
 import "./app.css";
@@ -47,5 +47,5 @@ function Dash({ onOut }) {
 
 export default function App() {
   const [ok, setOk] = useState(!!localStorage.getItem("access")), [go, setGo] = useState(false);
-  return ok ? <Dash onOut={() => setOk(false)} /> : go ? <Login onDone={() => setOk(true)} /> : <Welcome onStart={() => setGo(true)} />;
+  return ok ? <Dash onOut={() => setOk(false)} /> : go ? <Login onDone={() => setOk(true)} /> : <Intro onStart={() => setGo(true)} />;
 }
