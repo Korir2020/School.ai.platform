@@ -1,3 +1,4 @@
+from django.utils.dateparse import parse_date
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
@@ -15,6 +16,15 @@ def audit_log_list(request):
     performance_id = request.query_params.get("performance")
     if performance_id and performance_id.isdigit():
         logs = logs.filter(performance_id=int(performance_id))
+    q = request.query_params
+    if q.get("action"):
+        logs = logs.filter(action=q["action"][:30])
+    if q.get("user"):
+        logs = logs.filter(user__username=q["user"])
+    for key, lookup in (("date_from", "gte"), ("date_to", "lte")):
+        d = parse_date(q.get(key, ""))
+        if d:
+            logs = logs.filter(**{"timestamp__date__" + lookup: d})
     return Response([
         {
             "id": log.id,
