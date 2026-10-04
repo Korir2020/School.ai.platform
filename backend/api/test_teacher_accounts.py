@@ -99,3 +99,10 @@ class TeacherAccountTests(APITestCase):
         self.assertEqual(log.school_id, self.a.id)
         self.assertEqual(log.user_id, self.boss.id)
         self.assertEqual(log.details, {"teacher": "ta"})
+
+    def test_teacher_list_shows_is_active(self):
+        self.client.force_authenticate(self.boss)
+        self.off(False)
+        rows = self.client.get("/api/teachers/").json()["results"]
+        self.assertEqual(rows[0]["username"], "ta")
+        self.assertFalse(rows[0]["is_active"])

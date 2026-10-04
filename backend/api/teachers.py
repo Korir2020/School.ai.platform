@@ -18,7 +18,7 @@ def teacher_collection(request):
         rows = TeacherProfile.objects.filter(school_id=school_id).select_related("user").order_by("id")
         return Response({"results": [
             {"id": t.id, "username": t.user.username, "name": t.user.get_full_name() or t.user.username,
-             "staff_id": t.staff_id, "phone": t.phone} for t in rows]})
+             "staff_id": t.staff_id, "phone": t.phone, "is_active": t.user.is_active} for t in rows]})
     d = request.data
     username, password = str(d.get("username", "")).strip(), str(d.get("password", ""))
     if not username or not password:
