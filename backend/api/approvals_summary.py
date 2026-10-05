@@ -9,8 +9,6 @@ SPREAD = 40
 
 def _flags(g):
     out = []
-    if g["zeros"]:
-        out.append("has_zero")
     if g["hundreds"]:
         out.append("has_hundred")
     if g["high"] - g["avg"] >= SPREAD or g["avg"] - g["low"] >= SPREAD:
@@ -30,7 +28,6 @@ def approvals_summary(request):
         "assessment_type", "paper_number",
     ).annotate(
         count=Count("id"), avg=Avg("marks"), low=Min("marks"), high=Max("marks"),
-        zeros=Count("id", filter=Q(marks=0)),
         hundreds=Count("id", filter=Q(marks=100)),
     ).order_by("subject__name", "term_id", "assessment_type", "paper_number")
     results = []

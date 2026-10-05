@@ -454,3 +454,6 @@ TO DO NEXT (in order):
 OPEN OWNER DECISIONS: grading scale per school, weights, portals, PDF method.
 LESSONS: read line numbers in the awk output with care (I misread line 77
 once). After every sed, run grep or wc to prove it. Backups go to /tmp/X.bak.
+- Dead has_zero flag removed from api/approvals_summary.py (5 Oct 2026, chat 5).
+  Marks 0 is impossible since migration 0026. Its 2 tests pass. Not yet browser-tested:
+  Marks and ReportCards (owner chose to skip tests for now).
