@@ -17,7 +17,7 @@ export default function Students({ d }) {
       const [sm, cl, tm, st] = await Promise.all(paths.map(get));
       const lab = (s) => ((cl.find((c) => c.id === s.class_level) || {}).name || "")
         + " " + s.name;
-      const term = tm.find((t) => t.id === d.active_term) || {};
+      const term = tm.find((t) => t.id === d.active_term.id) || {};
       setX({ sm: sm.map((s) => ({ ...s, label: lab(s) })),
         year: term.academic_year, count: st.length });
       setBad(false);
