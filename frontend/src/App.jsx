@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import { api, logout } from "./api";
-import Logo from "./Logo";
 import Hero from "./Hero";
 import Stats from "./Stats";
 import Quick from "./Quick";
 import Mine from "./Mine";
-import Dock from "./Dock";
+import Shell from "./Shell";
+import { Loading } from "./ui";
 import Activity from "./Activity";
 import Login from "./Login";
 import Marks from "./Marks";
@@ -42,10 +42,9 @@ function Dash({ onOut }) {
     : role === "school_admin" ? { Home: home, Approve: <Approvals />, Exams: need(<Exams d={d} />), Reports: need(<ReportCards d={d} />), Analytics: need(<Analytics d={d} />), Students: need(<Students d={d} />), Teachers: need(<><Teachers />{me && !me.is_deputy && <Deputies />}</>), Setup: <><Terms /><Setup /></> }
     : role === "superadmin" ? { Home: home, Schools: <Platform d={d} />, Admins: <Accounts /> }
     : d ? { Home: home } : {};
-  return (<div className="shell"><header><Logo size={30} /><b>MARIAN</b><span>{me ? me.username : ""}</span>
-    <button className="ghost" onClick={async () => { await logout(); onOut(); }}>Log out</button></header>
-    <main>{d ? tabs[tab] : <p className="sub">Loading...</p>}</main>
-    <Dock tabs={Object.keys(tabs)} tab={tab} go={setTab} /></div>);
+  const out = async () => { await logout(); onOut(); };
+  return (<Shell tabs={Object.keys(tabs)} tab={tab} go={setTab} me={me} out={out}>
+    {d ? tabs[tab] : <Loading />}</Shell>);
 }
 
 export default function App() {
