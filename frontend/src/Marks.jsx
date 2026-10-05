@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { api, listAll as list } from "./api";
 import { useToast } from "./toastctx";
 import { Button, Select, Card, Badge, DataTable } from "./ui";
-import { ConfirmDialog, EmptyState, Loading, ErrorState } from "./ui";
+import { ConfirmDialog, EmptyState, Loading, ErrorState, Alert } from "./ui";
 
 const names = ["teacher-assignments", "enrollments", "students", "terms",
   "performance"];
@@ -44,6 +44,9 @@ export default function Marks({ d }) {
   const old = (sid) => a && data.pf.find((p) => p.student === sid
     && p.subject === a.subject && p.term === term.id && p.paper_number === 1
     && p.assessment_type === "end");
+  const badVal = (v) => v !== "" && !(Number(v) >= 0 && Number(v) <= 100);
+  const nBad = Object.values(vals).filter(badVal).length;
+  const nNew = Object.values(vals).filter((v) => v !== "").length;
   const save = async () => {
     setBusy(true);
     let ok = 0, fail = 0;
@@ -96,8 +99,9 @@ export default function Marks({ d }) {
       {a && <Card>
         <DataTable cols={cols} rows={table} search="Search students"
           empty="No students in this class" />
+        {nBad > 0 && <Alert kind="err">Marks must be numbers from 0 to 100.</Alert>}
         <Button kind="teal" busy={busy} onClick={save}
-          disabled={!Object.keys(vals).length}>Save marks</Button>
+          disabled={nNew === 0 || nBad > 0}>Save marks{nNew ? " (" + nNew + ")" : ""}</Button>
       </Card>}
       {ask && <ConfirmDialog title="Submit these marks?" confirm="Submit"
         text="Submitted marks go to the admin for approval."

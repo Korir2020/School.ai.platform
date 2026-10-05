@@ -393,3 +393,26 @@ WEAKNESSES FOUND IN THE SPEC (adjust when planning):
   locked; own marks, active term only). Read-only. Wired in App.jsx for teacher.
 - NEXT: F7 marks extras (paper selector, autosave, paste-from-sheet, bulk absent). Bulk
   absent depends on the open absent/zero decision (now 1 = absent): ask the owner first.
+
+## STATUS END OF CHAT 3 (5 Oct 2026). READ FIRST (newer than UI STATUS UPDATE).
+Branch ui-redesign. Build OK, lint 0 errors (19 warnings = baseline). CI on each push.
+BROWSER-TESTED AND COMMITTED: Teachers, Students (+ list), Exams, Marks, Approvals,
+ Terms, Setup, Quick, Mine, Deputies, ReportCards, Password, Login (fake items gone),
+ Hero/Splash/Intro reviewed (live), Attention (F5), TeacherTodo (F6). Dock.jsx removed.
+NOT YET BROWSER-TESTED (owner skipped): Platform, Accounts, Activity, Analytics, Stats.
+ Do this FIRST next session (checks listed under UI STATUS UPDATE).
+F7 part 1 (commit "F7 part 1"): Marks.jsx blocks Save when a mark is not a number
+ 0-100 (red Alert) and shows "Save marks (N)". NOT browser-tested: check it first.
+ If it misbehaves: git revert that commit. Marks.jsx facts: save() POSTs
+ /api/performance/ with assessment_type "end", paper_number 1 (HARDCODED, and the
+ header says "End-term, Paper 1"). Submit = POST /api/performance/<id>/submit/.
+ Students who already have a mark are skipped in save (old()). If the owner decides
+ the minimum mark is 1, change badVal to >= 1 and the input min.
+F7 STILL TO DO: paper + assessment-type selector, autosave, paste-from-sheet, bulk
+ absent (bulk absent waits for the owner's absent/zero decision).
+REMAINING UI: F7 rest, F8 search (Ctrl+K) + bell, F10 mobile + accessibility + compress
+ login-pic.png to WebP, F11 offline marks, F12 print/reports (browser print vs server
+ PDF = decision 6), F13 vitest, check unused rules in login.css, final audit of every
+ page + mobile, then PR ui-redesign -> main and merge on green CI.
+THEN: ANALYTICS ENGINE PROJECT (section above). E0 first, after the owner answers the
+ 5 conflicts. Old HANDOFF.md still has uncommitted edits: not touched.
