@@ -187,3 +187,9 @@ urlpatterns += [
     path('api/admin-accounts/', admin_account_list),
     path('api/admin-accounts/<int:pk>/reset-password/', admin_reset_password),
 ]
+
+from api.search import search
+
+urlpatterns += [
+    path('api/search/', search),
+]
