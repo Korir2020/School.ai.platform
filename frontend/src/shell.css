@@ -1,0 +1,51 @@
+/* App shell: navy sidebar on desktop, bottom bar on phones. */
+.mu-app { --card: #fff; --line: #E2E8F0; --txt: #172033; --mut: #64748B; }
+.mu-app { --gold: #0F2747; --blue: #0F8B8D; --blue-hi: #0F8B8D; }
+.mu-shell { min-height: 100vh; }
+.mu-side { display: none; }
+.mu-top { position: sticky; top: 0; z-index: 10; display: flex; align-items: center;
+  gap: 10px; height: 52px; padding: 0 16px; background: var(--mu-navy); color: #fff; }
+.mu-top b { letter-spacing: .12em; font-size: 1rem; }
+.mu-top span { margin-left: auto; font-size: .8125rem; color: #B6C4D9; }
+.mu-content { max-width: 1100px; margin: 0 auto; padding: 16px 16px 96px; box-sizing: border-box; }
+.mu-title { margin: 0 0 16px; font-size: var(--mu-fs-title); font-weight: 650; color: var(--mu-navy); }
+.mu-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; display: flex;
+  background: #fff; border-top: 1px solid var(--mu-line); padding: 4px 4px max(4px, env(safe-area-inset-bottom)); }
+.mu-bar button { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center;
+  gap: 2px; margin: 0; padding: 6px 2px; border: 0; border-radius: 8px; background: transparent;
+  color: var(--mu-muted); font: inherit; font-size: .6875rem; font-weight: 500; cursor: pointer; }
+.mu-bar button.on { color: var(--mu-teal); background: var(--mu-teal-bg); }
+.mu-menu { display: flex; flex-direction: column; gap: 4px; }
+.mu-menu .mu-btn { justify-content: flex-start; }
+/* Desktop: fixed navy sidebar */
+@media (min-width: 900px) {
+  .mu-top, .mu-bar { display: none; }
+  .mu-side { position: fixed; top: 0; bottom: 0; left: 0; width: 240px; display: flex;
+    flex-direction: column; background: var(--mu-navy); color: #fff; padding: 16px 12px;
+    box-sizing: border-box; overflow-y: auto; }
+  .mu-body { margin-left: 240px; }
+  .mu-content { padding: 32px 32px 48px; }
+}
+.mu-brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px 16px; }
+.mu-brand b { letter-spacing: .12em; }
+.mu-nav { display: flex; flex-direction: column; gap: 2px; }
+.mu-nav small { padding: 16px 12px 6px; font-size: .6875rem; letter-spacing: .08em;
+  text-transform: uppercase; color: #8EA3C0; }
+.mu-nav button { display: flex; align-items: center; gap: 10px; width: 100%; height: 40px;
+  margin: 0; padding: 0 12px; border: 0; border-radius: 8px; background: transparent;
+  color: #D5DEEB; font: inherit; font-weight: 500; text-align: left; cursor: pointer; }
+.mu-nav button:hover { background: var(--mu-navy-2); }
+.mu-nav button.on { background: var(--mu-navy-2); color: #fff; box-shadow: inset 3px 0 0 var(--mu-teal); }
+.mu-user { margin-top: auto; padding: 12px 8px 0; border-top: 1px solid var(--mu-navy-2);
+  font-size: .8125rem; color: #B6C4D9; }
+.mu-user .mu-btn { width: 100%; margin-top: 8px; }
+/* Legacy screens: keep old markup readable until each one is migrated. */
+.mu-content > div:not([class]) { background: #fff; border: 1px solid var(--mu-line);
+  border-radius: 12px; box-shadow: var(--mu-shadow); padding: 4px 16px 16px; margin-bottom: 16px; }
+.mu-app input, .mu-app select { background: #fff; color: var(--mu-text);
+  border: 1px solid var(--mu-line); border-radius: 8px; }
+.mu-app .err { color: var(--mu-err); }
+.mu-app .term { background: #fff; }
+.mu-app .meter { background: var(--mu-neutral-bg); }
+.mu-app .qrow button { background: #fff; color: var(--mu-navy); border: 1px solid var(--mu-line); }
+.mu-app .qrow button:hover { background: var(--mu-neutral-bg); }

@@ -1,0 +1,50 @@
+/* Marian light theme. Applies only inside .shell (after login). */
+.shell{--card:#fff;--line:#e2e8f0;--txt:#0f172a;--mut:#64748b;--gold:#a16207;
+  --blue:#2563eb;--blue-hi:#1d4ed8;--r:14px;color:var(--txt)}
+body:has(.shell){background:#f6f7f9;color:#0f172a}
+body:has(.shell)::before{display:none}
+.shell h1,.shell h2,.shell h3,.shell h4{color:var(--txt)}
+.shell header{background:#fffffff2;border-bottom:1px solid var(--line)}
+.shell header b{color:var(--txt);font-size:.95rem}
+.shell header span{color:var(--mut)}
+.shell input,.shell select{background:#fff;color:var(--txt);border-color:#cbd5e1}
+.shell input:focus,.shell select:focus{
+  border-color:var(--blue);box-shadow:0 0 0 3px #2563eb33}
+.shell button{background:var(--blue);color:#fff}
+.shell .ghost{background:#fff;color:var(--blue-hi);border:1px solid #cbd5e1}
+.shell .go{background:var(--blue);color:#fff}
+.shell main>div{background:var(--card);border:1px solid var(--line)}
+.shell main>div.plain{background:none;border:0}
+.shell .sub{color:var(--mut)}
+.shell .err{color:#b91c1c}
+.shell table{border-color:var(--line)}
+.shell th{color:var(--mut)}
+.shell td,.shell th{border-color:var(--line)}
+.shell .stat,.shell .kpi,.shell .mo{background:var(--card);border-color:var(--line)}
+.shell .stat,.shell .kpi{border-top:2px solid var(--blue);
+  box-shadow:0 1px 2px #0f172a0d}
+.shell .stat b,.shell .kpi b{color:var(--gold)}
+.shell .kpi small,.shell .mo h3,.shell .qa h3,.shell .act h3{color:var(--mut)}
+.shell .kpi em,.shell .stat span,.shell .legend{color:var(--mut)}
+.shell .legend b{color:var(--txt)}
+.shell .meter{background:#e2e8f0}
+.shell .s-draft{background:#94a3b8}
+.shell .s-submitted{background:#d97706}
+.shell .s-approved{background:#16a34a}
+.shell .s-locked{background:#2563eb}
+.shell .term{background:#fff;border-color:var(--line);color:var(--mut)}
+.shell .term.live{color:var(--txt)}
+.shell .qrow button{background:#eff6ff;color:var(--blue-hi);
+  border:1px solid #bfdbfe}
+.shell .arow{border-top-color:var(--line)}
+.shell .arow span{color:var(--mut)}
+.shell .arow span b{color:var(--txt)}
+.shell .dock{background:#fffffff5;border-top:1px solid var(--line)}
+.shell .dock button{background:transparent;color:var(--mut)}
+.shell .dock button.on{color:var(--blue-hi);background:#eff6ff;
+  box-shadow:inset 0 -3px 0 var(--blue)}
+.shell .more{background:#0f172a66}
+.shell .more>div{background:#fff;border-color:var(--line);
+  box-shadow:0 8px 24px #0f172a22}
+.shell .more button{background:transparent;color:var(--txt)}
+.shell .more button.on{background:#eff6ff;color:var(--blue-hi)}

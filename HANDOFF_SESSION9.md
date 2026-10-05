@@ -184,3 +184,235 @@ Test baseline now: 179 tests.
 - NEXT: F1-F3 (theme + ui.jsx components), then B12, B13, B15-B17, B19.
 - PHONE TIPS: lines over ~100 chars get cut when copied; never paste "read -s"
   (it swallows the next line): type "read -s P" by hand instead.
+
+## SESSION 9, UI REDESIGN PART (5 Oct 2026). READ THIS FIRST.
+Branch: ui-redesign (NOT main). The zip of main is behind: it has no ui.jsx,
+ui.css, toastctx.js, hashtab.js. Ask for the branch state, do not rediscover.
+Design brief: light theme, Navy #0F2747, Teal #0F8B8D, Blue #3B82F6, bg #F5F7FA,
+white cards, border #E2E8F0, text #172033/#64748B, ok #16A34A, warn #F59E0B,
+err #DC2626. No extra colors, no flashy effects, keep all working logic.
+### How to save the owner's chat limit (works well)
+- Read the file ONCE with: awk '{print NR": "$0}' F.jsx | fold -w 88
+- Then send the whole rewrite in ONE message: numbered blocks of 30 lines or
+  fewer, each cat > (first) or cat >> (rest), lines under 90 chars.
+- Last block = wc -l, npm run build 2>&1 | tail -2, npm run lint 2>&1 | tail -2.
+  Owner sends ONE screenshot. Then a browser test list, then ONE commit paste
+  that also prints the next screen (git log -1, wc -l, awk of next file).
+- Back up first: cp F.jsx /tmp/F.bak. Restore with cp if the test fails.
+- Compare every API field and prop against the old file (a Students bug:
+  d.active_term vs d.active_term.id was caught only later).
+### UI DONE on ui-redesign (pushed). Build OK, lint 0 errors (16 warnings = baseline)
+- 7dd0d26 new app shell (navy sidebar, mobile bar) wired into App.jsx
+- a53cc87 hash routing for pages (frontend/src/hashtab.js)
+- e93f862 Root.jsx wraps the app in ToastProvider
+- cab8f94 Teachers: DataTable, status badge, ConfirmDialog for deactivate,
+  Modal for reset password, add teacher, assign table, toasts
+- b1e485c + abd4340 Students: add form + total card + toasts (no list yet)
+- 7257798 Exams: table, confirm before publish, results table
+- Marks.jsx: REWRITTEN (107 lines), build OK. Browser test and commit may be
+  pending when this was written: check git log before redoing it.
+ui.jsx exports: Button(kind teal|secondary|ghost|danger, size sm, busy), Field,
+Input, Select (label,id), Modal(title,onClose,actions), ConfirmDialog(title,text,
+confirm,danger,onYes,onNo), ToastProvider, Card(title), Badge(kind ok|err|info|
+teal|warn), Alert, EmptyState, Loading, ErrorState(text,onRetry), StatCard,
+DataTable(cols{label,key,get,render,sort}, rows, search, empty).
+Toast: const toast = useToast() from ./toastctx; toast(text, "ok"|"err").
+### UI LEFT (in this order, one commit per screen, test each in the browser)
+1 Commit Marks after a TEACHER test: names in dropdown, save shows toast, rows
+  become draft, submit asks to confirm. Then F7 extras: paper selector, autosave,
+  paste from sheet, bulk absent, rules 0-100 (open question: minimum 1?).
+2 Migrate: Approvals, Terms, Setup, Quick, Mine, Deputies, Accounts, Platform,
+  Activity, Analytics, Stats, ReportCards, Password. Login last (F9: remove
+  fake remember-me/Google/Apple/Sign up; compress login-pic.png 2.2 MB to WebP).
+3 Students and Teachers still need a real student list (search, sort, status,
+  class) and edit. Read the API fields first, do not guess.
+4 F5 admin dashboard (needs attention first, KPI cards). F6 teacher home.
+  Teachers see Home + Marks only.
+5 F8 Ctrl+K search + bell (needs B12/B13). F10 mobile pass + accessibility
+  (focus, labels, contrast, not color alone). F11 offline marks. F12 reports and
+  print. F13 vitest.
+6 Final audit of EVERY page against the brief: colors, radii, spacing, buttons,
+  empty/error states, mobile tables. Fix, do not just list.
+7 Merge: open a PR ui-redesign -> main, wait for green CI (npm build, lint,
+  229+ backend tests), then merge. Render redeploys main. Never merge a red CI.
+### BACKEND LEFT (none changed in this UI part; baseline 229 tests)
+B6 SchoolSettings, B7 report cards (show "did not sit"), B8 Student.status +
+promotions, B9 CSV import, B10 Subject.definition check, B12 /api/search/,
+B13 /api/notifications/ (also notify admin when students are not ranked),
+B15 analytics official vs draft, B16 /api/students/<id>/profile/, B17 indexes,
+B19 cleanup (dead MAILERS, urls.py imports, "if False" hack, stale docs).
+B5 follow-ups: check login JSON has no "refresh"; check expired session goes
+to the login screen.
+### OPEN OWNER DECISIONS (ask one at a time)
+Grading scale per school (CBC EE/ME/AE/BE, 8-4-4, or both), assessment weights,
+student/parent portals, PDF method (print vs server), reject a mark of 0.
+Theme is settled by the design brief: light navy/teal.
+### GOTCHAS
+- HANDOFF.md (old) has uncommitted rewrites with stale facts (VITE_API_URL,
+  171 tests). Do not commit it. This file is the live handoff.
+- Never re-add VITE_API_URL in Render (cookie auth needs the /api rewrite).
+- Teachers/parents never see ranks. Keep draft>submitted>approved>locked.
+- UI: Marks (7d7003b) and Approvals migrated, browser-tested.
+- UI: Terms migrated, browser-tested.
+- UI: Setup migrated, browser-tested.
+- UI: Quick migrated, browser-tested.
+- UI: Mine and Deputies migrated, browser-tested.
+
+### UI STATUS UPDATE (end of chat 2, 5 Oct 2026). READ THIS FIRST.
+Branch ui-redesign. Build OK, lint 0 errors (19 warnings, hook deps only).
+COMMITTED AND BROWSER-TESTED: Teachers, Students, Exams, Marks, Approvals,
+Terms, Setup, Quick, Mine, Deputies.
+COMMITTED BUT NOT BROWSER-TESTED (build + lint only): Platform, Accounts,
+Activity, Analytics, Stats. FIRST JOB: owner tests these five, fix any bug.
+ Platform (superuser): table loads, password hidden, Create needs 4 fields.
+ Accounts (superuser): role/status badges, Reset opens modal + toast.
+ Activity: names and "x ago". Analytics: teal bar, warning if pending marks.
+ Stats: admin 7 cards, teacher 1 card, four text badges.
+### STILL TO MIGRATE (old code, untouched)
+ReportCards.jsx (16 lines): listAll /api/students/, GET
+ /api/report-card/<student>/<d.active_term.id>/ gives student{name,
+ admission_number}, term, academic_year, subjects[{subject,average}],
+ overall_average, published_results[{exam,class_rank,stream_rank}],
+ pending_marks, plus a window.print button. Keep all. Ranks: admin and
+ deputies only, check who can open this screen.
+Password.jsx (19 lines): POST /api/auth/change-password/ {old_password,
+ new_password}, repeat-password match. Re-read the file first.
+THEN: Login (F9), shell/Dock/Hero/Intro/Splash/Logo review, Students LIST (read
+ API fields first), F5 admin dashboard, F6 teacher home, F7 marks extras, F8-F13,
+ final audit of every page + mobile, then PR ui-redesign -> main, merge on green CI.
+
+### PROGRESS 5 Oct 2026 (chat 3, ui-redesign)
+- ReportCards.jsx migrated and browser-tested (commit 5d76dab). Ranks stay admin and
+  deputy only: the API leaves published_results out for teachers (report_cards.py
+  line 68), and the screen guards it with (rc && rc.published_results) || [].
+- Password.jsx migrated and browser-tested (Input, Button, Alert, busy state).
+- Platform, Accounts, Activity, Analytics, Stats: owner SKIPPED the browser test for
+  now. They are still NOT browser-tested. Do it later.
+- Old-file backups go to /tmp/X.bak before each rewrite (the routine above).
+- NEXT: Login (F9), then shell/Dock/Hero/Intro/Splash/Logo, Students LIST, F5-F13.
+- Login.jsx F9 DONE and browser-tested: removed fake remember-me, OR CONTINUE WITH,
+  Google, Apple, Sign Up. Kept Forgot password (same rmrow div). Backup was /tmp/LG.bak.
+- login.css may still hold unused rules (.soc, .alt, .orc, .su). Check before deleting.
+- NEXT: review shell/Dock/Hero/Intro/Splash/Logo, then Students LIST, F5-F13.
+- Dock.jsx removed (dead code, nothing imported it). Hero, Splash, Intro are live, kept.
+- NEXT: Students LIST (read API fields first), then F5-F13.
+- Students.jsx: added All students DataTable (search, sort; name + admission no.).
+  Browser-tested. Class/stream columns NOT added (need the enrollments API, unread).
+- NEXT: F5 admin dashboard (needs attention first, uses /api/approvals/summary/).
+
+## ANALYTICS ENGINE PROJECT (owner spec, 5 Oct 2026). START ONLY AFTER F5-F13 + audit.
+Owner spec = "Assessment & Analytics Engine" (30 sections, long). Owner keeps the full
+text; ask the owner to paste it again if needed. Do NOT start before the UI is done.
+Core idea: raw evidence > component > normalize > weight > aggregate > curriculum
+grading > analytics > reports. ONE backend calculation layer; the frontend never
+calculates results. Never lose raw marks (60/80 stays 60/80, percent is derived).
+### What the spec wants (checklist of all 30 sections)
+- Result fields (all optional): raw_mark, max_mark, achievement %, adjusted_mark,
+  weighting, weighted mark, grade, grade points, performance level, PUM (separate
+  from achievement %), status, strand/sub-strand/competency/topic, audit info.
+- Components: Paper 1/2/3, unequal maxima. Never average percentages blindly.
+  Strategies: raw total, percentage mean, weighted components, weighting factor,
+  contribution model (coursework 20 + SBA 20 + exam 60). All CONFIGURABLE.
+- Statuses: PRESENT, ABSENT, EXEMPT, PENDING, WITHHELD, NOT_ATTEMPTED, TRANSFERRED,
+  approved medical exemption. Absent is NOT zero. Missing never wrecks averages.
+- Corrections keep history (old, new, who, when, reason). Moderation: adjusted mark
+  is optional, default = raw.
+- Grading engine: configurable schemes (KCSE, CBC levels EE1-BE2, Cambridge, school
+  custom). No "if pct >= 80" scattered in code. Never hard-code boundaries.
+- CBC: competency, strand, sub-strand, growth, mastery, intervention. Ranking OPTIONAL.
+- 8-4-4/KCSE: grades, points, mean grade, distributions. Cambridge: raw > adjusted >
+  weighted > syllabus total > threshold (per syllabus/series, configurable) > grade.
+- Rounding: keep full precision, round only at presentation, one policy everywhere.
+- Analytics: mean, median, range, distribution, std dev. Growth (absolute, trend,
+  volatility, consistency: 74,75,76 is steadier than 45,96,60). Mastery by subject/
+  strand/topic. Target gap. Interventions (support, declining, weak areas, most
+  improved). Never label "at risk" from ONE mark: configurable, several observations.
+- Class drill-down: class > subject > assessment > topic > learners > evidence.
+  School view: cohort, year-on-year, curriculum, teacher/class trends (no needless
+  sensitive comparisons). Learner profile: longitudinal, strengths, weak topics, why.
+- Item analytics (optional, needs question-level marks): flag "high-error item,
+  review recommended", never claim the teacher or question is wrong.
+- Ranking: configurable metric + scope (assessment/subject/class/stream/grade/school),
+  deterministic ties. Report cards follow the curriculum: 60/80 (75%); KCSE grade +
+  points; CBC level + evidence; Cambridge components + weighted result.
+- Perf: indexes, DB aggregation, cache/background only where justified.
+- UI: simple view (score, grade/level, trend, strengths, improve) and advanced view
+  (components, weights, distribution, strands). Label every number (raw, weighted,
+  standardized). Teacher still types only "Mark 60, out of 80".
+- Spec's 18 final questions: actual score, max, %, weighting, how calculated, grade/
+  level, competencies, weak topics, improving?, consistency, ranking, target gap,
+  intervention, class/subject/school performance, trend, full audit of a result.
+- Per phase deliver: summary, schema changes, rules, tests, edge cases, assumptions
+  left configurable, remaining risks. Do not invent curriculum rules.
+### AI REVIEW OF THE SPEC vs THIS CODEBASE (read before planning)
+Found in code: Performance.marks is 0-100 only, NO max mark. Paper 1/2/3 and
+weights ALREADY exist (Performance.paper_number, SubjectPaper.weight). Models
+Curriculum, ClassLevel, Subject.definition (catalogue) already exist. Calculations
+are spread over 8 files: analytics, approvals_summary, early_warning, exam_publish,
+progress, progress_api, report_cards, results. Step 1 = map and centralize these.
+CONFLICTS the owner must decide (ask one at a time):
+1 ABSENT status vs B2 fairness rule (now: enter 1 = absent, it counts in overall).
+  Spec says absent is not zero. Changing it changes publish blocking + ranking.
+2 Parent/learner views (spec s.25) vs Decision 5 (portals NOT being built): defer.
+3 Ranking stays admin + deputy ONLY (owner rule). Teachers get no ranks, even in the
+  new ranking engine. CBC schools: ranking off by default.
+4 Grading per school (Decision 3, still open) must be answered first. Boundaries and
+  weights (Decision 4) come from the owner or official docs, never guessed.
+5 Mark 0 allowed? (open question) interacts with absent/exempt statuses.
+RULES THAT STILL WIN: draft > submitted > approved > locked is never bypassed.
+Corrections and moderation must NOT change locked marks. Analytics never write
+official records. Additive migrations with defaults (existing rows: max_mark=100,
+adjusted=raw, status=present). Other school 404, wrong role 403, anonymous 401.
+Backend tests stay green (baseline 229).
+WEAKNESSES FOUND IN THE SPEC (adjust when planning):
+- 12 phases at once is too big for the phone routine. Proposed order, one commit each:
+  E0 fix teacher over-reading (see CHECK LATER list) BEFORE adding analytics.
+  E1 inspect + central module (api/engine/): move the 8 files' maths there, no
+     behaviour change, tests prove the same numbers.
+  E2 max_mark + raw/percent split, then statuses.
+  E3 aggregation strategies + rounding policy.
+  E4 grading schemes (builds on B6 SchoolSettings).
+  E5 report cards (B7). E6 analytics endpoints (B15/B16). E7 analytics UI.
+  E8 CBC, E9 KCSE, E10 Cambridge LAST (needs authoritative thresholds from owner).
+- Early warning today = average fell 10+ or below 40. Spec wants configurable rules
+  and several observations: rework in E6.
+- Item-level analytics needs new data entry (question marks): optional, very late.
+- Caching/background jobs may need a new library: only if clearly needed.
+- PUM/standardized score only applies to some Cambridge syllabi: keep it optional.
+- No real student data yet, so migrations are cheap now: do schema changes EARLY.
+- A Cambridge catalogue test exists (test_cambridge_catalogue.py): reuse, do not redo.
+- Frontend must show server-computed numbers only. Check Analytics.jsx and Stats.jsx
+  for any maths done in the browser.
+- F5 DONE and browser-tested: frontend/src/Attention.jsx (Needs attention card + 4 stat
+  cards on admin Home). Uses d.awaiting_approval, d.exams.draft, and
+  /api/approvals/summary/ flagged_groups. Read-only. Wired in App.jsx for school_admin.
+- NEXT: F6 teacher home (read _teacher_data in dashboard.py + Mine.jsx first), F7 marks
+  extras, F8 search + bell, F10 mobile, F11 offline, F12 print, F13 vitest, final audit.
+- F6 DONE and browser-tested: frontend/src/TeacherTodo.jsx (My marks this term card +
+  3 stat cards on teacher Home). Uses d.my_marks_by_status (draft, submitted, approved,
+  locked; own marks, active term only). Read-only. Wired in App.jsx for teacher.
+- NEXT: F7 marks extras (paper selector, autosave, paste-from-sheet, bulk absent). Bulk
+  absent depends on the open absent/zero decision (now 1 = absent): ask the owner first.
+
+## STATUS END OF CHAT 3 (5 Oct 2026). READ FIRST (newer than UI STATUS UPDATE).
+Branch ui-redesign. Build OK, lint 0 errors (19 warnings = baseline). CI on each push.
+BROWSER-TESTED AND COMMITTED: Teachers, Students (+ list), Exams, Marks, Approvals,
+ Terms, Setup, Quick, Mine, Deputies, ReportCards, Password, Login (fake items gone),
+ Hero/Splash/Intro reviewed (live), Attention (F5), TeacherTodo (F6). Dock.jsx removed.
+NOT YET BROWSER-TESTED (owner skipped): Platform, Accounts, Activity, Analytics, Stats.
+ Do this FIRST next session (checks listed under UI STATUS UPDATE).
+F7 part 1 (commit "F7 part 1"): Marks.jsx blocks Save when a mark is not a number
+ 0-100 (red Alert) and shows "Save marks (N)". NOT browser-tested: check it first.
+ If it misbehaves: git revert that commit. Marks.jsx facts: save() POSTs
+ /api/performance/ with assessment_type "end", paper_number 1 (HARDCODED, and the
+ header says "End-term, Paper 1"). Submit = POST /api/performance/<id>/submit/.
+ Students who already have a mark are skipped in save (old()). If the owner decides
+ the minimum mark is 1, change badVal to >= 1 and the input min.
+F7 STILL TO DO: paper + assessment-type selector, autosave, paste-from-sheet, bulk
+ absent (bulk absent waits for the owner's absent/zero decision).
+REMAINING UI: F7 rest, F8 search (Ctrl+K) + bell, F10 mobile + accessibility + compress
+ login-pic.png to WebP, F11 offline marks, F12 print/reports (browser print vs server
+ PDF = decision 6), F13 vitest, check unused rules in login.css, final audit of every
+ page + mobile, then PR ui-redesign -> main and merge on green CI.
+THEN: ANALYTICS ENGINE PROJECT (section above). E0 first, after the owner answers the
+ 5 conflicts. Old HANDOFF.md still has uncommitted edits: not touched.
