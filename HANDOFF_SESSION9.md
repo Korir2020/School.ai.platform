@@ -296,3 +296,6 @@ THEN: Login (F9), shell/Dock/Hero/Intro/Splash/Logo review, Students LIST (read
 - NEXT: review shell/Dock/Hero/Intro/Splash/Logo, then Students LIST, F5-F13.
 - Dock.jsx removed (dead code, nothing imported it). Hero, Splash, Intro are live, kept.
 - NEXT: Students LIST (read API fields first), then F5-F13.
+- Students.jsx: added All students DataTable (search, sort; name + admission no.).
+  Browser-tested. Class/stream columns NOT added (need the enrollments API, unread).
+- NEXT: F5 admin dashboard (needs attention first, uses /api/approvals/summary/).

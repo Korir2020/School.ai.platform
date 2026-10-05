@@ -1,11 +1,16 @@
 import { useState, useEffect } from "react";
 import { api, listAll as list } from "./api";
 import { useToast } from "./toastctx";
-import { Button, Input, Select, Card, StatCard } from "./ui";
+import { Button, Input, Select, Card, StatCard, DataTable } from "./ui";
 import { Loading, ErrorState } from "./ui";
 
 const blank = (stream) => ({ first: "", last: "", adm: "", stream });
 const paths = ["streams", "class-levels", "terms", "students"];
+
+const cols = [
+  { label: "Name", sort: true, get: (r) => r.first_name + " " + r.last_name },
+  { label: "Admission no.", key: "admission_number", sort: true },
+];
 
 export default function Students({ d }) {
   const toast = useToast();
@@ -19,7 +24,7 @@ export default function Students({ d }) {
         + " " + s.name;
       const term = tm.find((t) => t.id === d.active_term.id) || {};
       setX({ sm: sm.map((s) => ({ ...s, label: lab(s) })),
-        year: term.academic_year, count: st.length });
+        year: term.academic_year, count: st.length, list: st });
       setBad(false);
     } catch { setBad(true); }
   };
@@ -62,6 +67,10 @@ export default function Students({ d }) {
         <Button kind="teal" busy={busy} onClick={add}
           disabled={!f.first || !f.last || !f.adm || !f.stream}>Add student</Button>
       </Card>
+        <Card title="All students">
+          <DataTable search="Search students" rows={x.list} cols={cols}
+            empty="No students yet. Add the first one above." />
+        </Card>
     </div>
   );
 }
