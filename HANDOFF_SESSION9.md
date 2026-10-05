@@ -256,3 +256,4 @@ Theme is settled by the design brief: light navy/teal.
 - UI: Terms migrated, browser-tested.
 - UI: Setup migrated, browser-tested.
 - UI: Quick migrated, browser-tested.
+- UI: Mine and Deputies migrated, browser-tested.
