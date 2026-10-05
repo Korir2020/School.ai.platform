@@ -294,3 +294,5 @@ THEN: Login (F9), shell/Dock/Hero/Intro/Splash/Logo review, Students LIST (read
   Google, Apple, Sign Up. Kept Forgot password (same rmrow div). Backup was /tmp/LG.bak.
 - login.css may still hold unused rules (.soc, .alt, .orc, .su). Check before deleting.
 - NEXT: review shell/Dock/Hero/Intro/Splash/Logo, then Students LIST, F5-F13.
+- Dock.jsx removed (dead code, nothing imported it). Hero, Splash, Intro are live, kept.
+- NEXT: Students LIST (read API fields first), then F5-F13.
