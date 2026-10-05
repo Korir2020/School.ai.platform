@@ -193,3 +193,9 @@ from api.search import search
 urlpatterns += [
     path('api/search/', search),
 ]
+
+from api.notifications import notifications
+
+urlpatterns += [
+    path('api/notifications/', notifications),
+]
