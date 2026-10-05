@@ -1,28 +1,67 @@
 import { useState, useEffect } from "react";
 import { api, listAll as list } from "./api";
+import { useToast } from "./toastctx";
+import { Button, Input, Select, Card, StatCard } from "./ui";
+import { Loading, ErrorState } from "./ui";
 
+const blank = (stream) => ({ first: "", last: "", adm: "", stream });
+const paths = ["streams", "class-levels", "terms", "students"];
 
 export default function Students({ d }) {
-  const [x, setX] = useState(null), [f, setF] = useState({ first: "", last: "", adm: "", stream: "" }), [msg, setMsg] = useState("");
+  const toast = useToast();
+  const [x, setX] = useState(null), [bad, setBad] = useState(false);
+  const [f, setF] = useState(blank("")), [busy, setBusy] = useState(false);
   const load = async () => {
-    const [sm, cl, tm, st] = await Promise.all(["streams", "class-levels", "terms", "students"].map((p) => list("/api/" + p + "/")));
-    const lab = (s) => ((cl.find((c) => c.id === s.class_level) || {}).name || "") + " " + s.name;
-    setX({ sm: sm.map((s) => ({ ...s, label: lab(s) })), year: (tm.find((t) => t.id === d.active_term.id) || {}).academic_year, count: st.length });
+    try {
+      const get = (p) => list("/api/" + p + "/");
+      const [sm, cl, tm, st] = await Promise.all(paths.map(get));
+      const lab = (s) => ((cl.find((c) => c.id === s.class_level) || {}).name || "")
+        + " " + s.name;
+      const term = tm.find((t) => t.id === d.active_term) || {};
+      setX({ sm: sm.map((s) => ({ ...s, label: lab(s) })),
+        year: term.academic_year, count: st.length });
+      setBad(false);
+    } catch { setBad(true); }
   };
   useEffect(() => { load(); }, []);
-  if (!x) return <p>Loading...</p>;
-  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   const add = async () => {
-    const r = await api("/api/students/", "POST", { first_name: f.first, last_name: f.last, admission_number: f.adm }), s = await r.json();
-    if (!r.ok) return setMsg("Failed: " + JSON.stringify(s));
+    setBusy(true);
+    const r = await api("/api/students/", "POST", { first_name: f.first,
+      last_name: f.last, admission_number: f.adm });
+    const s = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      setBusy(false);
+      return toast("Failed: " + (s.detail || JSON.stringify(s)), "err");
+    }
     const q = x.sm.find((z) => String(z.id) === f.stream);
-    const e = await api("/api/enrollments/", "POST", { student: s.id, academic_year: x.year, class_level: q.class_level, stream: q.id, is_active: true });
-    setMsg(e.ok ? "Added " + f.first : "Student saved but enrolment failed: " + JSON.stringify(await e.json()));
-    setF({ first: "", last: "", adm: "", stream: f.stream }); load();
+    const e = await api("/api/enrollments/", "POST", { student: s.id,
+      academic_year: x.year, class_level: q.class_level, stream: q.id,
+      is_active: true });
+    setBusy(false);
+    if (e.ok) toast("Added " + f.first, "ok");
+    else toast("Student saved but enrolment failed: "
+      + JSON.stringify(await e.json().catch(() => ({}))), "err");
+    setF(blank(f.stream)); load();
   };
-  return (<div><h3>Add student ({x.count} total)</h3>
-    <input placeholder="First name" value={f.first} onChange={set("first")} /> <input placeholder="Last name" value={f.last} onChange={set("last")} />
-    <input placeholder="Admission number" value={f.adm} onChange={set("adm")} />
-    <select value={f.stream} onChange={set("stream")}><option value="">Class / stream</option>{x.sm.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}</select>
-    <button onClick={add} disabled={!f.first || !f.last || !f.adm || !f.stream}>Add student</button><p>{msg}</p></div>);
+  if (bad) return <ErrorState text="Could not load students." onRetry={load} />;
+  if (!x) return <Loading />;
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  return (
+    <div>
+      <h2>Students</h2>
+      <StatCard label="Total students" value={x.count} />
+      <Card title="Add student">
+        <Input id="st-first" label="First name" value={f.first} onChange={set("first")} />
+        <Input id="st-last" label="Last name" value={f.last} onChange={set("last")} />
+        <Input id="st-adm" label="Admission number" value={f.adm} onChange={set("adm")} />
+        <Select id="st-stream" label="Class / stream" value={f.stream}
+          onChange={set("stream")}>
+          <option value="">Select...</option>
+          {x.sm.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+        </Select>
+        <Button kind="teal" busy={busy} onClick={add}
+          disabled={!f.first || !f.last || !f.adm || !f.stream}>Add student</Button>
+      </Card>
+    </div>
+  );
 }
