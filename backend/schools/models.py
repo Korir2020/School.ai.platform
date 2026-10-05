@@ -121,7 +121,7 @@ class Performance(models.Model):
     assessment_type = models.CharField(max_length=10, choices=[("opener", "Opener"), ("mid", "Mid-term"), ("end", "End-term")], default="end")
     paper_number = models.PositiveSmallIntegerField(default=1)
 
-    marks = models.DecimalField(max_digits=5, decimal_places=2, validators=[MinValueValidator(0), MaxValueValidator(100)])
+    marks = models.DecimalField(max_digits=5, decimal_places=2, validators=[MinValueValidator(1), MaxValueValidator(100)])
     STATUS_CHOICES = [
         ("draft", "Draft"),
         ("submitted", "Submitted"),
@@ -140,8 +140,8 @@ class Performance(models.Model):
         constraints = [
             models.UniqueConstraint(fields=["student", "subject", "academic_year", "term", "assessment_type", "paper_number"], name="unique_student_subject_term_performance"),
             models.CheckConstraint(
-                condition=models.Q(marks__gte=0, marks__lte=100),
-                name="performance_marks_0_100",
+                condition=models.Q(marks__gte=1, marks__lte=100),
+                name="performance_marks_1_100",
             )
         ]
 

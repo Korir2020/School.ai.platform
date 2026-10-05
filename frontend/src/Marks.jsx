@@ -44,7 +44,7 @@ export default function Marks({ d }) {
   const old = (sid) => a && data.pf.find((p) => p.student === sid
     && p.subject === a.subject && p.term === term.id && p.paper_number === 1
     && p.assessment_type === "end");
-  const badVal = (v) => v !== "" && !(Number(v) >= 0 && Number(v) <= 100);
+  const badVal = (v) => v !== "" && !(Number(v) >= 1 && Number(v) <= 100);
   const nBad = Object.values(vals).filter(badVal).length;
   const nNew = Object.values(vals).filter((v) => v !== "").length;
   const save = async () => {
@@ -74,7 +74,7 @@ export default function Marks({ d }) {
   const cols = [
     { label: "Student", key: "name", sort: true },
     { label: "Marks", render: (r) => (r.o ? r.o.marks :
-      <input type="number" min="0" max="100" value={vals[r.student] ?? ""}
+      <input type="number" min="1" max="100" value={vals[r.student] ?? ""}
         aria-label={"Marks for " + r.name}
         onChange={(ev) => setVals({ ...vals, [r.student]: ev.target.value })} />) },
     { label: "Status", key: "status", sort: true, render: (r) => (r.o
@@ -99,7 +99,7 @@ export default function Marks({ d }) {
       {a && <Card>
         <DataTable cols={cols} rows={table} search="Search students"
           empty="No students in this class" />
-        {nBad > 0 && <Alert kind="err">Marks must be numbers from 0 to 100.</Alert>}
+        {nBad > 0 && <Alert kind="err">Marks must be numbers from 1 to 100.</Alert>}
         <Button kind="teal" busy={busy} onClick={save}
           disabled={nNew === 0 || nBad > 0}>Save marks{nNew ? " (" + nNew + ")" : ""}</Button>
       </Card>}

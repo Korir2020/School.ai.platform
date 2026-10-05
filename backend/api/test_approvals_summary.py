@@ -20,9 +20,9 @@ class ApprovalsSummaryTests(APITestCase):
         self.teacher = User.objects.create_user("ta", password="pass12345")
         TeacherProfile.objects.create(user=self.teacher, school=self.a)
         self.root = User.objects.create_superuser("root", "r@x.com", "pass12345")
-        self.math = self.make(self.a, "Math", [0, 100, 50, 50])
+        self.math = self.make(self.a, "Math", [1, 100, 50, 49])
         self.eng = self.make(self.a, "Eng", [60, 62], extra=("draft", 5))
-        self.make(self.b, "Other", [0, 100])
+        self.make(self.b, "Other", [1, 100])
 
     def make(self, school, name, marks, extra=None):
         year, _ = AcademicYear.objects.get_or_create(
@@ -55,7 +55,7 @@ class ApprovalsSummaryTests(APITestCase):
         self.assertEqual(d["flagged_groups"], 1)
         by = {r["subject"]: r for r in d["results"]}
         self.assertEqual(set(by), {"Math", "Eng"})
-        self.assertEqual(by["Math"]["flags"], ["has_zero", "has_hundred", "wide_spread"])
+        self.assertEqual(by["Math"]["flags"], ["has_hundred", "wide_spread"])
         self.assertEqual(by["Math"]["average"], 50.0)
         self.assertEqual(by["Eng"]["flags"], [])
         self.assertEqual(by["Eng"]["count"], 2)

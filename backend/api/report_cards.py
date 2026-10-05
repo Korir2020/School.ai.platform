@@ -3,12 +3,27 @@ from decimal import Decimal
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
-from schools.models import ExamResult, Performance, SchoolAdminProfile, Student, Term
+from schools.models import Enrollment, Exam, ExamResult, Performance, SchoolAdminProfile, Student, Term
 from .permissions import get_user_school_id, restrict_for_teacher
 
 
 def _avg(values):
     return round(sum(values) / len(values), 2) if values else None
+
+
+def _did_not_sit(student, term):
+    """Published exams for the student's class level with no result."""
+    levels = Enrollment.objects.filter(
+        student=student, academic_year_id=term.academic_year_id
+    ).values_list("class_level_id", flat=True)
+    exams = Exam.objects.filter(
+        term=term, status="published", class_level_id__in=list(levels)
+    ).exclude(results__student=student).order_by("published_at", "id")
+    return [
+        {"exam": e.name, "assessment_type": e.assessment_type,
+         "note": "Did not sit this exam"}
+        for e in exams
+    ]
 
 
 @api_view(["GET"])
@@ -60,6 +75,7 @@ def report_card(request, student_id, term_id):
         "subjects": subjects,
         "overall_average": str(overall) if overall is not None else None,
         "pending_marks": pending,
+        "did_not_sit": _did_not_sit(student, term),
     }
 
     is_admin = request.user.is_superuser or SchoolAdminProfile.objects.filter(

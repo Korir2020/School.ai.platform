@@ -37,6 +37,7 @@ export default function ReportCards({ d }) {
   if (!st) return <Loading />;
   const subs = rc ? rc.subjects : [];
   const res = (rc && rc.published_results) || [];
+  const dns = (rc && rc.did_not_sit) || [];
   return (
     <div>
       <Card title="Report cards">
@@ -74,6 +75,9 @@ export default function ReportCards({ d }) {
               ))}</tbody>
             </table></div>
           )}
+      {dns.length > 0 && (
+        <p>Did not sit: {dns.map((x) => x.exam).join(", ")}</p>
+      )}
           {rc.pending_marks > 0 && (
             <Badge kind="warn">{rc.pending_marks} marks pending approval</Badge>
           )}

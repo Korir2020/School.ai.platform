@@ -416,3 +416,41 @@ REMAINING UI: F7 rest, F8 search (Ctrl+K) + bell, F10 mobile + accessibility + c
  page + mobile, then PR ui-redesign -> main and merge on green CI.
 THEN: ANALYTICS ENGINE PROJECT (section above). E0 first, after the owner answers the
  5 conflicts. Old HANDOFF.md still has uncommitted edits: not touched.
+
+## STATUS END OF CHAT 4 (5 Oct 2026). READ FIRST.
+Work is on branch main now (ui-redesign was merged by PR #1). The uploaded
+zip may be stale: ask for git branch, git status, git log -3 first.
+Backend baseline: 238 tests, all OK. Frontend: build OK, lint 0 errors
+(19 warnings = baseline).
+DONE in the last commit of chat 4:
+- Mark minimum is 1 (owner decision): migration 0026_performance_marks_min_1,
+  DB constraint performance_marks_1_100, api/test_mark_range.py. Marks.jsx
+  rejects 0 (validation + input min=1 + message "from 1 to 100").
+- Did not sit: report_cards.py returns did_not_sit [{exam}] (tests in
+  api/test_did_not_sit.py). ReportCards.jsx shows "Did not sit: <exams>"
+  under the exam table. No ranks added, teachers still never see ranks.
+- test_approvals_summary.py: marks 0 changed to 1, has_zero flag removed
+  from the expected flags.
+NOT YET BROWSER-TESTED: Marks (type 0 = red message, Save disabled) and
+ReportCards (did-not-sit line). Do this FIRST next session.
+TO DO NEXT (in order):
+1 Browser-test Marks and ReportCards (above).
+2 Dead code: the has_zero flag in api/approvals_summary.py can never fire now
+  (marks 0 is impossible). Remove it and fix its tests.
+3 Absent rule: 1 = absent (B2 fairness rule). Bulk absent still waits for
+  the owner. The Analytics spec says absent is not zero: conflict 1.
+4 F7 rest: paper and assessment-type selector (Marks.jsx hardcodes "end",
+  paper 1), autosave, paste-from-sheet, bulk absent.
+5 Browser-test Platform, Accounts, Activity, Analytics, Stats (skipped).
+6 F8 Ctrl+K search + bell (needs B12/B13). B13 must notify admin when
+  students are not ranked.
+7 F10 mobile and accessibility, compress login-pic.png to WebP, check unused
+  rules in login.css. F11 offline marks. F12 print or PDF (decision 6).
+  F13 vitest. Final audit of every page on phone.
+8 Backend: B6 SchoolSettings, B7 report card grades and comments, B8
+  promotions, B9 CSV import, B10, B12, B15-B17, B19 cleanup.
+9 ANALYTICS ENGINE project (section above) only after the UI is done. Start
+  with E0. The owner must answer its 5 conflicts one at a time.
+OPEN OWNER DECISIONS: grading scale per school, weights, portals, PDF method.
+LESSONS: read line numbers in the awk output with care (I misread line 77
+once). After every sed, run grep or wc to prove it. Backups go to /tmp/X.bak.
