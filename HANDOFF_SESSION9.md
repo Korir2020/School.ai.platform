@@ -464,3 +464,4 @@ once). After every sed, run grep or wc to prove it. Backups go to /tmp/X.bak.
   "Paste marks from a spreadsheet": lines "name or admission no, then mark", matched
   to students NOT yet entered, fills the boxes only (teacher still presses Save).
   Build OK, lint 0 errors. NOT browser-tested.
+- F7 part 4 (5 Oct 2026, chat 5): Marks.jsx now has an Absent button per row that enters 1 (the minimum). Hint text explains: missed every exam, leave the row empty. Decision: a student who did not sit any exam stays empty, not zero. Build OK, lint 0 errors. NOT browser-tested.

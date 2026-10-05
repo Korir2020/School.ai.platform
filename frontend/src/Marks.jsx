@@ -89,7 +89,8 @@ export default function Marks({ d }) {
       : "Not entered") },
     { label: "Action", render: (r) => (r.o && r.o.status === "draft"
       ? <Button kind="teal" size="sm" onClick={() => setAsk(r.o)}>Submit</Button>
-      : null) },
+      : (r.o ? null : <Button kind="ghost" size="sm" onClick={() => setVals({
+        ...vals, [r.student]: "1" })}>Absent</Button>)) },
   ];
   return (
     <div>
@@ -116,6 +117,7 @@ export default function Marks({ d }) {
         <PasteMarks rows={table} st={data.st} vals={vals} setVals={setVals} />
         <DataTable cols={cols} rows={table} search="Search students"
           empty="No students in this class" />
+        <p>Absent? Tap Absent to enter 1. Missed every exam? Leave the row empty.</p>
         {nBad > 0 && <Alert kind="err">Marks must be numbers from 1 to 100.</Alert>}
         <Button kind="teal" busy={busy} onClick={save}
           disabled={nNew === 0 || nBad > 0}>
