@@ -280,3 +280,13 @@ Password.jsx (19 lines): POST /api/auth/change-password/ {old_password,
 THEN: Login (F9), shell/Dock/Hero/Intro/Splash/Logo review, Students LIST (read
  API fields first), F5 admin dashboard, F6 teacher home, F7 marks extras, F8-F13,
  final audit of every page + mobile, then PR ui-redesign -> main, merge on green CI.
+
+### PROGRESS 5 Oct 2026 (chat 3, ui-redesign)
+- ReportCards.jsx migrated and browser-tested (commit 5d76dab). Ranks stay admin and
+  deputy only: the API leaves published_results out for teachers (report_cards.py
+  line 68), and the screen guards it with (rc && rc.published_results) || [].
+- Password.jsx migrated and browser-tested (Input, Button, Alert, busy state).
+- Platform, Accounts, Activity, Analytics, Stats: owner SKIPPED the browser test for
+  now. They are still NOT browser-tested. Do it later.
+- Old-file backups go to /tmp/X.bak before each rewrite (the routine above).
+- NEXT: Login (F9), then shell/Dock/Hero/Intro/Splash/Logo, Students LIST, F5-F13.
