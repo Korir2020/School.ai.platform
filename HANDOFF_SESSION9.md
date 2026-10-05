@@ -299,3 +299,87 @@ THEN: Login (F9), shell/Dock/Hero/Intro/Splash/Logo review, Students LIST (read
 - Students.jsx: added All students DataTable (search, sort; name + admission no.).
   Browser-tested. Class/stream columns NOT added (need the enrollments API, unread).
 - NEXT: F5 admin dashboard (needs attention first, uses /api/approvals/summary/).
+
+## ANALYTICS ENGINE PROJECT (owner spec, 5 Oct 2026). START ONLY AFTER F5-F13 + audit.
+Owner spec = "Assessment & Analytics Engine" (30 sections, long). Owner keeps the full
+text; ask the owner to paste it again if needed. Do NOT start before the UI is done.
+Core idea: raw evidence > component > normalize > weight > aggregate > curriculum
+grading > analytics > reports. ONE backend calculation layer; the frontend never
+calculates results. Never lose raw marks (60/80 stays 60/80, percent is derived).
+### What the spec wants (checklist of all 30 sections)
+- Result fields (all optional): raw_mark, max_mark, achievement %, adjusted_mark,
+  weighting, weighted mark, grade, grade points, performance level, PUM (separate
+  from achievement %), status, strand/sub-strand/competency/topic, audit info.
+- Components: Paper 1/2/3, unequal maxima. Never average percentages blindly.
+  Strategies: raw total, percentage mean, weighted components, weighting factor,
+  contribution model (coursework 20 + SBA 20 + exam 60). All CONFIGURABLE.
+- Statuses: PRESENT, ABSENT, EXEMPT, PENDING, WITHHELD, NOT_ATTEMPTED, TRANSFERRED,
+  approved medical exemption. Absent is NOT zero. Missing never wrecks averages.
+- Corrections keep history (old, new, who, when, reason). Moderation: adjusted mark
+  is optional, default = raw.
+- Grading engine: configurable schemes (KCSE, CBC levels EE1-BE2, Cambridge, school
+  custom). No "if pct >= 80" scattered in code. Never hard-code boundaries.
+- CBC: competency, strand, sub-strand, growth, mastery, intervention. Ranking OPTIONAL.
+- 8-4-4/KCSE: grades, points, mean grade, distributions. Cambridge: raw > adjusted >
+  weighted > syllabus total > threshold (per syllabus/series, configurable) > grade.
+- Rounding: keep full precision, round only at presentation, one policy everywhere.
+- Analytics: mean, median, range, distribution, std dev. Growth (absolute, trend,
+  volatility, consistency: 74,75,76 is steadier than 45,96,60). Mastery by subject/
+  strand/topic. Target gap. Interventions (support, declining, weak areas, most
+  improved). Never label "at risk" from ONE mark: configurable, several observations.
+- Class drill-down: class > subject > assessment > topic > learners > evidence.
+  School view: cohort, year-on-year, curriculum, teacher/class trends (no needless
+  sensitive comparisons). Learner profile: longitudinal, strengths, weak topics, why.
+- Item analytics (optional, needs question-level marks): flag "high-error item,
+  review recommended", never claim the teacher or question is wrong.
+- Ranking: configurable metric + scope (assessment/subject/class/stream/grade/school),
+  deterministic ties. Report cards follow the curriculum: 60/80 (75%); KCSE grade +
+  points; CBC level + evidence; Cambridge components + weighted result.
+- Perf: indexes, DB aggregation, cache/background only where justified.
+- UI: simple view (score, grade/level, trend, strengths, improve) and advanced view
+  (components, weights, distribution, strands). Label every number (raw, weighted,
+  standardized). Teacher still types only "Mark 60, out of 80".
+- Spec's 18 final questions: actual score, max, %, weighting, how calculated, grade/
+  level, competencies, weak topics, improving?, consistency, ranking, target gap,
+  intervention, class/subject/school performance, trend, full audit of a result.
+- Per phase deliver: summary, schema changes, rules, tests, edge cases, assumptions
+  left configurable, remaining risks. Do not invent curriculum rules.
+### AI REVIEW OF THE SPEC vs THIS CODEBASE (read before planning)
+Found in code: Performance.marks is 0-100 only, NO max mark. Paper 1/2/3 and
+weights ALREADY exist (Performance.paper_number, SubjectPaper.weight). Models
+Curriculum, ClassLevel, Subject.definition (catalogue) already exist. Calculations
+are spread over 8 files: analytics, approvals_summary, early_warning, exam_publish,
+progress, progress_api, report_cards, results. Step 1 = map and centralize these.
+CONFLICTS the owner must decide (ask one at a time):
+1 ABSENT status vs B2 fairness rule (now: enter 1 = absent, it counts in overall).
+  Spec says absent is not zero. Changing it changes publish blocking + ranking.
+2 Parent/learner views (spec s.25) vs Decision 5 (portals NOT being built): defer.
+3 Ranking stays admin + deputy ONLY (owner rule). Teachers get no ranks, even in the
+  new ranking engine. CBC schools: ranking off by default.
+4 Grading per school (Decision 3, still open) must be answered first. Boundaries and
+  weights (Decision 4) come from the owner or official docs, never guessed.
+5 Mark 0 allowed? (open question) interacts with absent/exempt statuses.
+RULES THAT STILL WIN: draft > submitted > approved > locked is never bypassed.
+Corrections and moderation must NOT change locked marks. Analytics never write
+official records. Additive migrations with defaults (existing rows: max_mark=100,
+adjusted=raw, status=present). Other school 404, wrong role 403, anonymous 401.
+Backend tests stay green (baseline 229).
+WEAKNESSES FOUND IN THE SPEC (adjust when planning):
+- 12 phases at once is too big for the phone routine. Proposed order, one commit each:
+  E0 fix teacher over-reading (see CHECK LATER list) BEFORE adding analytics.
+  E1 inspect + central module (api/engine/): move the 8 files' maths there, no
+     behaviour change, tests prove the same numbers.
+  E2 max_mark + raw/percent split, then statuses.
+  E3 aggregation strategies + rounding policy.
+  E4 grading schemes (builds on B6 SchoolSettings).
+  E5 report cards (B7). E6 analytics endpoints (B15/B16). E7 analytics UI.
+  E8 CBC, E9 KCSE, E10 Cambridge LAST (needs authoritative thresholds from owner).
+- Early warning today = average fell 10+ or below 40. Spec wants configurable rules
+  and several observations: rework in E6.
+- Item-level analytics needs new data entry (question marks): optional, very late.
+- Caching/background jobs may need a new library: only if clearly needed.
+- PUM/standardized score only applies to some Cambridge syllabi: keep it optional.
+- No real student data yet, so migrations are cheap now: do schema changes EARLY.
+- A Cambridge catalogue test exists (test_cambridge_catalogue.py): reuse, do not redo.
+- Frontend must show server-computed numbers only. Check Analytics.jsx and Stats.jsx
+  for any maths done in the browser.
