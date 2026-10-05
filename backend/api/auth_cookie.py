@@ -12,6 +12,8 @@ def put_cookie(resp):
         resp.set_cookie(COOKIE, tok, max_age=7 * 24 * 3600, httponly=True,
                         secure=not settings.DEBUG, samesite="Lax",
                         path="/api/auth/")
+        if not settings.REFRESH_IN_BODY:
+            resp.data.pop("refresh", None)
     return resp
 
 

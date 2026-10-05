@@ -215,3 +215,9 @@ SPECTACULAR_SETTINGS = {
 # Fast password hashing ONLY while running tests (full run was ~5 min of hashing).
 if "test" in sys.argv:
     PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
+
+# B5: keep the refresh token out of JSON replies (cookie only) in production.
+REFRESH_IN_BODY = (
+    "test" in sys.argv
+    or os.environ.get("DJANGO_REFRESH_IN_BODY") == "True"
+)
