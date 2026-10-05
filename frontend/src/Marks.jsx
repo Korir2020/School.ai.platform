@@ -6,21 +6,23 @@ import { ConfirmDialog, EmptyState, Loading, ErrorState, Alert } from "./ui";
 
 const names = ["teacher-assignments", "enrollments", "students", "terms",
   "performance"];
-const extra = ["subjects", "streams", "class-levels"];
+const extra = ["subjects", "streams", "class-levels", "subject-papers"];
+const kindNames = { opener: "Opener", mid: "Mid-term", end: "End-term" };
 const kinds = { draft: "info", submitted: "warn", approved: "ok", locked: "teal" };
 
 export default function Marks({ d }) {
   const toast = useToast();
   const [data, setData] = useState(null), [bad, setBad] = useState(false);
   const [sel, setSel] = useState(""), [vals, setVals] = useState({});
+  const [kind, setKind] = useState("end"), [paper, setPaper] = useState("1");
   const [ask, setAsk] = useState(null), [busy, setBusy] = useState(false);
   const load = async () => {
     try {
       const get = (p) => list("/api/" + p + "/");
       const soft = (p) => get(p).catch(() => []);
       const [ta, en, st, tm, pf] = await Promise.all(names.map(get));
-      const [sj, sm, cl] = await Promise.all(extra.map(soft));
-      setData({ ta, en, st, tm, pf, sj, sm, cl });
+      const [sj, sm, cl, sp] = await Promise.all(extra.map(soft));
+      setData({ ta, en, st, tm, pf, sj, sm, cl, sp });
       setBad(false);
     } catch { setBad(true); }
   };
@@ -41,9 +43,13 @@ export default function Marks({ d }) {
   const label = (x) => (pick(data.sj, x.subject).name || "Subject " + x.subject)
     + " - " + (pick(data.cl, x.class_level).name || x.class_level)
     + " " + (pick(data.sm, x.stream).name || x.stream);
+  const nums = a ? data.sp.filter((x) => x.subject === a.subject)
+    .map((x) => x.paper_number).sort((x, y) => x - y) : [];
+  const papers = nums.length ? nums : [1];
+  const pn = papers.includes(Number(paper)) ? Number(paper) : papers[0];
   const old = (sid) => a && data.pf.find((p) => p.student === sid
-    && p.subject === a.subject && p.term === term.id && p.paper_number === 1
-    && p.assessment_type === "end");
+    && p.subject === a.subject && p.term === term.id && p.paper_number === pn
+    && p.assessment_type === kind);
   const badVal = (v) => v !== "" && !(Number(v) >= 1 && Number(v) <= 100);
   const nBad = Object.values(vals).filter(badVal).length;
   const nNew = Object.values(vals).filter((v) => v !== "").length;
@@ -55,7 +61,7 @@ export default function Marks({ d }) {
       if (m === undefined || m === "" || old(e.student)) continue;
       const r = await api("/api/performance/", "POST", { student: e.student,
         subject: a.subject, academic_year: term.academic_year, term: term.id,
-        assessment_type: "end", paper_number: 1, marks: m });
+        assessment_type: kind, paper_number: pn, marks: m });
       if (r.ok) ok++; else fail++;
     }
     setBusy(false);
@@ -87,21 +93,31 @@ export default function Marks({ d }) {
   return (
     <div>
       <h2>Enter marks</h2>
-      <p>End-term, Paper 1</p>
+      <p>{kindNames[kind]}, Paper {pn}</p>
       <Card>
         <Select id="mk-sel" label="Class and subject" value={sel}
-          onChange={(e) => setSel(e.target.value)}>
+          onChange={(e) => { setSel(e.target.value); setVals({}); setPaper("1"); }}>
           <option value="">Choose class and subject</option>
           {(d.assignments || data.ta).map((x) => (
             <option key={x.id} value={x.id}>{label(x)}</option>))}
         </Select>
+        {a && <Select id="mk-kind" label="Assessment" value={kind}
+          onChange={(e) => { setKind(e.target.value); setVals({}); }}>
+          {Object.keys(kindNames).map((k) => (
+            <option key={k} value={k}>{kindNames[k]}</option>))}
+        </Select>}
+        {a && <Select id="mk-paper" label="Paper" value={String(pn)}
+          onChange={(e) => { setPaper(e.target.value); setVals({}); }}>
+          {papers.map((n) => <option key={n} value={n}>Paper {n}</option>)}
+        </Select>}
       </Card>
       {a && <Card>
         <DataTable cols={cols} rows={table} search="Search students"
           empty="No students in this class" />
         {nBad > 0 && <Alert kind="err">Marks must be numbers from 1 to 100.</Alert>}
         <Button kind="teal" busy={busy} onClick={save}
-          disabled={nNew === 0 || nBad > 0}>Save marks{nNew ? " (" + nNew + ")" : ""}</Button>
+          disabled={nNew === 0 || nBad > 0}>
+          Save marks{nNew ? " (" + nNew + ")" : ""}</Button>
       </Card>}
       {ask && <ConfirmDialog title="Submit these marks?" confirm="Submit"
         text="Submitted marks go to the admin for approval."

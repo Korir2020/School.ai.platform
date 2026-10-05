@@ -457,3 +457,6 @@ once). After every sed, run grep or wc to prove it. Backups go to /tmp/X.bak.
 - Dead has_zero flag removed from api/approvals_summary.py (5 Oct 2026, chat 5).
   Marks 0 is impossible since migration 0026. Its 2 tests pass. Not yet browser-tested:
   Marks and ReportCards (owner chose to skip tests for now).
+- F7 part 2 (5 Oct 2026, chat 5): Marks.jsx has Assessment (opener/mid/end) and
+  Paper selectors. Papers come from /api/subject-papers/ for the subject, else only
+  Paper 1. Build OK, lint 0 errors. NOT browser-tested (owner chose to skip).
