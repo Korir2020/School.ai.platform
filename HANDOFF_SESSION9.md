@@ -145,3 +145,42 @@ Test baseline now: 179 tests.
   wc -l check; verify CI with gh run list and gh run view <id> --log | grep Ran.
 - The "NEXT (in order)" section above is OUTDATED. Real NEXT: POST /api/schools/
   (B4), then B11/B14, B5, F1-F3.
+
+## SESSION 9, LATER PART (5 Oct 2026). Test baseline: 229, all OK.
+- B4 COMPLETE: POST /api/schools/ makes a school + first admin (superuser only,
+  api/school_create.py). Admin/deputy password recovery: GET /api/admin-accounts/,
+  POST /api/admin-accounts/<id>/reset-password/ (api/admin_accounts.py).
+- B11 DONE: /api/audit-logs/ filters (api/audit.py, test_audit_filters.py).
+- B14 DONE: GET /api/approvals/summary/ with flags (api/approvals_summary.py).
+- FRONTEND DONE: Platform.jsx (Schools tab), Accounts.jsx (Admins tab), buttons on
+  Teachers and Deputies, smaller login picture, forgot-password text.
+- B5 DONE AND LIVE (refresh token in an HttpOnly cookie). Commits f86c727, f1ffd0c,
+  8baf565, 10eac6f. Checked on the phone: login, reload, logout all work.
+  * Render static site "Marian-app" has a Rewrite rule /api/* -> backend /api/*, so
+    app and API are ONE origin. Needed because both *.onrender.com sites are
+    cross-site (onrender.com is on the Public Suffix List): a SameSite=None cookie
+    would be blocked by Safari/Brave. VITE_API_URL is DELETED in Render (do not re-add).
+  * Cookie marian_rt: HttpOnly, Secure (not DEBUG), SameSite=Lax, Path=/api/auth/,
+    7 days. api/auth_cookie.py: CookieLoginView, CookieRefreshView (reads cookie or
+    body), put_cookie(), origin_ok().
+  * CSRF: refresh and logout reject a foreign Origin (403) when the token comes from
+    the cookie. Allowed: DJANGO_CORS_ORIGINS, DJANGO_CSRF_TRUSTED_ORIGINS, own host.
+  * Logout reads the cookie and clears it (api/auth_logout.py). Change-password keeps
+    the cookie's session and signs out the others (api/auth_password.py).
+  * settings.REFRESH_IN_BODY: False in production, so login/refresh JSON has NO
+    refresh token (cookie only). True while running tests (or DJANGO_REFRESH_IN_BODY=
+    True). Tests: test_auth_cookie, test_cookie_session, test_cookie_prod.
+  * Test gotcha: the test client now keeps the cookie, so tests that mean "no token"
+    must call self.client.cookies.clear() first.
+  * Frontend: api.js keeps the access token in memory only; localStorage holds just
+    the flag "in" (signed in). Only ONE refresh call runs at a time (rotation +
+    blacklist would sign the user out if two raced). Old "access"/"refresh" keys are
+    removed on load. Password.jsx no longer sends the token. vite.config.js removes
+    the Origin header in dev only.
+  * If login ever shows "Failed to execute 'json'": VITE_API_URL was re-added or the
+    Render rewrite rule is missing.
+- NOT YET CHECKED (B5 follow-ups): a live curl proving the login JSON has no
+  "refresh"; what the user sees when the 7-day session expires (should be login).
+- NEXT: F1-F3 (theme + ui.jsx components), then B12, B13, B15-B17, B19.
+- PHONE TIPS: lines over ~100 chars get cut when copied; never paste "read -s"
+  (it swallows the next line): type "read -s P" by hand instead.
