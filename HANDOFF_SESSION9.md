@@ -257,3 +257,26 @@ Theme is settled by the design brief: light navy/teal.
 - UI: Setup migrated, browser-tested.
 - UI: Quick migrated, browser-tested.
 - UI: Mine and Deputies migrated, browser-tested.
+
+### UI STATUS UPDATE (end of chat 2, 5 Oct 2026). READ THIS FIRST.
+Branch ui-redesign. Build OK, lint 0 errors (19 warnings, hook deps only).
+COMMITTED AND BROWSER-TESTED: Teachers, Students, Exams, Marks, Approvals,
+Terms, Setup, Quick, Mine, Deputies.
+COMMITTED BUT NOT BROWSER-TESTED (build + lint only): Platform, Accounts,
+Activity, Analytics, Stats. FIRST JOB: owner tests these five, fix any bug.
+ Platform (superuser): table loads, password hidden, Create needs 4 fields.
+ Accounts (superuser): role/status badges, Reset opens modal + toast.
+ Activity: names and "x ago". Analytics: teal bar, warning if pending marks.
+ Stats: admin 7 cards, teacher 1 card, four text badges.
+### STILL TO MIGRATE (old code, untouched)
+ReportCards.jsx (16 lines): listAll /api/students/, GET
+ /api/report-card/<student>/<d.active_term.id>/ gives student{name,
+ admission_number}, term, academic_year, subjects[{subject,average}],
+ overall_average, published_results[{exam,class_rank,stream_rank}],
+ pending_marks, plus a window.print button. Keep all. Ranks: admin and
+ deputies only, check who can open this screen.
+Password.jsx (19 lines): POST /api/auth/change-password/ {old_password,
+ new_password}, repeat-password match. Re-read the file first.
+THEN: Login (F9), shell/Dock/Hero/Intro/Splash/Logo review, Students LIST (read
+ API fields first), F5 admin dashboard, F6 teacher home, F7 marks extras, F8-F13,
+ final audit of every page + mobile, then PR ui-redesign -> main, merge on green CI.
