@@ -383,3 +383,8 @@ WEAKNESSES FOUND IN THE SPEC (adjust when planning):
 - A Cambridge catalogue test exists (test_cambridge_catalogue.py): reuse, do not redo.
 - Frontend must show server-computed numbers only. Check Analytics.jsx and Stats.jsx
   for any maths done in the browser.
+- F5 DONE and browser-tested: frontend/src/Attention.jsx (Needs attention card + 4 stat
+  cards on admin Home). Uses d.awaiting_approval, d.exams.draft, and
+  /api/approvals/summary/ flagged_groups. Read-only. Wired in App.jsx for school_admin.
+- NEXT: F6 teacher home (read _teacher_data in dashboard.py + Mine.jsx first), F7 marks
+  extras, F8 search + bell, F10 mobile, F11 offline, F12 print, F13 vitest, final audit.
