@@ -184,3 +184,71 @@ Test baseline now: 179 tests.
 - NEXT: F1-F3 (theme + ui.jsx components), then B12, B13, B15-B17, B19.
 - PHONE TIPS: lines over ~100 chars get cut when copied; never paste "read -s"
   (it swallows the next line): type "read -s P" by hand instead.
+
+## SESSION 9, UI REDESIGN PART (5 Oct 2026). READ THIS FIRST.
+Branch: ui-redesign (NOT main). The zip of main is behind: it has no ui.jsx,
+ui.css, toastctx.js, hashtab.js. Ask for the branch state, do not rediscover.
+Design brief: light theme, Navy #0F2747, Teal #0F8B8D, Blue #3B82F6, bg #F5F7FA,
+white cards, border #E2E8F0, text #172033/#64748B, ok #16A34A, warn #F59E0B,
+err #DC2626. No extra colors, no flashy effects, keep all working logic.
+### How to save the owner's chat limit (works well)
+- Read the file ONCE with: awk '{print NR": "$0}' F.jsx | fold -w 88
+- Then send the whole rewrite in ONE message: numbered blocks of 30 lines or
+  fewer, each cat > (first) or cat >> (rest), lines under 90 chars.
+- Last block = wc -l, npm run build 2>&1 | tail -2, npm run lint 2>&1 | tail -2.
+  Owner sends ONE screenshot. Then a browser test list, then ONE commit paste
+  that also prints the next screen (git log -1, wc -l, awk of next file).
+- Back up first: cp F.jsx /tmp/F.bak. Restore with cp if the test fails.
+- Compare every API field and prop against the old file (a Students bug:
+  d.active_term vs d.active_term.id was caught only later).
+### UI DONE on ui-redesign (pushed). Build OK, lint 0 errors (16 warnings = baseline)
+- 7dd0d26 new app shell (navy sidebar, mobile bar) wired into App.jsx
+- a53cc87 hash routing for pages (frontend/src/hashtab.js)
+- e93f862 Root.jsx wraps the app in ToastProvider
+- cab8f94 Teachers: DataTable, status badge, ConfirmDialog for deactivate,
+  Modal for reset password, add teacher, assign table, toasts
+- b1e485c + abd4340 Students: add form + total card + toasts (no list yet)
+- 7257798 Exams: table, confirm before publish, results table
+- Marks.jsx: REWRITTEN (107 lines), build OK. Browser test and commit may be
+  pending when this was written: check git log before redoing it.
+ui.jsx exports: Button(kind teal|secondary|ghost|danger, size sm, busy), Field,
+Input, Select (label,id), Modal(title,onClose,actions), ConfirmDialog(title,text,
+confirm,danger,onYes,onNo), ToastProvider, Card(title), Badge(kind ok|err|info|
+teal|warn), Alert, EmptyState, Loading, ErrorState(text,onRetry), StatCard,
+DataTable(cols{label,key,get,render,sort}, rows, search, empty).
+Toast: const toast = useToast() from ./toastctx; toast(text, "ok"|"err").
+### UI LEFT (in this order, one commit per screen, test each in the browser)
+1 Commit Marks after a TEACHER test: names in dropdown, save shows toast, rows
+  become draft, submit asks to confirm. Then F7 extras: paper selector, autosave,
+  paste from sheet, bulk absent, rules 0-100 (open question: minimum 1?).
+2 Migrate: Approvals, Terms, Setup, Quick, Mine, Deputies, Accounts, Platform,
+  Activity, Analytics, Stats, ReportCards, Password. Login last (F9: remove
+  fake remember-me/Google/Apple/Sign up; compress login-pic.png 2.2 MB to WebP).
+3 Students and Teachers still need a real student list (search, sort, status,
+  class) and edit. Read the API fields first, do not guess.
+4 F5 admin dashboard (needs attention first, KPI cards). F6 teacher home.
+  Teachers see Home + Marks only.
+5 F8 Ctrl+K search + bell (needs B12/B13). F10 mobile pass + accessibility
+  (focus, labels, contrast, not color alone). F11 offline marks. F12 reports and
+  print. F13 vitest.
+6 Final audit of EVERY page against the brief: colors, radii, spacing, buttons,
+  empty/error states, mobile tables. Fix, do not just list.
+7 Merge: open a PR ui-redesign -> main, wait for green CI (npm build, lint,
+  229+ backend tests), then merge. Render redeploys main. Never merge a red CI.
+### BACKEND LEFT (none changed in this UI part; baseline 229 tests)
+B6 SchoolSettings, B7 report cards (show "did not sit"), B8 Student.status +
+promotions, B9 CSV import, B10 Subject.definition check, B12 /api/search/,
+B13 /api/notifications/ (also notify admin when students are not ranked),
+B15 analytics official vs draft, B16 /api/students/<id>/profile/, B17 indexes,
+B19 cleanup (dead MAILERS, urls.py imports, "if False" hack, stale docs).
+B5 follow-ups: check login JSON has no "refresh"; check expired session goes
+to the login screen.
+### OPEN OWNER DECISIONS (ask one at a time)
+Grading scale per school (CBC EE/ME/AE/BE, 8-4-4, or both), assessment weights,
+student/parent portals, PDF method (print vs server), reject a mark of 0.
+Theme is settled by the design brief: light navy/teal.
+### GOTCHAS
+- HANDOFF.md (old) has uncommitted rewrites with stale facts (VITE_API_URL,
+  171 tests). Do not commit it. This file is the live handoff.
+- Never re-add VITE_API_URL in Render (cookie auth needs the /api rewrite).
+- Teachers/parents never see ranks. Keep draft>submitted>approved>locked.
