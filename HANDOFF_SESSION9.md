@@ -252,3 +252,4 @@ Theme is settled by the design brief: light navy/teal.
   171 tests). Do not commit it. This file is the live handoff.
 - Never re-add VITE_API_URL in Render (cookie auth needs the /api rewrite).
 - Teachers/parents never see ranks. Keep draft>submitted>approved>locked.
+- UI: Marks (7d7003b) and Approvals migrated, browser-tested.
