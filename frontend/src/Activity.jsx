@@ -1,27 +1,42 @@
 import { useState, useEffect } from "react";
 import { api } from "./api";
+import { Card, Badge, EmptyState, Loading, ErrorState } from "./ui";
+
+const kinds = { draft: "info", submitted: "warn", approved: "ok", locked: "teal" };
 const ago = (t) => {
   const m = Math.max(0, Math.round((Date.now() - new Date(t)) / 60000));
-  return m < 1 ? "just now" : m < 60 ? m + "m ago" : m < 1440 ? Math.round(m / 60) + "h ago" : Math.round(m / 1440) + "d ago";
+  if (m < 1) return "just now";
+  if (m < 60) return m + "m ago";
+  return m < 1440 ? Math.round(m / 60) + "h ago" : Math.round(m / 1440) + "d ago";
 };
+
 export default function Activity() {
-  const [rows, setRows] = useState(null);
-  useEffect(() => { (async () => {
-    const r = await api("/api/audit-logs/");
-    setRows(r.ok ? (await r.json()).slice(0, 6) : []);
-  })(); }, []);
-  if (!rows) return null;
+  const [rows, setRows] = useState(null), [bad, setBad] = useState(false);
+  const load = async () => {
+    try {
+      const r = await api("/api/audit-logs/");
+      if (!r.ok) throw new Error("load");
+      const j = await r.json();
+      setRows((Array.isArray(j) ? j : j.results || []).slice(0, 6));
+      setBad(false);
+    } catch { setBad(true); }
+  };
+  useEffect(() => { load(); }, []);
+  if (bad) return <ErrorState text="Could not load activity." onRetry={load} />;
+  if (!rows) return <Loading />;
   return (
-    <div className="act">
-      <h3>Recent activity</h3>
-      {!rows.length && <p className="sub">No activity yet.</p>}
-      {rows.map((x) => (
-        <div className="arow" key={x.id}>
-          <i className={"s-" + (x.details && x.details.to ? x.details.to : "draft")} />
-          <span><b>{x.user || "System"}</b> {x.action}
-            {x.details && x.details.from ? " (" + x.details.from + " → " + x.details.to + ")" : ""}</span>
-          <em>{ago(x.timestamp)}</em>
-        </div>))}
-    </div>
+    <Card title="Recent activity">
+      {rows.length === 0 ? <EmptyState title="No activity yet" text="" /> : rows.map((x) => {
+        const d = x.details || {};
+        return (
+          <div key={x.id} style={{ padding: "6px 0" }}>
+            <b>{x.user || "System"}</b> {x.action}
+            {d.from ? " (" + d.from + " \u2192 " + d.to + ")" : ""}{" "}
+            {d.to && <Badge kind={kinds[d.to] || "info"}>{d.to}</Badge>}{" "}
+            <em>{ago(x.timestamp)}</em>
+          </div>
+        );
+      })}
+    </Card>
   );
 }
