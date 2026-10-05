@@ -388,3 +388,8 @@ WEAKNESSES FOUND IN THE SPEC (adjust when planning):
   /api/approvals/summary/ flagged_groups. Read-only. Wired in App.jsx for school_admin.
 - NEXT: F6 teacher home (read _teacher_data in dashboard.py + Mine.jsx first), F7 marks
   extras, F8 search + bell, F10 mobile, F11 offline, F12 print, F13 vitest, final audit.
+- F6 DONE and browser-tested: frontend/src/TeacherTodo.jsx (My marks this term card +
+  3 stat cards on teacher Home). Uses d.my_marks_by_status (draft, submitted, approved,
+  locked; own marks, active term only). Read-only. Wired in App.jsx for teacher.
+- NEXT: F7 marks extras (paper selector, autosave, paste-from-sheet, bulk absent). Bulk
+  absent depends on the open absent/zero decision (now 1 = absent): ask the owner first.

@@ -13,6 +13,7 @@ import Approvals from "./Approvals";
 import Exams from "./Exams";
 import ReportCards from "./ReportCards";
 import Attention from "./Attention";
+import TeacherTodo from "./TeacherTodo";
 import Students from "./Students";
 import Setup from "./Setup";
 import Terms from "./Terms";
@@ -37,7 +38,7 @@ function Dash({ onOut }) {
   })(); }, []);
   const role = d && d.role;
   const need = (el) => (d.active_term ? el : <p className="plain">No active term yet. Create one in Setup first.</p>);
-  const home = d && <><Home me={me} d={d} />{role === "teacher" && <Mine d={d} />}{role === "school_admin" && <Attention d={d} go={setTab} />}{role === "school_admin" && <Quick go={setTab} tabs={{ Approve: 1, Exams: 1, Reports: 1, Students: 1, Analytics: 1 }} />}{role === "school_admin" && <Activity />}<Password /></>;
+  const home = d && <><Home me={me} d={d} />{role === "teacher" && <TeacherTodo d={d} go={setTab} />}{role === "teacher" && <Mine d={d} />}{role === "school_admin" && <Attention d={d} go={setTab} />}{role === "school_admin" && <Quick go={setTab} tabs={{ Approve: 1, Exams: 1, Reports: 1, Students: 1, Analytics: 1 }} />}{role === "school_admin" && <Activity />}<Password /></>;
   const tabs = role === "teacher" ? { Home: home, Marks: need(<Marks d={d} />) }
     : role === "school_admin" ? { Home: home, Approve: <Approvals />, Exams: need(<Exams d={d} />), Reports: need(<ReportCards d={d} />), Analytics: need(<Analytics d={d} />), Students: need(<Students d={d} />), Teachers: need(<><Teachers />{me && !me.is_deputy && <Deputies />}</>), Setup: <><Terms /><Setup /></> }
     : role === "superadmin" ? { Home: home, Schools: <Platform d={d} />, Admins: <Accounts /> }
