@@ -26,6 +26,7 @@ import Platform from "./Platform";
 import Accounts from "./Accounts";
 import { useHashTab } from "./hashtab";
 import "./app.css";
+import "./light.css";
 
 const Home = ({ me, d }) => (<div className="plain"><Hero me={me} d={d} />
   <Stats d={d} /></div>);
