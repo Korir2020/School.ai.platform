@@ -465,3 +465,4 @@ once). After every sed, run grep or wc to prove it. Backups go to /tmp/X.bak.
   to students NOT yet entered, fills the boxes only (teacher still presses Save).
   Build OK, lint 0 errors. NOT browser-tested.
 - F7 part 4 (5 Oct 2026, chat 5): Marks.jsx now has an Absent button per row that enters 1 (the minimum). Hint text explains: missed every exam, leave the row empty. Decision: a student who did not sit any exam stays empty, not zero. Build OK, lint 0 errors. NOT browser-tested.
+- F7 part 5 (5 Oct 2026, chat 5): Marks.jsx autosave. Unsaved marks are kept in localStorage per term/class-subject/assessment/paper (key mk:term:sel:kind:paper), restored on return, cleared when empty or after Save. Local only, NOT a server save, because saved marks become read-only. Drafts are not cleared on logout (shared-device caveat). Build OK, lint 0 errors (24 warnings). NOT browser-tested.

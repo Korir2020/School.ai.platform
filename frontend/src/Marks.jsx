@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { api, listAll as list } from "./api";
 import { useToast } from "./toastctx";
 import { Button, Select, Card, Badge, DataTable } from "./ui";
@@ -28,6 +28,26 @@ export default function Marks({ d }) {
     } catch { setBad(true); }
   };
   useEffect(() => { load(); }, []);
+  const dk = d.active_term ? "mk:" + d.active_term.id + ":" + sel + ":" + kind
+    + ":" + paper : "";
+  const skip = useRef(false);
+  useEffect(() => {
+    if (!sel) return;
+    skip.current = true;
+    try {
+      const t = localStorage.getItem(dk);
+      setVals(t ? JSON.parse(t) : {});
+    } catch (e) { setVals({}); }
+  }, [dk]);
+  useEffect(() => {
+    if (!sel) return;
+    if (skip.current) { skip.current = false; return; }
+    try {
+      if (Object.values(vals).some((v) => v !== "")) {
+        localStorage.setItem(dk, JSON.stringify(vals));
+      } else localStorage.removeItem(dk);
+    } catch (e) {}
+  }, [vals, dk]);
   if (bad) return <ErrorState text="Could not load marks." onRetry={load} />;
   if (!data) return <Loading />;
   if (!d.active_term) return <EmptyState title="No active term"
@@ -118,6 +138,8 @@ export default function Marks({ d }) {
         <DataTable cols={cols} rows={table} search="Search students"
           empty="No students in this class" />
         <p>Absent? Tap Absent to enter 1. Missed every exam? Leave the row empty.</p>
+        {nNew > 0 && <p>Unsaved marks are kept on this device until you press
+          Save marks.</p>}
         {nBad > 0 && <Alert kind="err">Marks must be numbers from 1 to 100.</Alert>}
         <Button kind="teal" busy={busy} onClick={save}
           disabled={nNew === 0 || nBad > 0}>
