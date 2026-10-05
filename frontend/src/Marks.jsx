@@ -3,6 +3,7 @@ import { api, listAll as list } from "./api";
 import { useToast } from "./toastctx";
 import { Button, Select, Card, Badge, DataTable } from "./ui";
 import { ConfirmDialog, EmptyState, Loading, ErrorState, Alert } from "./ui";
+import PasteMarks from "./PasteMarks";
 
 const names = ["teacher-assignments", "enrollments", "students", "terms",
   "performance"];
@@ -112,6 +113,7 @@ export default function Marks({ d }) {
         </Select>}
       </Card>
       {a && <Card>
+        <PasteMarks rows={table} st={data.st} vals={vals} setVals={setVals} />
         <DataTable cols={cols} rows={table} search="Search students"
           empty="No students in this class" />
         {nBad > 0 && <Alert kind="err">Marks must be numbers from 1 to 100.</Alert>}

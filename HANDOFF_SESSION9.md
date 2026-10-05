@@ -460,3 +460,7 @@ once). After every sed, run grep or wc to prove it. Backups go to /tmp/X.bak.
 - F7 part 2 (5 Oct 2026, chat 5): Marks.jsx has Assessment (opener/mid/end) and
   Paper selectors. Papers come from /api/subject-papers/ for the subject, else only
   Paper 1. Build OK, lint 0 errors. NOT browser-tested (owner chose to skip).
+- F7 part 3 (5 Oct 2026, chat 5): frontend/src/PasteMarks.jsx, wired into Marks.jsx.
+  "Paste marks from a spreadsheet": lines "name or admission no, then mark", matched
+  to students NOT yet entered, fills the boxes only (teacher still presses Save).
+  Build OK, lint 0 errors. NOT browser-tested.
