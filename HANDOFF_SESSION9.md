@@ -290,3 +290,7 @@ THEN: Login (F9), shell/Dock/Hero/Intro/Splash/Logo review, Students LIST (read
   now. They are still NOT browser-tested. Do it later.
 - Old-file backups go to /tmp/X.bak before each rewrite (the routine above).
 - NEXT: Login (F9), then shell/Dock/Hero/Intro/Splash/Logo, Students LIST, F5-F13.
+- Login.jsx F9 DONE and browser-tested: removed fake remember-me, OR CONTINUE WITH,
+  Google, Apple, Sign Up. Kept Forgot password (same rmrow div). Backup was /tmp/LG.bak.
+- login.css may still hold unused rules (.soc, .alt, .orc, .su). Check before deleting.
+- NEXT: review shell/Dock/Hero/Intro/Splash/Logo, then Students LIST, F5-F13.
