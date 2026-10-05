@@ -255,3 +255,4 @@ Theme is settled by the design brief: light navy/teal.
 - UI: Marks (7d7003b) and Approvals migrated, browser-tested.
 - UI: Terms migrated, browser-tested.
 - UI: Setup migrated, browser-tested.
+- UI: Quick migrated, browser-tested.
