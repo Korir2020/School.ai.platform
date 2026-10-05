@@ -22,15 +22,14 @@ import Teachers from "./Teachers";
 import Analytics from "./Analytics";
 import Platform from "./Platform";
 import Accounts from "./Accounts";
+import { useHashTab } from "./hashtab";
 import "./app.css";
-
-const flat = (o, p = "") => Object.entries(o || {}).flatMap(([k, v]) => v && typeof v === "object" ? (Array.isArray(v) || k === "active_term" ? [] : flat(v, k + " ")) : k === "role" ? [] : [[p + k, v]]);
 
 const Home = ({ me, d }) => (<div className="plain"><Hero me={me} d={d} />
   <Stats d={d} /></div>);
 
 function Dash({ onOut }) {
-  const [me, setMe] = useState(null), [d, setD] = useState(null), [tab, setTab] = useState("Home");
+  const [me, setMe] = useState(null), [d, setD] = useState(null), [tab, setTab] = useHashTab();
   useEffect(() => { (async () => {
     const a = await api("/api/auth/me/"); if (a.status === 401) return onOut(); setMe(await a.json());
     const b = await api("/api/dashboard/"); if (b.ok) setD(await b.json());
@@ -43,8 +42,9 @@ function Dash({ onOut }) {
     : role === "superadmin" ? { Home: home, Schools: <Platform d={d} />, Admins: <Accounts /> }
     : d ? { Home: home } : {};
   const out = async () => { await logout(); onOut(); };
-  return (<Shell tabs={Object.keys(tabs)} tab={tab} go={setTab} me={me} out={out}>
-    {d ? tabs[tab] : <Loading />}</Shell>);
+  const cur = tabs[tab] ? tab : "Home";
+  return (<Shell tabs={Object.keys(tabs)} tab={cur} go={setTab} me={me} out={out}>
+    {d ? tabs[cur] : <Loading />}</Shell>);
 }
 
 export default function App() {
