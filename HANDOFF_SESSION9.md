@@ -110,6 +110,7 @@ report cards, staff). Fees do not exist: do not advertise them. No real data.
 Grading scale per school, assessment weights, portals, PDF method.
 ## PROGRESS LOG
 - 6 Oct 2026: B15 done (b8b5d62). Handoff rewritten.
+- 6 Oct 2026: A3 done (380664a), A4 done (b8d363d), A6 code written.
 
 ## PROJECT A: DECISION + A0 FINDINGS (6 Oct 2026)
 DECIDED: admin picks up to 4 DISTINCT subjects. Marian then shows each chosen
@@ -144,7 +145,7 @@ DONE (committed, pushed):
   join_completed. Tests: api/test_join_flow.py (14).
 - Registration uses username + password (no email, no phone collected yet).
 
-## NEXT (do in this order, one commit each, full suite green before commit)
+## NEXT (OLD, superseded by the LAST section at the bottom)
 A3 Stored notifications. New Notification model (school, recipient user or
   admin/deputy of school, kind, message, read_at, link to JoinRequest). Create
   on: join_requested (admins: "New Staff Request", Approve/Reject),
@@ -162,3 +163,44 @@ A6 Frontend: public landing, Get Started, request status, complete-join.
 A7 Frontend: admin Staff Management (pending, approve/reject, code, assign),
   bell using stored notifications. A8 phone browser pass.
 Then: OTHER PENDING WORK list above. Never advertise fees (do not exist).
+
+## STATE END OF CHAT (6 Oct 2026, part 2). READ THIS SECTION FIRST.
+Backend 280 tests OK. Frontend build OK, lint 22 warnings 0 errors (baseline).
+DONE (committed and pushed unless marked):
+- A3 stored notifications (380664a). Model Notification (migration 0028), one row
+  per recipient. api/notify.py: notify_admins (every admin/deputy of THAT school),
+  notify_user, stored_items. api/notify_read.py: POST /api/notifications/<id>/read/
+  and /api/notifications/read-all/ (own rows only, others 404).
+  GET /api/notifications/ = computed items (admins only) + own stored items +
+  "unread" count. Teachers/staff now get 200 with only their own (old 403 test
+  changed). Created on join_requested (admins), join_completed (admins),
+  approve/reject (the staff member, no code in the text).
+  Tests: api/test_notifications_stored.py (6).
+- A4 (b8d363d). Max 4 DISTINCT subjects per teacher on POST /api/teacher-assignments/
+  (more streams of one subject are fine; deleting frees a slot; assignments have no
+  PATCH, so edit = delete + add). /api/auth/me/ returns role bursar or secretary
+  for StaffProfile users. DECISION: get_user_school_id was NOT changed on purpose,
+  staff get 403 on every data endpoint (else they could read all school data).
+  Tests: api/test_staff_assign.py (6). A5 is covered by these tests.
+- A6 frontend CODE written (committed), build and lint OK, NOT YET TESTED IN A BROWSER:
+  Landing.jsx + landing.css (story showcase, 10 chapters: Learning, Academic
+  Excellence, Assessment, Student Development, Talent & Sports, Leadership,
+  Character, Innovation, Achievement, Community; scroll reveal; pinned Get Started
+  and Sign In bar), Join.jsx (request form, posts /api/join/register/),
+  JoinStatus.jsx (pending, enter invitation code, joined, rejected; also shown when
+  me.role is none, bursar or secretary), pub.css. App.jsx flow: Intro > Landing >
+  Join or Login; logout returns to Landing.
+
+## NEXT (do in this order, one commit each)
+1 A6 browser pass on the phone. vite.config.js proxies /api to the RENDER practice
+  site: do NOT register test users there. Use a LOCAL backend: runserver in backend/
+  plus an untracked frontend/vite.local.config.js (proxy target http://localhost:8000),
+  run npx vite --config vite.local.config.js. Never commit that file.
+  Check: hero, chapter reveal, pinned bar, Get Started form + Back, Sign In,
+  register, pending screen, admin approves, code entry, joined screen.
+2 A7 admin Staff Management: pending list, Approve/Reject, show the code, Assign
+  teacher subjects (max 4, then streams), bell with stored notifications and
+  mark-as-read. join_completed notification only has join_request_id: Assign may
+  need the teacher id exposed by the API.
+3 A8 phone pass, then update this handoff. Landing: add real school photos later.
+4 Then the OTHER PENDING WORK list above.
