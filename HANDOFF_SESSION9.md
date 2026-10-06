@@ -1,5 +1,6 @@
 # MARIAN HANDOFF, SESSION 9 (rewritten 6 Oct 2026)
 Done items removed (old text is in git history and /tmp/H9.bak).
+READ THE BOTTOM SECTION "## NEXT" FIRST. It is newer than the rest.
 Update the PROGRESS LOG at the bottom only when the owner says so.
 
 ## OWNER RULES (follow exactly)
@@ -30,7 +31,7 @@ Django 6.1 + DRF + SimpleJWT (backend/). React 19 + Vite, plain JSX, no router
 /workspaces/School.ai.platform. Branch: main (ui-redesign was merged).
 
 ## STATE (6 Oct 2026)
-Last commit b8b5d62 (B15). Backend 254 tests OK. Frontend build OK, lint 0
+SUPERSEDED, see bottom. (was 254 tests). Frontend build OK, lint 0
 errors (22 warnings, hook deps only = baseline). Working tree clean.
 
 ## KNOWN FACTS (do not rediscover)
@@ -71,7 +72,7 @@ DECISIONS MADE (6 Oct 2026):
   picks subjects from the school's list, MAXIMUM 4 (frontend AND backend).
   Editable later without deleting the teacher.
 
-### Project A steps (one commit each, tests green before each)
+### Project A steps (A0-A2 DONE, see bottom)
 A0 Answer the open question. Read teacher serializers/views and login first.
 A1 Models + migration: JoinRequest (user, school, role, status, audit) and
    InvitationCode (random, expiry, used_at, school, request).
@@ -120,3 +121,44 @@ data, forces school from the server, rejects records of another school, then
 runs check(v). _assignment_check blocks duplicates. admin_edit.py edits.
 Plan: reuse _create; add a check that counts the teacher's distinct subjects
 plus the new one (max 4); never trust school/role from the frontend.
+
+## STATE END OF CHAT (6 Oct 2026). Backend 268 tests OK. Frontend unchanged.
+Zip of the repo may be older than GitHub main: ask for git log -3 first.
+DONE (committed, pushed):
+- B15 unofficial marks in term summary: api/unofficial.py. UI not showing it yet.
+- A0 audit. A1 models + migration 0027 in schools/models.py: JoinRequest,
+  InvitationCode, StaffProfile. One open request per user (DB constraint).
+- A2 join API (api/join_codes.py, join_public.py, join_admin.py,
+  join_complete.py, join_throttle.py; urls; throttle rates in settings):
+  POST /api/join/register/ (public: username, password, first/last name,
+    role teacher|bursar|secretary, school_code). Makes user + pending request.
+  GET /api/join/my-request/ (status + message). POST /api/join/complete/ {code}.
+  GET /api/join-requests/?status= (admin/deputy, own school only).
+  POST /api/join-requests/<id>/approve/ and /reject/ (404 other school, 403
+    teacher, 401 anonymous, 409 wrong state). Approving an already approved
+    request reissues a NEW code (use it when a code expired).
+- Code rules: MARIAN-XXXXXX (no 0/O/1/I), 7 days, single use, tied to the
+  request + user. Complete-join checks the caller's OWN approved request.
+  Creates TeacherProfile (teacher) or StaffProfile (bursar/secretary).
+- Audit actions in MarkAuditLog: join_requested, join_approved, join_rejected,
+  join_completed. Tests: api/test_join_flow.py (14).
+- Registration uses username + password (no email, no phone collected yet).
+
+## NEXT (do in this order, one commit each, full suite green before commit)
+A3 Stored notifications. New Notification model (school, recipient user or
+  admin/deputy of school, kind, message, read_at, link to JoinRequest). Create
+  on: join_requested (admins: "New Staff Request", Approve/Reject),
+  join_completed (admins: "New staff member", Assign), approved/rejected (the
+  staff member). Merge into /api/notifications/ (today computed, admins only,
+  teachers get 403: staff must read their OWN). Keep the 2 computed kinds. Add
+  mark-as-read. Hook the creation into join_public.py, join_admin.py and
+  join_complete.py. Tests incl. other school never sees them.
+A4 Assignment API: admin picks up to 4 DISTINCT subjects, then per-subject
+  streams (reuse admin_create._create + a check; editable later). Bursar and
+  Secretary: auto role, activities EMPTY for now. ALSO: /api/auth/me/ returns
+  role "none" for StaffProfile users; get_user_school_id in permissions.py
+  ignores StaffProfile. Fix both (school isolation) with tests.
+A6 Frontend: public landing, Get Started, request status, complete-join.
+A7 Frontend: admin Staff Management (pending, approve/reject, code, assign),
+  bell using stored notifications. A8 phone browser pass.
+Then: OTHER PENDING WORK list above. Never advertise fees (do not exist).
