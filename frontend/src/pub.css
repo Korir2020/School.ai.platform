@@ -1,0 +1,19 @@
+body:has(.mu-pub){background:var(--mu-bg)}
+body:has(.mu-pub)::before{display:none}
+.mu-pub{min-height:100vh;display:flex;justify-content:center;padding:20px 16px;
+  box-sizing:border-box;color:var(--mu-text)}
+.mu-pub-in{width:100%;max-width:440px}
+.mu-pub-hero{text-align:center;padding:24px 8px 6px}
+.mu-pub-hero h1{margin:10px 0 4px;font-size:2rem;color:var(--mu-navy)}
+.mu-pub-hero p{margin:0 auto 16px;color:var(--mu-muted);max-width:320px}
+.mu-pub-card{background:#fff;border:1px solid var(--mu-line);border-radius:12px;
+  padding:18px;margin:14px 0;box-shadow:var(--mu-shadow)}
+.mu-pub-card h2{margin:0 0 8px;font-size:1.05rem;color:var(--mu-navy)}
+.mu-pub-card p{margin:0 0 10px;color:var(--mu-muted);font-size:.9rem}
+.mu-pub-list{margin:0;padding-left:18px;color:var(--mu-muted);line-height:1.8}
+.mu-pub-acts{display:flex;flex-direction:column;gap:10px;margin-top:8px}
+.mu-pub-acts .mu-btn{height:46px;font-size:1rem}
+.mu-pub-form{display:flex;flex-direction:column;gap:12px}
+.mu-pub-code{font:700 1.3rem ui-monospace,monospace;letter-spacing:2px}
+.mu-pub-note{margin:14px 0 0;text-align:center;font-size:.8rem;
+  color:var(--mu-muted)}

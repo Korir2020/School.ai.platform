@@ -20,6 +20,9 @@ import Terms from "./Terms";
 import Password from "./Password";
 import Deputies from "./Deputies";
 import Intro from "./Intro";
+import Landing from "./Landing";
+import Join from "./Join";
+import JoinStatus from "./JoinStatus";
 import Teachers from "./Teachers";
 import Analytics from "./Analytics";
 import Platform from "./Platform";
@@ -34,7 +37,8 @@ const Home = ({ me, d }) => (<div className="plain"><Hero me={me} d={d} />
 function Dash({ onOut }) {
   const [me, setMe] = useState(null), [d, setD] = useState(null), [tab, setTab] = useHashTab();
   useEffect(() => { (async () => {
-    const a = await api("/api/auth/me/"); if (a.status === 401) return onOut(); setMe(await a.json());
+    const a = await api("/api/auth/me/"); if (a.status === 401) return onOut(); const m = await a.json(); setMe(m);
+    if (["none", "bursar", "secretary"].includes(m.role)) return;
     const b = await api("/api/dashboard/"); if (b.ok) setD(await b.json());
   })(); }, []);
   const role = d && d.role;
@@ -45,12 +49,25 @@ function Dash({ onOut }) {
     : role === "superadmin" ? { Home: home, Schools: <Platform d={d} />, Admins: <Accounts /> }
     : d ? { Home: home } : {};
   const out = async () => { await logout(); onOut(); };
+  if (me && ["none", "bursar", "secretary"].includes(me.role)) {
+    return <JoinStatus me={me} out={out} />;
+  }
   const cur = tabs[tab] ? tab : "Home";
   return (<Shell tabs={Object.keys(tabs)} tab={cur} go={setTab} me={me} out={out}>
     {d ? tabs[cur] : <Loading />}</Shell>);
 }
 
 export default function App() {
-  const [ok, setOk] = useState(!!localStorage.getItem("in")), [go, setGo] = useState(false);
-  return ok ? <Dash onOut={() => setOk(false)} /> : go ? <Login onDone={() => setOk(true)} /> : <Intro onStart={() => setGo(true)} />;
+  const [ok, setOk] = useState(!!localStorage.getItem("in"));
+  const [scr, setScr] = useState("intro");
+  const to = (x) => () => setScr(x);
+  if (ok) return <Dash onOut={() => { setOk(false); setScr("landing"); }} />;
+  if (scr === "login") return <Login onDone={() => setOk(true)} />;
+  if (scr === "join") {
+    return <Join onBack={to("landing")} onSignIn={to("login")} />;
+  }
+  if (scr === "landing") {
+    return <Landing onStart={to("join")} onSignIn={to("login")} />;
+  }
+  return <Intro onStart={to("landing")} />;
 }
