@@ -17,10 +17,12 @@ def _boss(request):
 
 def _row(r):
     inv = getattr(r, "invitation", None)
+    tp = getattr(r.user, "teacher_profile", None)
     show = bool(inv) and r.status == "approved" and inv.used_at is None
     return {
         "id": r.id, "username": r.user.username, "role": r.role,
         "name": r.user.get_full_name() or r.user.username,
+        "teacher_id": tp.id if tp and r.status == "joined" else None,
         "status": r.status, "requested_at": r.requested_at,
         "code": inv.code if show else None,
         "code_expires_at": inv.expires_at if show else None}
@@ -35,7 +37,7 @@ def join_request_list(request):
     status = request.query_params.get("status")
     if status:
         rows = rows.filter(status=status)
-    rows = rows.select_related("user", "invitation")
+    rows = rows.select_related("user", "invitation", "user__teacher_profile")
     return Response({"results": [_row(r) for r in rows.order_by("-requested_at")]})
 
 

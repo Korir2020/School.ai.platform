@@ -171,3 +171,14 @@ class JoinFlowTests(APITestCase):
         r = self.as_user(u, "get", "/api/join/my-request/").json()
         self.assertEqual(r["status"], "approved")
         self.assertIn("invitation code", r["message"])
+
+    def test_list_exposes_teacher_id_only_after_joining(self):
+        self.register()
+        url = "/api/join-requests/"
+        row = self.as_user(self.boss, "get", url).json()["results"][0]
+        self.assertIsNone(row["teacher_id"])
+        code = self.approve("jk").json()["code"]
+        self.complete("jk", code)
+        row = self.as_user(self.boss, "get", url).json()["results"][0]
+        tp = TeacherProfile.objects.get(user__username="jk")
+        self.assertEqual(row["teacher_id"], tp.id)
