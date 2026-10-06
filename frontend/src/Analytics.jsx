@@ -33,6 +33,14 @@ export default function Analytics({ d }) {
     { label: "Entries", key: "entries", sort: true },
     { label: "Average chart", render: bar },
   ];
+  const u = s.unofficial || {};
+  const un = (u.draft || 0) + (u.submitted || 0);
+  const ucols = [
+    { label: "Subject", key: "subject", sort: true },
+    { label: "Average (not final)", key: "average", sort: true,
+      render: (x) => x.average + "%" },
+    { label: "Entries", key: "entries", sort: true },
+  ];
   return (
     <div>
       <h2>Term summary: {s.term} {s.academic_year}</h2>
@@ -42,6 +50,11 @@ export default function Analytics({ d }) {
         <DataTable cols={cols} rows={s.subjects || []} search="Search subjects"
           empty="No approved marks yet." />
       </Card>
+      {un > 0 && <Card title="Unofficial marks (not final)">
+        <p>{u.note} Draft: {u.draft}. Submitted: {u.submitted}.</p>
+        <DataTable cols={ucols} rows={u.subjects || []}
+          empty="No unofficial marks." />
+      </Card>}
     </div>
   );
 }
