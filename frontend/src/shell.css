@@ -49,3 +49,13 @@
 .mu-app .meter { background: var(--mu-neutral-bg); }
 .mu-app .qrow button { background: #fff; color: var(--mu-navy); border: 1px solid var(--mu-line); }
 .mu-app .qrow button:hover { background: var(--mu-neutral-bg); }
+
+.mu-bell { position: relative; background: none; border: 0; color: #fff;
+  padding: 6px; margin-left: 8px; cursor: pointer; }
+.mu-bell i { position: absolute; top: 0; right: 0; min-width: 16px;
+  height: 16px; border-radius: 8px; background: var(--mu-err); color: #fff;
+  font: 600 .6875rem/16px sans-serif; text-align: center; }
+.mu-note { display: block; width: 100%; text-align: left; padding: 10px;
+  margin: 0 0 6px; border: 1px solid var(--mu-line); border-radius: 8px;
+  background: var(--mu-card); color: var(--mu-text); }
+.mu-note.new { border-color: var(--mu-teal); background: var(--mu-teal-bg); }

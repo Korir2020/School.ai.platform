@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Logo from "./Logo";
 import Ic from "./icons";
+import Bell from "./Bell";
 import { Modal, Button } from "./ui";
 import "./shell.css";
 
@@ -19,12 +20,12 @@ export default function Shell({ tabs, tab, go, me, out, children }) {
     <button key={t} className={t === tab ? "on" : ""} onClick={() => pick(t)}
       aria-current={t === tab ? "page" : undefined}><Ic n={t} />{t}</button>);
   return (<div className="mu-app mu-shell">
-    <div className="mu-top" role="banner"><Logo size={28} /><b>MARIAN</b><span>{user}</span></div>
+    <div className="mu-top" role="banner"><Logo size={28} /><b>MARIAN</b><span>{user}</span><Bell go={go} /></div>
     <div className="mu-side" role="navigation" aria-label="Main">
       <div className="mu-brand"><Logo size={30} /><b>MARIAN</b></div>
       <div className="mu-nav">{main.map(item)}
         {sets.length > 0 && <small>Settings</small>}{sets.map(item)}</div>
-      <div className="mu-user"><b>{user}</b><br />{school}
+      <div className="mu-user"><b>{user}</b><br />{school}<Bell go={go} />
         <Button kind="secondary" size="sm" onClick={out}>Log out</Button></div>
     </div>
     <div className="mu-body">
