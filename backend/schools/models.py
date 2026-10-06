@@ -339,3 +339,58 @@ class ExamResult(models.Model):
 
     def __str__(self):
         return f"{self.student} - {self.exam} - {self.overall_average}"
+
+
+class JoinRequest(models.Model):
+    ROLES = [("teacher", "Teacher"), ("bursar", "Bursar"),
+             ("secretary", "Secretary")]
+    STATUSES = [("pending", "Pending"), ("approved", "Approved"),
+                ("rejected", "Rejected"), ("joined", "Joined")]
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+                             related_name="join_requests")
+    school = models.ForeignKey("School", on_delete=models.CASCADE,
+                               related_name="join_requests")
+    role = models.CharField(max_length=20, choices=ROLES)
+    status = models.CharField(max_length=20, choices=STATUSES, default="pending")
+    requested_at = models.DateTimeField(auto_now_add=True)
+    decided_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
+                                   on_delete=models.SET_NULL, related_name="+")
+    decided_at = models.DateTimeField(null=True, blank=True)
+    joined_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(
+            fields=["user"], name="one_open_join_request_per_user",
+            condition=models.Q(status__in=["pending", "approved"]))]
+
+    def __str__(self):
+        return f"{self.user} -> {self.school} ({self.role}, {self.status})"
+
+
+class InvitationCode(models.Model):
+    request = models.OneToOneField(JoinRequest, on_delete=models.CASCADE,
+                                   related_name="invitation")
+    school = models.ForeignKey("School", on_delete=models.CASCADE,
+                               related_name="invitation_codes")
+    code = models.CharField(max_length=30, unique=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
+                                   on_delete=models.SET_NULL, related_name="+")
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    used_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.code} ({self.school})"
+
+
+class StaffProfile(models.Model):
+    ROLES = [("bursar", "Bursar"), ("secretary", "Secretary")]
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+                                related_name="staff_profile")
+    school = models.ForeignKey("School", on_delete=models.CASCADE,
+                               related_name="staff_profiles")
+    role = models.CharField(max_length=20, choices=ROLES)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user} - {self.role}"

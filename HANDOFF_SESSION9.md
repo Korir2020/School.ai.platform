@@ -70,8 +70,6 @@ DECISIONS MADE (6 Oct 2026):
 - Teacher: after joining, admin/deputy gets a notification with Assign and
   picks subjects from the school's list, MAXIMUM 4 (frontend AND backend).
   Editable later without deleting the teacher.
-OPEN QUESTION (ask the owner): TeacherAssignment needs a stream. After picking
-up to 4 subjects, how are streams set? Is 4 DISTINCT subjects right (assumed)?
 
 ### Project A steps (one commit each, tests green before each)
 A0 Answer the open question. Read teacher serializers/views and login first.
@@ -111,3 +109,14 @@ report cards, staff). Fees do not exist: do not advertise them. No real data.
 Grading scale per school, assessment weights, portals, PDF method.
 ## PROGRESS LOG
 - 6 Oct 2026: B15 done (b8b5d62). Handoff rewritten.
+
+## PROJECT A: DECISION + A0 FINDINGS (6 Oct 2026)
+DECIDED: admin picks up to 4 DISTINCT subjects. Marian then shows each chosen
+subject separately and the admin picks the exact classes/streams the teacher
+teaches for that subject. The limit counts subjects, not streams.
+A0 findings (api/admin_create.py): _create(request, serializer_class, owners,
+inject_school, check) is the safe creator: admin-only (403), copies request
+data, forces school from the server, rejects records of another school, then
+runs check(v). _assignment_check blocks duplicates. admin_edit.py edits.
+Plan: reuse _create; add a check that counts the teacher's distinct subjects
+plus the new one (max 4); never trust school/role from the frontend.
