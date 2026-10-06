@@ -221,3 +221,9 @@ REFRESH_IN_BODY = (
     "test" in sys.argv
     or os.environ.get("DJANGO_REFRESH_IN_BODY") == "True"
 )
+
+# A2: staff join flow throttles
+REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"].update({
+    "join_register": "1000/min" if "test" in sys.argv else "5/min",
+    "join_code": "1000/min" if "test" in sys.argv else "10/min",
+})

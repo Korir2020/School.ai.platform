@@ -199,3 +199,17 @@ from api.notifications import notifications
 urlpatterns += [
     path('api/notifications/', notifications),
 ]
+
+from api.join_public import join_register
+from api.join_admin import (
+    join_request_list, join_request_approve, join_request_reject)
+from api.join_complete import join_my_request, join_complete
+
+urlpatterns += [
+    path('api/join/register/', join_register),
+    path('api/join/my-request/', join_my_request),
+    path('api/join/complete/', join_complete),
+    path('api/join-requests/', join_request_list),
+    path('api/join-requests/<int:pk>/approve/', join_request_approve),
+    path('api/join-requests/<int:pk>/reject/', join_request_reject),
+]
