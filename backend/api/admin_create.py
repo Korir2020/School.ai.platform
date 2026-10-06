@@ -74,11 +74,16 @@ def _enrollment_check(v):
         return "Student is already enrolled for this academic year."
 
 
+MAX_SUBJECTS = 4
+
+
 def _assignment_check(v):
-    if TeacherAssignment.objects.filter(
-        teacher=v["teacher"], subject=v["subject"], stream=v["stream"]
-    ).exists():
+    mine = TeacherAssignment.objects.filter(teacher=v["teacher"])
+    if mine.filter(subject=v["subject"], stream=v["stream"]).exists():
         return "This assignment already exists."
+    subjects = set(mine.values_list("subject_id", flat=True))
+    if v["subject"].id not in subjects and len(subjects) >= MAX_SUBJECTS:
+        return f"A teacher can have at most {MAX_SUBJECTS} subjects."
 
 
 def _sid(name):
