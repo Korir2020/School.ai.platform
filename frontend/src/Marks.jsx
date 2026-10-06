@@ -37,7 +37,7 @@ export default function Marks({ d }) {
     try {
       const t = localStorage.getItem(dk);
       setVals(t ? JSON.parse(t) : {});
-    } catch (e) { setVals({}); }
+    } catch { setVals({}); }
   }, [dk]);
   useEffect(() => {
     if (!sel) return;
@@ -46,7 +46,7 @@ export default function Marks({ d }) {
       if (Object.values(vals).some((v) => v !== "")) {
         localStorage.setItem(dk, JSON.stringify(vals));
       } else localStorage.removeItem(dk);
-    } catch (e) {}
+    } catch {}
   }, [vals, dk]);
   if (bad) return <ErrorState text="Could not load marks." onRetry={load} />;
   if (!data) return <Loading />;

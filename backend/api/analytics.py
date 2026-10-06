@@ -4,6 +4,7 @@ from rest_framework.response import Response
 
 from schools.models import Performance, SchoolAdminProfile, Term
 from .permissions import get_user_school_id
+from .unofficial import unofficial
 
 
 @api_view(["GET"])
@@ -39,4 +40,6 @@ def term_summary(request, term_id):
             for r in rows
         ],
         "pending_marks": marks.count() - final.count(),
+        "unofficial": unofficial(
+            marks.exclude(status__in=["approved", "locked"])),
     })
