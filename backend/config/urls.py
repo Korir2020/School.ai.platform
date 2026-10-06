@@ -195,9 +195,13 @@ urlpatterns += [
 ]
 
 from api.notifications import notifications
+from api.notify_read import (
+    notification_read, notification_read_all)
 
 urlpatterns += [
     path('api/notifications/', notifications),
+    path('api/notifications/read-all/', notification_read_all),
+    path('api/notifications/<int:pk>/read/', notification_read),
 ]
 
 from api.join_public import join_register

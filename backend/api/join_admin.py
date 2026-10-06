@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from schools.models import (
     InvitationCode, JoinRequest, MarkAuditLog, SchoolAdminProfile)
 from . import join_codes
+from .notify import notify_user
 
 NO = "Only school admins can do this."
 
@@ -70,6 +71,14 @@ def _decide(request, pk, approve):
             school_id=boss.school_id, user=request.user,
             action="join_approved" if approve else "join_rejected",
             details={"username": r.user.username, "role": r.role})
+        if approve:
+            text = ("Your request was approved. Ask your school "
+                    "administrator for your invitation code.")
+        else:
+            text = "Your request was not approved."
+        notify_user(
+            boss.school, r.user, "join_approved" if approve
+            else "join_rejected", text, r)
     return Response(out)
 
 

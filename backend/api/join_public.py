@@ -9,6 +9,7 @@ from rest_framework.response import Response
 
 from schools.models import JoinRequest, MarkAuditLog, School
 from .join_throttle import JoinRegisterThrottle
+from .notify import notify_admins
 
 ROLES = {r for r, _ in JoinRequest.ROLES}
 
@@ -50,10 +51,15 @@ def join_register(request):
             username, password=password,
             first_name=str(d.get("first_name", ""))[:150],
             last_name=str(d.get("last_name", ""))[:150])
-        JoinRequest.objects.create(user=user, school=school, role=role)
+        jr = JoinRequest.objects.create(
+            user=user, school=school, role=role)
         MarkAuditLog.objects.create(
             school=school, user=user, action="join_requested",
             details={"username": username, "role": role})
+        who = user.get_full_name() or username
+        notify_admins(
+            school, "join_requested",
+            f"{who} asked to join as {role}.", jr)
     return Response({"status": "pending", "school": school.name,
                      "detail": "Request sent to the school administrator."},
                     status=201)

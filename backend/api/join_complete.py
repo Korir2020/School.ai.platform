@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from schools.models import (
     JoinRequest, MarkAuditLog, SchoolAdminProfile, StaffProfile, TeacherProfile)
 from . import join_codes
+from .notify import notify_admins
 from .join_throttle import JoinCodeThrottle
 
 MSG = {
@@ -79,5 +80,9 @@ def join_complete(request):
         MarkAuditLog.objects.create(
             school=r.school, user=request.user, action="join_completed",
             details={"username": request.user.username, "role": r.role})
+        who = request.user.get_full_name() or request.user.username
+        notify_admins(
+            r.school, "join_completed",
+            f"New staff member: {who} joined as {r.role}.", r)
     return Response({"school": {"id": r.school.id, "name": r.school.name},
                      "role": r.role, "detail": MSG["joined"]})

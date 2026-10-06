@@ -5,15 +5,12 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
 from schools.models import Exam, MarkAuditLog, Performance, SchoolAdminProfile
+from .notify import stored_items
 
 DAYS = 30
 
 
-@api_view(["GET"])
-def notifications(request):
-    boss = SchoolAdminProfile.objects.filter(user=request.user).first()
-    if boss is None:
-        return Response({"detail": "Admins only."}, status=403)
+def _computed(boss):
     items = []
     waiting = Performance.objects.filter(
         student__school_id=boss.school_id, status="submitted").count()
@@ -40,4 +37,14 @@ def notifications(request):
             "timestamp": log.timestamp,
             "message": f"{len(ranked)} student(s) were not ranked in {name}.",
         })
-    return Response({"count": len(items), "results": items})
+    return items
+
+
+@api_view(["GET"])
+def notifications(request):
+    boss = SchoolAdminProfile.objects.filter(user=request.user).first()
+    items = _computed(boss) if boss else []
+    stored, unread = stored_items(request.user)
+    items += stored
+    return Response({"count": len(items), "unread": unread,
+                     "results": items})

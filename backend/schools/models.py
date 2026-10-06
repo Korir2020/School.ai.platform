@@ -394,3 +394,25 @@ class StaffProfile(models.Model):
 
     def __str__(self):
         return f"{self.user} - {self.role}"
+
+
+class Notification(models.Model):
+    KINDS = [("join_requested", "New Staff Request"),
+             ("join_completed", "New staff member"),
+             ("join_approved", "Request approved"),
+             ("join_rejected", "Request rejected")]
+    school = models.ForeignKey("School", on_delete=models.CASCADE,
+                               related_name="notifications")
+    recipient = models.ForeignKey(settings.AUTH_USER_MODEL,
+                                  on_delete=models.CASCADE,
+                                  related_name="notifications")
+    kind = models.CharField(max_length=30, choices=KINDS)
+    message = models.CharField(max_length=255)
+    join_request = models.ForeignKey("JoinRequest", null=True, blank=True,
+                                     on_delete=models.SET_NULL, related_name="+")
+    created_at = models.DateTimeField(auto_now_add=True)
+    read_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["recipient", "read_at"])]

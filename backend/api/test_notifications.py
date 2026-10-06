@@ -22,8 +22,10 @@ class NotificationTests(APITestCase):
     def test_anonymous_gets_401(self):
         self.assertEqual(self.client.get(URL).status_code, 401)
 
-    def test_teacher_gets_403(self):
-        self.assertEqual(self.get(self.good).status_code, 403)
+    def test_teacher_gets_only_own_empty_list(self):
+        r = self.get(self.good)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json()["results"], [])
 
     def test_empty_when_nothing_to_report(self):
         d = self.get(self.admin).json()
