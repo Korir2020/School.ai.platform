@@ -24,6 +24,7 @@ import Landing from "./Landing";
 import Join from "./Join";
 import JoinStatus from "./JoinStatus";
 import Teachers from "./Teachers";
+import Staff from "./Staff";
 import Analytics from "./Analytics";
 import Platform from "./Platform";
 import Accounts from "./Accounts";
@@ -45,7 +46,7 @@ function Dash({ onOut }) {
   const need = (el) => (d.active_term ? el : <p className="plain">No active term yet. Create one in Setup first.</p>);
   const home = d && <><Home me={me} d={d} />{role === "teacher" && <TeacherTodo d={d} go={setTab} />}{role === "teacher" && <Mine d={d} />}{role === "school_admin" && <Attention d={d} go={setTab} />}{role === "school_admin" && <Quick go={setTab} tabs={{ Approve: 1, Exams: 1, Reports: 1, Students: 1, Analytics: 1 }} />}{role === "school_admin" && <Activity />}<Password /></>;
   const tabs = role === "teacher" ? { Home: home, Marks: need(<Marks d={d} />) }
-    : role === "school_admin" ? { Home: home, Approve: <Approvals />, Exams: need(<Exams d={d} />), Reports: need(<ReportCards d={d} />), Analytics: need(<Analytics d={d} />), Students: need(<Students d={d} />), Teachers: need(<><Teachers />{me && !me.is_deputy && <Deputies />}</>), Setup: <><Terms /><Setup /></> }
+    : role === "school_admin" ? { Home: home, Approve: <Approvals />, Exams: need(<Exams d={d} />), Reports: need(<ReportCards d={d} />), Analytics: need(<Analytics d={d} />), Students: need(<Students d={d} />), Teachers: need(<><Teachers />{me && !me.is_deputy && <Deputies />}</>), Staff: <Staff />, Setup: <><Terms /><Setup /></> }
     : role === "superadmin" ? { Home: home, Schools: <Platform d={d} />, Admins: <Accounts /> }
     : d ? { Home: home } : {};
   const out = async () => { await logout(); onOut(); };
