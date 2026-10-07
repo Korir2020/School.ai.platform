@@ -227,3 +227,9 @@ REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"].update({
     "join_register": "1000/min" if "test" in sys.argv else "5/min",
     "join_code": "1000/min" if "test" in sys.argv else "10/min",
 })
+
+# B1: school registration throttles
+REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"].update({
+    "school_register": "1000/min" if "test" in sys.argv else "3/hour",
+    "school_reg_status": "1000/min" if "test" in sys.argv else "30/min",
+})

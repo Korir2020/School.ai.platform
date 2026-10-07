@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django.db.models.functions import Lower
 from django.core.validators import MinValueValidator, MaxValueValidator
 
 
@@ -9,6 +10,10 @@ class School(models.Model):
     location = models.CharField(max_length=200, blank=True)
     email = models.EmailField(blank=True)
     phone = models.CharField(max_length=30, blank=True)
+    school_type = models.CharField(max_length=30, blank=True)
+    county = models.CharField(max_length=100, blank=True)
+    sub_county = models.CharField(max_length=100, blank=True)
+    setup_completed_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -254,7 +259,9 @@ class MarkAuditLog(models.Model):
         Performance, on_delete=models.SET_NULL, null=True, blank=True,
         related_name="audit_logs",
     )
-    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name="mark_audit_logs")
+    school = models.ForeignKey(
+        School, on_delete=models.CASCADE, related_name="mark_audit_logs",
+        null=True, blank=True)
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
         null=True, blank=True, related_name="+",
@@ -416,3 +423,79 @@ class Notification(models.Model):
     class Meta:
         ordering = ["-created_at"]
         indexes = [models.Index(fields=["recipient", "read_at"])]
+
+
+_OPEN_REG = ["pending_verification", "verified", "pending_approval",
+             "needs_information"]
+
+
+class SchoolRegistration(models.Model):
+    """Public request to start a school. NOT a School: nothing real exists
+    until a superadmin approves it."""
+    TYPES = [("primary", "Primary"), ("junior", "Junior school"),
+             ("secondary", "Secondary"), ("combined", "Combined / other")]
+    STATUSES = [
+        ("pending_verification", "Pending verification"),
+        ("verified", "Verified"),
+        ("pending_approval", "Pending approval"),
+        ("needs_information", "Needs information"),
+        ("approved", "Approved"),
+        ("rejected", "Rejected"),
+    ]
+    OPEN = _OPEN_REG
+    reference = models.CharField(max_length=20, unique=True)
+    school_name = models.CharField(max_length=200)
+    proposed_school_code = models.CharField(max_length=50)
+    school_type = models.CharField(max_length=30, choices=TYPES)
+    school_phone = models.CharField(max_length=30)
+    school_email = models.EmailField(blank=True)
+    county = models.CharField(max_length=100)
+    sub_county = models.CharField(max_length=100, blank=True)
+    address = models.CharField(max_length=200, blank=True)
+    administrator_name = models.CharField(max_length=200)
+    administrator_username = models.CharField(max_length=150)
+    administrator_email = models.EmailField(blank=True)
+    administrator_phone = models.CharField(max_length=30)
+    password_hash = models.CharField(max_length=255)
+    status = models.CharField(max_length=30, choices=STATUSES,
+                              default="pending_verification")
+    verification_status = models.CharField(
+        max_length=20, default="unverified",
+        choices=[("unverified", "Unverified"), ("verified", "Verified")])
+    otp_hash = models.CharField(max_length=255, blank=True)
+    otp_expires_at = models.DateTimeField(null=True, blank=True)
+    otp_attempts = models.PositiveSmallIntegerField(default=0)
+    otp_send_count = models.PositiveSmallIntegerField(default=0)
+    otp_sent_at = models.DateTimeField(null=True, blank=True)
+    authorization_confirmed_at = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    verified_at = models.DateTimeField(null=True, blank=True)
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name="+")
+    rejection_reason = models.TextField(blank=True)
+    info_request_message = models.TextField(blank=True)
+    info_response = models.TextField(blank=True)
+    info_responded_at = models.DateTimeField(null=True, blank=True)
+    internal_notes = models.TextField(blank=True)  # superadmin only
+    school = models.OneToOneField(
+        School, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="registration")
+
+    class Meta:
+        ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["proposed_school_code"],
+                condition=models.Q(status__in=_OPEN_REG),
+                name="unique_open_registration_school_code"),
+            models.UniqueConstraint(
+                Lower("administrator_username"),
+                condition=models.Q(status__in=_OPEN_REG),
+                name="unique_open_registration_username"),
+        ]
+
+    def __str__(self):
+        return f"{self.reference} {self.school_name}"

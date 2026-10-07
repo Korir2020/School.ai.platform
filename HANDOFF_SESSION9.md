@@ -277,3 +277,17 @@ B7 wizard: profile, year, terms, classes, subjects, staff (reuse Terms.jsx,
 E0: add a test that /api/dashboard/ never gives staff teacher data.
 LATER: school suspend (no field yet), frontend tests (ask before any new
  library), final build and lint, update CHANGELOG.
+
+## B1 APPLIED (7 Oct 2026) - NEWEST SECTION FOR PROJECT B
+B1 was built by pasting files in Codespaces (no zip). Files: schools/models.py
+(School +school_type/county/sub_county/setup_completed_at, MarkAuditLog.school
+nullable, SchoolRegistration), migrations 0029_school_registration (made by
+makemigrations) and 0030_mark_schools_setup_done (backfills existing schools
+as set up), api/school_registration.py, api/otp_delivery.py,
+api/join_throttle.py, api/test_school_registration.py, config/settings.py,
+config/urls.py. Endpoints: POST /api/school-registration/ and
+POST /api/school-registration/status/ {reference, username}.
+IF `git log -1` does not say "B1: school registration", the final test gate
+failed: run `git status --short` (B1 files uncommitted), run
+`python manage.py test api.test_school_registration`, fix, then commit by name.
+NEXT: B2 (see PROJECT B TODO above). Start there. Do not redo B1.

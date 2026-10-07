@@ -217,3 +217,9 @@ urlpatterns += [
     path('api/join-requests/<int:pk>/approve/', join_request_approve),
     path('api/join-requests/<int:pk>/reject/', join_request_reject),
 ]
+
+from api.school_registration import school_register, school_register_status
+urlpatterns += [
+    path('api/school-registration/', school_register),
+    path('api/school-registration/status/', school_register_status),
+]
