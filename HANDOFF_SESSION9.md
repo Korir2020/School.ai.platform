@@ -204,3 +204,26 @@ DONE (committed and pushed unless marked):
   need the teacher id exposed by the API.
 3 A8 phone pass, then update this handoff. Landing: add real school photos later.
 4 Then the OTHER PENDING WORK list above.
+
+## PROJECT B: SCHOOL ADMIN ONBOARDING (planned 7 Oct 2026, NOTHING BUILT)
+Git then: 5d7bcb1 B15 UI, 7f28aa6 F8 search, a0cdf19 A7 bell. Tree clean
+except untracked frontend/vite.local.config.js (never commit it).
+Owner has the full 22-section brief: ask them to paste it again.
+GOAL: new school registers, Marian superadmin approves, applicant becomes the
+first School Admin, then a setup wizard. Project A staff flow stays untouched.
+School Code never gives admin rights.
+DECISIONS: new model SchoolRegistration (NOT School; no School or User exists
+before approval). Password hashed only. States: PENDING_VERIFICATION, VERIFIED,
+PENDING_APPROVAL, NEEDS_INFORMATION, APPROVED, REJECTED.
+Approval = one transaction.atomic: recheck state and code free, create School,
+User, SchoolAdminProfile, mark APPROVED, audit. Roll back on any failure.
+No OTP/SMS in repo: hashed code state, pluggable delivery, DEBUG prints to
+console only, never fake sending. Add School setup-completed field (migration).
+Backend decides setup completion. No router: use hash screens (hashtab.js).
+No vitest yet (F13): ask owner before adding any library.
+ORDER (one commit each): B1 model, submit, status, throttle, audit, tests.
+B2 verification. B3 superadmin list/review/approve/reject/need-info + tests.
+B4 setup flag + isolation tests. B5 public screens. B6 superadmin screens.
+B7 setup wizard (profile, year, terms, classes, subjects, staff).
+NOTE: /api/dashboard/ is OK for staff (403 via _scope). Real item is E0.
+Reuse: join_throttle, notify_user, MarkAuditLog, admin_create._create.
