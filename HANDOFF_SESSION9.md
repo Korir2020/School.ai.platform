@@ -227,3 +227,53 @@ B4 setup flag + isolation tests. B5 public screens. B6 superadmin screens.
 B7 setup wizard (profile, year, terms, classes, subjects, staff).
 NOTE: /api/dashboard/ is OK for staff (403 via _scope). Real item is E0.
 Reuse: join_throttle, notify_user, MarkAuditLog, admin_create._create.
+
+## B1 STATE (7 Oct 2026) READ THIS FIRST FOR PROJECT B
+Claude wrote B1 in a sandbox with NO Django: code is only syntax checked.
+NOTHING IS TESTED. Files came as B1_school_registration.zip (8 files):
+schools/models.py, migrations/0029_school_registration.py,
+api/school_registration.py, otp_delivery.py, join_throttle.py,
+test_school_registration.py, config/settings.py, config/urls.py.
+If the zip was never unzipped, rebuild from this section.
+B1 design: model SchoolRegistration (hashed password_hash, otp_* fields,
+info_request_message, info_response, internal_notes, reference MSR-XXXXXXXX,
+OneToOne school). Constraints: unique open code and lower(username).
+School gained school_type, county, sub_county, setup_completed_at (old
+schools backfilled as set up). School address maps to School.location.
+MarkAuditLog.school now nullable (registration events have no school).
+Audit action max length is 30 chars: use short names (school_reg_submitted).
+POST /api/school-registration/ (public, throttled 3/hour) creates only a
+registration. POST /api/school-registration/status/ {reference, username}
+returns applicant-safe data only (POST so nothing sits in URLs).
+otp_delivery.deliver_otp: DEBUG prints to console, production returns False.
+No terms/privacy feature exists (Terms.jsx is academic terms): skipped.
+## PROJECT B TODO (one commit each, tests first, nothing claimed untested)
+B1b: unzip in repo root; from backend/: python manage.py makemigrations
+ --check (want "No changes"); export DJANGO_DEBUG=True; python manage.py
+ test api.test_school_registration; then full test run; commit by name.
+B2 verify: POST /api/school-registration/verify/ {reference,username,code}.
+ Generate OTP at submit, store make_password hash, expire 10 min, max 5
+ attempts, resend cap and cooldown (otp_send_count, otp_sent_at). Success:
+ pending_verification > verified > pending_approval in one atomic block, audit
+ "school_admin_verified". Never log codes. OPEN OWNER DECISION: no SMS
+ provider, so how do real applicants verify in production?
+B3 superadmin (IsSuperAdmin only): list, retrieve, approve, reject,
+ request-info, plus applicant POST /info/ (needs_information >
+ pending_approval). Approve = transaction.atomic + select_for_update:
+ recheck state and code free, create School (copy fields), create User with
+ user.password = reg.password_hash (never create_user with the hash), create
+ SchoolAdminProfile (is_deputy False), mark approved, audit. Reject and
+ request-info need a reason. Never serialize internal_notes to applicants.
+ Tests: rollback via mock, teacher/bursar/secretary/anonymous blocked.
+B4 setup: backend computes complete = profile filled + active year + 1 term
+ + 1 stream + 1 subject. GET /api/setup/ status, POST /api/setup/complete/
+ sets setup_completed_at + audit. /api/auth/me/ returns setup_complete.
+ Admin edits OWN school profile via a new limited endpoint (School is not
+ editable today); keep the code read-only. Isolation tests.
+B5 public screens (hash routing, no router): landing "Register Your School",
+ form, verify, status. B6 superadmin list + review screens.
+B7 wizard: profile, year, terms, classes, subjects, staff (reuse Terms.jsx,
+ Setup.jsx, Staff.jsx, admin_create._create). Mobile first, mu- classes.
+E0: add a test that /api/dashboard/ never gives staff teacher data.
+LATER: school suspend (no field yet), frontend tests (ask before any new
+ library), final build and lint, update CHANGELOG.
