@@ -67,7 +67,7 @@
 .mu-top { background: #1f2328; }
 .mu-bar { background: #1f2328; border-top: 1px solid #2f353d; }
 .mu-bar button { color: #fff; }
-.mu-bar button.on { background: #2f6fed; color: #fff; }
+.mu-bar button.on { background: #0a66ff; color: #fff; }
 
 @media (min-width: 900px) {
   .mu-side { background: #1f2328; width: 232px; padding: 12px 10px; gap: 4px; transition: width .18s ease; }
@@ -77,12 +77,12 @@
   .mu-brand b { font-size: .8125rem; }
   .mu-tog { margin-left: auto; width: 24px; height: 24px; border: 0; border-radius: 6px;
     background: transparent; color: #fff; font-size: 16px; line-height: 1; cursor: pointer; }
-  .mu-tog:hover { background: #2f6fed; }
+  .mu-tog:hover { background: #0a66ff; }
 
   .mu-prof { position: relative; padding: 0 0 8px; margin-bottom: 6px; border-bottom: 1px solid #2f353d; }
   .mu-who { display: flex; align-items: center; gap: 8px; width: 100%; padding: 4px; border: 0;
     border-radius: 8px; background: transparent; color: #fff; font: inherit; text-align: left; cursor: pointer; }
-  .mu-who:hover { background: #2f6fed; }
+  .mu-who:hover { background: #0a66ff; }
   .mu-av { flex: none; width: 28px; height: 28px; border-radius: 50%; background: #3b4350; color: #fff;
     font-size: .6875rem; font-weight: 600; display: grid; place-items: center; overflow: hidden; }
   .mu-av img { width: 100%; height: 100%; object-fit: cover; }
@@ -93,12 +93,12 @@
     background: #2a2f36; border-radius: 8px; }
   .mu-pm button { height: 30px; padding: 0 8px; border: 0; border-radius: 6px; background: transparent;
     color: #fff; font: inherit; font-size: .8125rem; text-align: left; cursor: pointer; }
-  .mu-pm button:hover { background: #2f6fed; }
+  .mu-pm button:hover { background: #0a66ff; }
 
   .mu-nav { display: flex; flex-direction: column; gap: 2px; }
   .mu-nav button { height: 36px; padding: 0 10px; gap: 10px; font-size: .8125rem; border-radius: 8px;
     background: transparent; color: #fff; box-shadow: none; }
-  .mu-nav button:hover, .mu-nav button.on, .mu-nav button:focus-visible { background: #2f6fed; color: #fff; box-shadow: none; }
+  .mu-nav button:hover, .mu-nav button.on, .mu-nav button:focus-visible { background: #0a66ff; color: #fff; box-shadow: none; }
   .mu-nav svg { width: 18px; height: 18px; flex: none; }
   .mu-nav small { margin: 10px 10px 4px; font-size: .6875rem; text-transform: uppercase;
     letter-spacing: .08em; color: #8b95a3; }
@@ -149,7 +149,7 @@
   .mu-dt-p { position: relative; }
   .mu-dt-who { display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 8px 0 4px;
     border: 0; border-radius: 8px; background: transparent; color: #fff; font: inherit; cursor: pointer; }
-  .mu-dt-who:hover { background: #2f6fed; }
+  .mu-dt-who:hover { background: #0a66ff; }
   .mu-dt-who b { font-size: .8125rem; font-weight: 600; max-width: 120px; white-space: nowrap;
     overflow: hidden; text-overflow: ellipsis; }
   .mu-shade { position: fixed; inset: 0; z-index: 30; }
@@ -158,7 +158,7 @@
     border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,.35); }
   .mu-dt-m button { height: 30px; padding: 0 8px; border: 0; border-radius: 6px; background: transparent;
     color: #fff; font: inherit; font-size: .8125rem; text-align: left; cursor: pointer; }
-  .mu-dt-m button:hover { background: #2f6fed; }
+  .mu-dt-m button:hover { background: #0a66ff; }
 }
 
 /* ---- Marian shell v4: phone drawer + compact top bar ---- */
@@ -166,7 +166,7 @@
 .mu-top { gap: 6px; height: 46px; padding: 0 10px; }
 .mu-burger { width: 32px; height: 32px; border: 0; border-radius: 8px; background: transparent;
   color: #fff; font-size: 18px; line-height: 1; cursor: pointer; }
-.mu-burger:hover { background: #2f6fed; }
+.mu-burger:hover { background: #0a66ff; }
 .mu-top h1 { flex: 1; min-width: 0; margin: 0; font-size: .9375rem; font-weight: 600; color: #fff;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mu-av { flex: none; width: 28px; height: 28px; border-radius: 50%; background: #3b4350; color: #fff;
@@ -183,7 +183,7 @@
   border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,.35); }
 .mu-dt-m button { height: 30px; padding: 0 8px; border: 0; border-radius: 6px; background: transparent;
   color: #fff; font: inherit; font-size: .8125rem; text-align: left; cursor: pointer; }
-.mu-dt-m button:hover { background: #2f6fed; }
+.mu-dt-m button:hover { background: #0a66ff; }
 .mu-back { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,.5); }
 .mu-x, .mu-sf { display: none; }
 .mu-nm { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.2; }
@@ -191,7 +191,7 @@
 .mu-nm small { font-size: .6875rem; color: #aab3bf; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mu-sf button { height: 30px; padding: 0 10px; border: 0; border-radius: 6px; background: #2f353d;
   color: #fff; font: inherit; font-size: .75rem; cursor: pointer; }
-.mu-sf button:hover { background: #2f6fed; }
+.mu-sf button:hover { background: #0a66ff; }
 
 @media (max-width: 899px) {
   .mu-tog { display: none; }
@@ -203,16 +203,20 @@
   .mu-side.open .mu-brand b { font-size: .8125rem; }
   .mu-side.open .mu-x { display: block; margin-left: auto; width: 28px; height: 28px; border: 0;
     border-radius: 6px; background: transparent; color: #fff; font-size: 14px; cursor: pointer; }
-  .mu-side.open .mu-x:hover { background: #2f6fed; }
+  .mu-side.open .mu-x:hover { background: #0a66ff; }
   .mu-side.open .mu-nav { display: flex; flex-direction: column; }
   .mu-side.open .mu-grp { display: flex; flex-direction: column; gap: 2px; }
   .mu-side.open .mu-nav small { display: block; margin: 12px 10px 4px; font-size: .6875rem;
     text-transform: uppercase; letter-spacing: .08em; color: #8b95a3; }
   .mu-side.open .mu-nav button { height: 36px; padding: 0 10px; gap: 10px; font-size: .8125rem;
     border-radius: 8px; background: transparent; color: #fff; box-shadow: none; }
-  .mu-side.open .mu-nav button:hover, .mu-side.open .mu-nav button.on { background: #2f6fed; color: #fff; box-shadow: none; }
+  .mu-side.open .mu-nav button:hover, .mu-side.open .mu-nav button.on { background: #0a66ff; color: #fff; box-shadow: none; }
   .mu-side.open .mu-nav svg { width: 18px; height: 18px; flex: none; }
   .mu-side.open .mu-sf { display: flex; align-items: center; gap: 8px; margin-top: auto;
     padding-top: 10px; border-top: 1px solid #2f353d; }
 }
 @media (min-width: 900px) { .mu-dt-who b { display: block; } .mu-back { display: none; } }
+
+/* stronger active/hover blue */
+.mu-nav button.on, .mu-bar button.on, .mu-side.open .mu-nav button.on { background: #0a66ff !important; color: #fff !important; font-weight: 600; box-shadow: none; }
+.mu-nav button:hover, .mu-side.open .mu-nav button:hover { background: #0a66ff; color: #fff; }
