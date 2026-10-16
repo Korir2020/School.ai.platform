@@ -17,6 +17,7 @@ const wr = (k, v) => { try { if (v) localStorage.setItem(k, v); else localStorag
 
 export default function Shell({ tabs, tab, go, me, out, term, children }) {
   const [more, setMore] = useState(false);
+  const [drawer, setDrawer] = useState(false);
   const [small, setSmall] = useState(rd('mu-small') === '1');
   const [menu, setMenu] = useState(false);
   const user = me ? me.username : '';
@@ -28,7 +29,7 @@ export default function Shell({ tabs, tab, go, me, out, term, children }) {
   if (other.length) groups.push(['Other', other]);
   const bar = tabs.slice(0, 4);
   const rest = tabs.slice(4);
-  const pick = (t) => { setMore(false); go(t); };
+  const pick = (t) => { setMore(false); setDrawer(false); go(t); };
   const school = me && me.school ? me.school.name : "";
   const toggle = () => { const v = !small; setSmall(v); wr('mu-small', v ? '1' : ''); };
   const dropPic = () => { setPic(''); wr(pk, ''); setMenu(false); };
@@ -54,39 +55,45 @@ export default function Shell({ tabs, tab, go, me, out, term, children }) {
     <button key={t} className={t === tab ? 'on' : ''} onClick={() => pick(t)}
       data-tip={t} aria-label={t}
       aria-current={t === tab ? 'page' : undefined}><Ic n={t} /><span>{t}</span></button>);
+  const avatar = <span className="mu-av">{pic ? <img src={pic} alt="" /> : (user || '?').slice(0, 2).toUpperCase()}</span>;
+  const profile = (
+    <div className="mu-dt-p">
+      <button className="mu-dt-who" onClick={() => setMenu(!menu)} aria-haspopup="menu"
+        aria-expanded={menu} aria-label="Profile menu">{avatar}<b>{user}</b></button>
+      {menu && <div className="mu-shade" onClick={() => setMenu(false)} />}
+      {menu && <div className="mu-dt-m" role="menu">
+        <button role="menuitem" onClick={() => fileRef.current && fileRef.current.click()}>Change photo</button>
+        {pic && <button role="menuitem" onClick={dropPic}>Remove photo</button>}
+        <button role="menuitem" onClick={out}>Log out</button>
+      </div>}
+    </div>);
   return (<div className={'mu-app mu-shell' + (small ? ' small' : '')}>
-    <div className="mu-top" role="banner"><Logo size={28} /><b>MARIAN</b><span>{user}</span><Search tabs={tabs} go={go} /><Bell go={go} /></div>
-    <div className="mu-side" role="navigation" aria-label="Main">
+    <input ref={fileRef} type="file" accept="image/*" hidden onChange={onFile} />
+    <div className="mu-top" role="banner">
+      <button className="mu-burger" onClick={() => setDrawer(true)} aria-label="Open menu" aria-expanded={drawer}>☰</button>
+      <h1>{tab}</h1>
+      <Search tabs={tabs} go={go} /><Bell go={go} />{profile}
+    </div>
+    {drawer && <div className="mu-back" onClick={() => setDrawer(false)} />}
+    <div className={'mu-side' + (drawer ? ' open' : '')} role="navigation" aria-label="Main"
+      onKeyDown={(e) => { if (e.key === 'Escape') setDrawer(false); }}>
       <div className="mu-brand"><Logo size={22} /><b>MARIAN</b>
+        <button className="mu-x" onClick={() => setDrawer(false)} aria-label="Close menu">✕</button>
         <button className="mu-tog" onClick={toggle} aria-expanded={!small}
           aria-label={small ? 'Expand menu' : 'Collapse menu'} data-tip={small ? 'Expand' : 'Collapse'}>{small ? '›' : '‹'}</button></div>
       <div className="mu-nav">
         {groups.map(([name, list]) => (
           <div className="mu-grp" key={name}><small>{name}</small>{list.map(item)}</div>))}
       </div>
+      <div className="mu-sf">{avatar}
+        <span className="mu-nm"><b>{user}</b><small>{school}</small></span>
+        <button onClick={out}>Log out</button></div>
     </div>
     <div className="mu-body">
       <div className="mu-dt">
         <h1 className="mu-dt-t">{tab}</h1>
         {school && <span className="mu-dt-s">{school}</span>}
-        <div className="mu-dt-r">
-          <Search tabs={tabs} go={go} hotkey />
-          <Bell go={go} />
-          <div className="mu-dt-p">
-            <button className="mu-dt-who" onClick={() => setMenu(!menu)} aria-haspopup="menu"
-              aria-expanded={menu} aria-label="Profile menu">
-              <span className="mu-av">{pic ? <img src={pic} alt="" /> : (user || '?').slice(0, 2).toUpperCase()}</span>
-              <b>{user}</b>
-            </button>
-            {menu && <div className="mu-shade" onClick={() => setMenu(false)} />}
-            {menu && <div className="mu-dt-m" role="menu">
-              <button role="menuitem" onClick={() => fileRef.current && fileRef.current.click()}>Change photo</button>
-              {pic && <button role="menuitem" onClick={dropPic}>Remove photo</button>}
-              <button role="menuitem" onClick={out}>Log out</button>
-            </div>}
-            <input ref={fileRef} type="file" accept="image/*" hidden onChange={onFile} />
-          </div>
-        </div>
+        <div className="mu-dt-r"><Search tabs={tabs} go={go} hotkey /><Bell go={go} />{profile}</div>
       </div>
       <div className="mu-content"><nav className="mu-crumb" aria-label="Breadcrumb"><span>{school || "Platform"}</span><span aria-hidden="true"> › </span><span aria-current="page">{tab}</span></nav><h1 className="mu-title">{tab}</h1>{term ? <p className="mu-ctx">Active term: {term}</p> : null}{children}</div>
     </div>
