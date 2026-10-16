@@ -10,7 +10,7 @@ from .admin_throttle import RegistrationAdminThrottle
 
 
 def _summary(reg):
-    return {"id": reg.id, "reference": reg.reference, "school_name": reg.school_name, "school_code": reg.proposed_school_code, "school_type": reg.school_type, "school_email": reg.school_email, "school_phone": reg.school_phone, "county": reg.county, "administrator_name": reg.administrator_name, "administrator_username": reg.administrator_username, "administrator_email": reg.administrator_email, "status": reg.status, "verification_status": reg.verification_status, "created_at": reg.created_at, "updated_at": reg.updated_at, "reviewed_at": reg.reviewed_at, "rejection_reason": reg.rejection_reason if reg.status == "rejected" else "", "school_id": reg.school_id}
+    return {"id": reg.id, "reference": reg.reference, "school_name": reg.school_name, "school_code": reg.proposed_school_code, "school_type": reg.school_type, "school_email": reg.school_email, "school_phone": reg.school_phone, "county": reg.county, "administrator_name": reg.administrator_name, "administrator_username": reg.administrator_username, "administrator_email": reg.administrator_email, "status": reg.status, "verification_status": reg.verification_status, "created_at": reg.created_at, "updated_at": reg.updated_at, "reviewed_at": reg.reviewed_at, "rejection_reason": reg.rejection_reason if reg.status == "rejected" else "", "school_id": reg.school_id, "info_request_message": reg.info_request_message, "info_response_message": reg.info_response_message}
 
 
 def _guard(request):
@@ -49,6 +49,19 @@ def registration_admin_action(request, pk):
             reg.status = "rejected"; reg.rejection_reason = reason; reg.reviewed_by = request.user; reg.reviewed_at = timezone.now(); reg.save(update_fields=["status", "rejection_reason", "reviewed_by", "reviewed_at", "updated_at"])
             MarkAuditLog.objects.create(school=None, user=request.user, action="school_reg_rejected", details={"reference": reg.reference, "reason": reason})
             return Response(_summary(reg))
+        if action == "request_information":
+            message = str(request.data.get("message", "")).strip()
+            if not message: return Response({"detail": "A message explaining what is missing is required."}, status=400)
+            if len(message) > 2000: return Response({"detail": "The message is too long (2000 characters at most)."}, status=400)
+            if reg.status in ("approved", "rejected"): return Response({"detail": "A finished registration cannot be sent back for information."}, status=409)
+            if reg.status == "needs_information": return Response({"detail": "Information has already been requested and is awaiting the applicant."}, status=409)
+            if reg.verification_status != "verified": return Response({"detail": "The administrator email must be verified first."}, status=409)
+            reg.status = "needs_information"; reg.info_request_message = message; reg.info_response_message = ""
+            reg.save(update_fields=["status", "info_request_message", "info_response_message", "updated_at"])
+            MarkAuditLog.objects.create(school=None, user=request.user, action="school_reg_info_asked", details={"reference": reg.reference, "message": message})
+            return Response(_summary(reg))
+        if action == "approve" and reg.status == "needs_information":
+            return Response({"detail": "This registration is waiting for the applicant to reply to a request for information."}, status=409)
         if action != "approve": return Response({"detail": "Action must be approve or reject."}, status=400)
         if reg.verification_status != "verified":
             return Response({"detail": "The administrator email must be verified before approval."}, status=409)

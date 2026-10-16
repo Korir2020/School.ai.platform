@@ -486,6 +486,7 @@ class SchoolRegistration(models.Model):
         null=True, blank=True, related_name="+")
     rejection_reason = models.TextField(blank=True)
     info_request_message = models.TextField(blank=True)
+    info_response_message = models.TextField(blank=True)
     info_response = models.TextField(blank=True)
     info_responded_at = models.DateTimeField(null=True, blank=True)
     internal_notes = models.TextField(blank=True)  # superadmin only

@@ -233,3 +233,29 @@ def school_register_status(request):
     if reg is None:
         return Response({"detail": "Registration not found."}, status=404)
     return Response(applicant_view(reg))
+
+
+@api_view(["POST"])
+@authentication_classes([])
+@permission_classes([AllowAny])
+@throttle_classes([SchoolRegStatusThrottle])
+def school_register_respond(request):
+    ref = str(request.data.get("reference", "")).strip().upper()
+    user = str(request.data.get("username", "")).strip()
+    message = str(request.data.get("message", "")).strip()
+    reg = SchoolRegistration.objects.filter(reference=ref, administrator_username__iexact=user).first()
+    if reg is None:
+        return Response({"detail": "Registration not found."}, status=404)
+    if not message:
+        return Response({"detail": "Please write your reply."}, status=400)
+    if len(message) > 2000:
+        return Response({"detail": "Your reply is too long (2000 characters at most)."}, status=400)
+    with transaction.atomic():
+        reg = SchoolRegistration.objects.select_for_update().get(pk=reg.pk)
+        if reg.status != "needs_information":
+            return Response({"detail": "No information has been requested for this application."}, status=409)
+        reg.info_response_message = message
+        reg.status = "pending_approval"
+        reg.save(update_fields=["info_response_message", "status", "updated_at"])
+        MarkAuditLog.objects.create(school=None, user=None, action="school_reg_info_reply", details={"reference": reg.reference})
+    return Response(applicant_view(reg))
