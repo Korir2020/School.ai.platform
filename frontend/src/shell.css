@@ -220,3 +220,9 @@
 /* stronger active/hover blue */
 .mu-nav button.on, .mu-bar button.on, .mu-side.open .mu-nav button.on { background: #0a66ff !important; color: #fff !important; font-weight: 600; box-shadow: none; }
 .mu-nav button:hover, .mu-side.open .mu-nav button:hover { background: #0a66ff; color: #fff; }
+
+/* phone: drawer is the only navigation, no bottom bar */
+@media (max-width: 899px) {
+  .mu-bar { display: none !important; }
+  .mu-content { padding-bottom: 24px; }
+}
