@@ -19,8 +19,7 @@ export default function Intro({ onStart }) {
         {[[72, 48, 5], [88, 33, 5.5], [108, 14, 6.5]].map(([x, y, r], i) => <circle key={x} className="idot" style={{ animationDelay: 2.2 + i * 0.25 + "s" }} cx={x} cy={y} r={r} fill="#facc15" stroke="#000" strokeWidth="1.2" />)}
       </svg>
       <h1>MARIAN</h1>
-      <p className="itag">Intelligent School Management</p>
-      <div className="icards"><div className="ic c1"><b>92%</b><small>Pass rate</small></div><div className="ic c2"><b>+14%</b><small>Improvement</small></div></div>
+      <p className="itag">Turning School Data Into Better Decisions.</p>
     </div>
   );
 }

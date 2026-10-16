@@ -1,79 +1,130 @@
-import { useEffect } from "react";
-import Logo from "./Logo";
-import { Button } from "./ui";
 import "./pub.css";
-import "./landing.css";
+import "./home.css";
+import { Button } from "./ui";
+import { Mark, Wordmark } from "./brand";
 
-const I = {
-  book: ["M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z",
-    "M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"],
-  up: ["M23 6l-9.5 9.5-5-5L1 18", "M17 6h6v6"],
-  check: ["M22 11.08V12a10 10 0 1 1-5.93-9.14", "M22 4L12 14.01l-3-3"],
-  smile: ["M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z",
-    "M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"],
-  award: ["M12 15a7 7 0 1 0 0-14 7 7 0 0 0 0 14z",
-    "M8.21 13.89L7 23l5-3 5 3-1.21-9.12"],
-  flag: ["M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z",
-    "M4 22v-7"],
-  shield: ["M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"],
-  zap: ["M13 2L3 14h9l-1 8 10-12h-9l1-8z"],
-  star: ["M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88" +
-    "L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"],
-  users: ["M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2",
-    "M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z",
-    "M23 21v-2a4 4 0 0 0-3-3.87", "M16 3.13a4 4 0 0 1 0 7.75"],
-};
+const NAV = ["Home", "Students", "Exams", "Reports", "Analytics", "Fees"];
 
-const CH = [
-  ["Learning", "Discover. Explore. Understand.", "book", "#0F8B8D"],
-  ["Academic Excellence", "Learn. Improve. Excel.", "up", "#2563EB"],
-  ["Assessment", "Measure. Understand. Improve.", "check", "#4F46E5"],
-  ["Student Development", "Knowledge. Character. Confidence.", "smile", "#16A34A"],
-  ["Talent & Sports", "Discover Talent. Build Teamwork.", "award", "#EA580C"],
-  ["Leadership", "Inspire. Lead. Serve.", "flag", "#7C3AED"],
-  ["Character", "Discipline. Integrity. Responsibility.", "shield", "#0F2747"],
-  ["Innovation", "Imagine. Create. Transform.", "zap", "#0891B2"],
-  ["Achievement", "Dream. Work. Achieve.", "star", "#CA8A04"],
-  ["Community", "Together We Grow.", "users", "#0F8B8D"],
+const BENEFITS = [
+  ["Settled results", "Marks are entered, reviewed and locked in one place."],
+  ["Reports from real marks", "Report cards are built from the marks held in Marian."],
+  ["The right view for each role", "Administrators, teachers and parents see what their role allows."],
 ];
 
-function useReveal() {
-  useEffect(() => {
-    const els = document.querySelectorAll(".mu-ld-ch");
-    const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (calm || !("IntersectionObserver" in window)) {
-      els.forEach((e) => e.classList.add("in"));
-      return undefined;
-    }
-    const io = new IntersectionObserver((rows) => rows.forEach((r) => {
-      if (r.isIntersecting) { r.target.classList.add("in"); io.unobserve(r.target); }
-    }), { threshold: 0.2 });
-    els.forEach((e) => io.observe(e));
-    return () => io.disconnect();
-  }, []);
+const CAPS = [
+  "Marks entry, review and locking",
+  "Report cards",
+  "Attendance",
+  "Fee management",
+  "Parent portal",
+  "Staff and audit log",
+  "CBC, 8-4-4 and Cambridge curricula",
+];
+
+const STEPS = [
+  ["Register your school", "Submit your school's details."],
+  ["Get reviewed", "Your application is reviewed and approved."],
+  ["Set up", "Complete the setup wizard."],
+  ["Invite teachers", "Teachers join with your School Code."],
+];
+
+function Preview() {
+  return (
+    <div>
+      <div className="mk-pv" role="img" aria-label="Illustration of the Marian dashboard">
+        <aside>
+          {NAV.map((n, i) => (
+            <span key={n} className={i === 4 ? "on" : ""}>{n}</span>
+          ))}
+        </aside>
+        <div className="mk-pv-main">
+          <div className="mk-pv-top"><b>Analytics</b><i /></div>
+          <div className="mk-pv-cards">
+            {["Students", "Exams", "Reports"].map((n) => (
+              <div key={n}><small>{n}</small><span /></div>
+            ))}
+          </div>
+          <div className="mk-pv-chart">
+            {[40, 62, 48, 75, 58, 84, 70].map((h, i) => (
+              <span key={i} style={{ height: h + "%" }} />
+            ))}
+          </div>
+        </div>
+      </div>
+      <p className="mk-cap">Illustration, not real data</p>
+    </div>
+  );
 }
 
 export default function Landing({ onStart, onRegister, onSignIn, onStatus }) {
-  useReveal();
-  return (<div className="mu-ld">
-    <div className="mu-ld-hero"><Logo size={76} />
-      <h1>MARIAN</h1>
-      <p>More than academics. We grow the whole student.</p>
-      <b>Learn. Lead. Achieve.</b></div>
-    <div className="mu-ld-story">
-      {CH.map(([t, p, ic, c], n) => (
-        <section key={t} className="mu-ld-ch" style={{ "--c": c }}>
-          <svg className="mu-ld-ic" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"
-            strokeLinejoin="round" aria-hidden="true">
-            {I[ic].map((d) => <path key={d} d={d} />)}</svg>
-          <small>{String(n + 1).padStart(2, "0")} · {t.toUpperCase()}</small>
-          <h2>{p}</h2></section>))}
+  return (
+    <div className="mk">
+      <header className="mk-bar">
+        <span className="mk-brand">
+          <Mark size={26} />
+          <Wordmark height={14} />
+        </span>
+      </header>
+
+      <main>
+        <section className="mk-hero">
+          <div>
+            <p className="mk-eyebrow">Turning School Data Into Better Decisions.</p>
+            <h1>Run your school on clear data</h1>
+            <p className="mk-lead">
+              Marian brings marks, report cards, attendance, fees and parents into
+              one platform, so your team can see what is happening and act on it.
+            </p>
+            <div className="mk-act">
+              <Button kind="teal" onClick={onStart}>Get Started</Button>
+              <Button kind="secondary" onClick={onSignIn}>Sign In</Button>
+            </div>
+            <p className="mk-sub">
+              New school?{" "}
+              <button type="button" className="mk-link" onClick={onRegister}>Register a school</button>
+              {" · "}
+              <button type="button" className="mk-link" onClick={onStatus}>Check my application</button>
+            </p>
+            <p className="mk-note">Joining a school? Get Started, then enter its School Code.</p>
+          </div>
+          <Preview />
+        </section>
+
+        <section className="mk-sec">
+          <h2>Why Marian</h2>
+          <div className="mk-grid c3">
+            {BENEFITS.map(([t, d]) => (
+              <div className="mk-card" key={t}><h3>{t}</h3><p>{d}</p></div>
+            ))}
+          </div>
+        </section>
+
+        <section className="mk-sec">
+          <h2>What you can do</h2>
+          <ul className="mk-chips">
+            {CAPS.map((c) => <li key={c}>{c}</li>)}
+          </ul>
+        </section>
+
+        <section className="mk-sec">
+          <h2>How Marian works</h2>
+          <ol className="mk-steps">
+            {STEPS.map(([t, d]) => (
+              <li key={t}><b>{t}</b><span>{d}</span></li>
+            ))}
+          </ol>
+        </section>
+
+        <section className="mk-final">
+          <h2>Ready to begin?</h2>
+          <p>Register your school, or sign in if you already have an account.</p>
+          <div className="mk-act">
+            <Button kind="teal" onClick={onRegister}>Register a school</Button>
+            <Button kind="secondary" onClick={onSignIn}>Sign In</Button>
+          </div>
+        </section>
+      </main>
+      <p className="mk-foot">Marian · Turning School Data Into Better Decisions.</p>
     </div>
-    <p className="mu-pub-note">Joining a school? You need its School Code.</p>
-    <div className="mu-ld-bar">
-      <Button kind="teal" onClick={onStart}>Get Started</Button>
-      <Button kind="ghost" onClick={onRegister}>Register a school</Button>
-      <Button kind="secondary" onClick={onSignIn}>Sign In</Button><Button kind='ghost' onClick={onStatus}>Check my application</Button></div>
-  </div>);
+  );
 }
