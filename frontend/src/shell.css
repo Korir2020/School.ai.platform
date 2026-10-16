@@ -226,3 +226,15 @@
   .mu-bar { display: none !important; }
   .mu-content { padding-bottom: 24px; }
 }
+
+/* hide the file input (opened from profile menu) */
+.mu-app input[type="file"] { display: none !important; }
+
+/* red Log out */
+.mu-dt-m button:last-child { color: #ff6b6b; }
+.mu-dt-m button:last-child:hover { background: #e5484d; color: #fff; }
+.mu-sf button { background: #e5484d; color: #fff; }
+.mu-sf button:hover { background: #c93a3f; }
+
+.mu-dt-m button:last-child { background: #e5484d; color: #fff; font-weight: 600; margin-top: 2px; }
+.mu-dt-m button:last-child:hover { background: #c93a3f; }
