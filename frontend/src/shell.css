@@ -49,3 +49,37 @@
 .mu-app .meter { background: var(--mu-neutral-bg); }
 .mu-app .qrow button { background: #fff; color: var(--mu-navy); border: 1px solid var(--mu-line); }
 .mu-app .qrow button:hover { background: var(--mu-neutral-bg); }
+/* Collapsible sidebar, profile row, tooltips */
+.mu-nav button{font-size:13px;position:relative}
+.mu-nav button svg{flex:none}
+.mu-user{display:flex;align-items:center;gap:8px}
+.mu-av{width:30px;height:30px;border-radius:50%;flex:none;display:grid;
+  place-items:center;background:var(--mu-navy-2);color:#fff;font-weight:700;font-size:13px}
+.mu-uname{min-width:0;flex:1}
+.mu-uname b,.mu-uname small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mu-uname b{font-size:13px;color:#fff}
+.mu-uname small{font-size:11px;color:#8EA3C0}
+.mu-out,.mu-tog{border:0;background:transparent;color:#B6C4D9;cursor:pointer;
+  position:relative;font:inherit}
+.mu-out{width:32px;height:32px;border-radius:8px;display:grid;place-items:center}
+.mu-tog{display:none;align-items:center;gap:10px;width:100%;height:36px;
+  padding:0 12px;margin-top:6px;border-radius:8px;font-size:13px}
+.mu-out:hover,.mu-tog:hover{background:var(--mu-navy-2);color:#fff}
+@media(min-width:900px){
+  .mu-side{transition:width .18s ease}
+  .mu-body{transition:margin-left .18s ease}
+  .mu-tog{display:flex}
+  .mu-app.min .mu-side{width:64px;padding:16px 8px;overflow:visible}
+  .mu-app.min .mu-body{margin-left:64px}
+  .mu-app.min .mu-brand{justify-content:center;padding:4px 0 16px}
+  .mu-app.min .mu-brand b,.mu-app.min .mu-nav small,.mu-app.min .mu-nav button span,
+  .mu-app.min .mu-uname,.mu-app.min .mu-tog span{display:none}
+  .mu-app.min .mu-nav button,.mu-app.min .mu-tog{justify-content:center;padding:0}
+  .mu-app.min .mu-user{flex-direction:column;gap:6px;padding:12px 0 0}
+  .mu-app.min .mu-side [data-tip]:hover::after,
+  .mu-app.min .mu-side [data-tip]:focus-visible::after{content:attr(data-tip);
+    position:absolute;left:calc(100% + 10px);top:50%;transform:translateY(-50%);
+    background:#0b1324;color:#fff;font-size:12px;padding:4px 8px;border-radius:6px;
+    white-space:nowrap;z-index:30;pointer-events:none}
+}
+@media(prefers-reduced-motion:reduce){.mu-side,.mu-body{transition:none}}
