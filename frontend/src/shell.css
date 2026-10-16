@@ -83,3 +83,10 @@
     white-space:nowrap;z-index:30;pointer-events:none}
 }
 @media(prefers-reduced-motion:reduce){.mu-side,.mu-body{transition:none}}
+/* Charcoal sidebar */
+.mu-side,.mu-top{--mu-navy:#1f2328;--mu-navy-2:#2d333b}
+.mu-nav button,.mu-out,.mu-tog{color:#e5e7eb}
+.mu-nav button:hover,.mu-out:hover,.mu-tog:hover{color:#7cb7ff;background:#2d333b}
+.mu-nav button.on{color:#fff;background:#2d333b;box-shadow:inset 3px 0 0 #3b82f6}
+.mu-nav small{color:#9aa4b2}
+.mu-uname small{color:#9aa4b2}
