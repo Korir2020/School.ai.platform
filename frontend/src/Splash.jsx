@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import Logo from "./Logo";
+import { Mark as Logo } from "./brand";
 
 const stages = ["Students", "Learning", "Assessment", "Analytics", "Insights"];
 

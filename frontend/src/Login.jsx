@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { login } from "./api";
-import Logo from "./Logo";
+import { Mark as Logo } from "./brand";
 import "./backgrounds.css";
 import "./login.css";
 

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { api } from "./api";
 import { Button, Input, Alert } from "./ui";
-import Logo from "./Logo";
+import { Mark as Logo } from "./brand";
 
 export default function PasswordRecovery({ onBack }) {
   const params = useMemo(() => new URLSearchParams(window.location.search), []);

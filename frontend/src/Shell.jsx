@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import Logo from "./Logo";
+import { Mark as Logo, Wordmark } from "./brand";
 import Ic from "./icons";
 import Bell from "./Bell";
 import Search from './Search';
@@ -77,7 +77,7 @@ export default function Shell({ tabs, tab, go, me, out, term, children }) {
     {drawer && <div className="mu-back" onClick={() => setDrawer(false)} />}
     <div className={'mu-side' + (drawer ? ' open' : '')} role="navigation" aria-label="Main"
       onKeyDown={(e) => { if (e.key === 'Escape') setDrawer(false); }}>
-      <div className="mu-brand"><Logo size={22} /><b>MARIAN</b>
+      <div className="mu-brand"><Logo size={22} /><b><Wordmark height={12} /></b>
         <button className="mu-x" onClick={() => setDrawer(false)} aria-label="Close menu">✕</button>
         <button className="mu-tog" onClick={toggle} aria-expanded={!small}
           aria-label={small ? 'Expand menu' : 'Collapse menu'} data-tip={small ? 'Expand' : 'Collapse'}>{small ? '›' : '‹'}</button></div>
