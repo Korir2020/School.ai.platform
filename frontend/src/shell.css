@@ -90,3 +90,25 @@
 .mu-nav button.on{color:#fff;background:#2d333b;box-shadow:inset 3px 0 0 #3b82f6}
 .mu-nav small{color:#9aa4b2}
 .mu-uname small{color:#9aa4b2}
+/* Floating slate sidebar */
+.mu-side,.mu-top{--mu-navy:#2b3050;--mu-navy-2:#363c63}
+.mu-hr{border:0;border-top:1px solid #3b4270;margin:10px 4px}
+.mu-tog{width:32px;height:32px;padding:0;margin:0;display:grid;place-items:center;
+  border-radius:8px;flex:none}
+@media(min-width:900px){
+  .mu-side{top:12px;bottom:12px;left:12px;width:240px;border-radius:22px;
+    padding:16px 12px 0;background:#2b3050;overflow:hidden;
+    box-shadow:0 12px 32px #1b1f3a40}
+  .mu-body{margin-left:264px}
+  .mu-brand{display:flex;align-items:center;gap:10px;padding:2px 6px 14px}
+  .mu-brand b{flex:1;color:#fff;letter-spacing:.12em;font-size:.95rem}
+  .mu-nav button{border-radius:10px;color:#c9cfe6}
+  .mu-nav button:hover{background:#363c63;color:#8ec5ff}
+  .mu-nav button.on{background:#3b82f633;color:#9cc7ff;box-shadow:none}
+  .mu-user{margin:auto -12px 0;padding:12px 16px;background:#232845;
+    border:0;border-radius:0 0 22px 22px}
+  .mu-app.min .mu-side{width:68px;padding:16px 8px 0;overflow:visible}
+  .mu-app.min .mu-body{margin-left:92px}
+  .mu-app.min .mu-brand{flex-direction:column;gap:8px;padding:2px 0 14px}
+  .mu-app.min .mu-user{margin:auto -8px 0;padding:12px 0;justify-content:center}
+}

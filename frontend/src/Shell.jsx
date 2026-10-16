@@ -30,11 +30,12 @@ export default function Shell({ tabs, tab, go, me, out, children }) {
   return (<div className={"mu-app mu-shell" + (min ? " min" : "")}>
     <div className="mu-top" role="banner"><Mark size={28} /><b>MARIAN</b><span>{user}</span></div>
     <div className="mu-side" role="navigation" aria-label="Main">
-      <div className="mu-brand"><Mark size={30} /><b>MARIAN</b></div>
+      <div className="mu-brand"><Mark size={30} /><b>MARIAN</b><button className="mu-tog" data-tip={min ? "Expand" : "Collapse"} aria-expanded={!min} aria-label={min ? "Expand sidebar" : "Collapse sidebar"} onClick={flip}><Ic n="Menu" size={18} /></button></div>
       <div className="mu-nav">{main.map(item)}
-        {sets.length > 0 && <small>Settings</small>}{sets.map(item)}</div>
-      <div className="mu-user"><span className="mu-av" aria-hidden="true">{user.charAt(0).toUpperCase()}</span><div className="mu-uname"><b>{user}</b><small>{school}</small></div><button className="mu-out" data-tip="Log out" aria-label="Log out" onClick={out}><Ic n="Out" size={18} /></button></div>
-      <button className="mu-tog" data-tip={min ? "Expand" : "Collapse"} aria-expanded={!min} aria-label={min ? "Expand sidebar" : "Collapse sidebar"} onClick={flip}><Ic n={min ? "Right" : "Left"} size={18} /><span>Collapse</span></button>
+        {sets.length > 0 && <small>Settings</small>}{sets.map(item)}
+        <hr className="mu-hr" />
+        <button data-tip="Sign out" aria-label="Sign out" onClick={out}><Ic n="Out" size={18} /><span>Sign out</span></button></div>
+      <div className="mu-user"><span className="mu-av" aria-hidden="true">{user.charAt(0).toUpperCase()}</span><div className="mu-uname"><b>{user}</b><small>{school}</small></div></div>
     </div>
     <div className="mu-body">
       <div className="mu-content"><h1 className="mu-title">{tab}</h1>{children}</div>

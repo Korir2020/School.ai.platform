@@ -2,6 +2,7 @@ const P = {
   Out: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9",
   Left: "M15 18l-6-6 6-6",
   Right: "M9 18l6-6-6-6",
+  Menu: "M4 7h16M4 12h10M4 17h16",
   Home: "M3 11l9-8 9 8v10h-6v-6H9v6H3z",
   Approve: "M5 12l5 5 9-10",
   Exams: "M6 3h9l4 4v14H6z M9 13h6 M9 17h6",
