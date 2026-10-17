@@ -47,3 +47,4 @@ body:has(.recovery-page)::before{display:none}
 .recovery-page .recovery-card h2{color:var(--m-text)}
 .recovery-page .recovery-card .sub{color:var(--m-muted)}
 html:root{--bg-app:var(--m-bg)}
+html:root{--paper:var(--m-bg)}

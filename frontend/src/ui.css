@@ -58,7 +58,7 @@
 .mu-btn:hover { background: var(--mu-navy-2); }
 .mu-btn.teal { background: var(--mu-teal); }
 .mu-btn.teal:hover { background: #0C7173; }
-.mu-btn.secondary { background: #fff; color: var(--mu-text); border-color: var(--mu-line); }
+.mu-btn.secondary { background: var(--m-card); color: var(--mu-text); border-color: var(--mu-line); }
 .mu-btn.secondary:hover { background: var(--mu-neutral-bg); }
 .mu-btn.ghost { background: transparent; color: var(--mu-blue); padding: 0 8px; }
 .mu-btn.ghost:hover { background: var(--mu-blue-bg); }
@@ -70,7 +70,7 @@
 .mu-field { display: flex; flex-direction: column; gap: 4px; margin-bottom: var(--mu-s4); }
 .mu-label { font-size: var(--mu-fs-label); font-weight: 600; color: var(--mu-muted); }
 .mu-input { width: 100%; max-width: none; height: var(--mu-h); margin: 0; padding: 0 12px;
-  box-sizing: border-box; font: inherit; color: var(--mu-text); background: #fff;
+  box-sizing: border-box; font: inherit; color: var(--mu-text); background: var(--m-card);
   border: 1px solid var(--mu-line); border-radius: var(--mu-r); }
 .mu-input:focus { outline: 0; border-color: var(--mu-teal); box-shadow: var(--mu-focus); }
 .mu-input[aria-invalid="true"] { border-color: var(--mu-err); }
@@ -90,13 +90,13 @@
 .mu-badge.teal { background: var(--mu-teal-bg); color: #0B6B6D; }
 /* Alerts */
 .mu-alert { padding: 12px 16px; border-radius: var(--mu-r); border: 1px solid var(--mu-line);
-  font-size: var(--mu-fs-body); margin-bottom: var(--mu-s4); background: #fff; }
+  font-size: var(--mu-fs-body); margin-bottom: var(--mu-s4); background: var(--m-card); }
 .mu-alert.ok { background: var(--mu-ok-bg); border-color: var(--mu-ok); }
 .mu-alert.warn { background: var(--mu-warn-bg); border-color: var(--mu-warn); }
 .mu-alert.err { background: var(--mu-err-bg); border-color: var(--mu-err); }
 .mu-alert.info { background: var(--mu-blue-bg); border-color: var(--mu-blue); }
 /* Tables */
-.mu-tablewrap { overflow-x: auto; border: 1px solid var(--mu-line); border-radius: var(--mu-r-lg); background: #fff; }
+.mu-tablewrap { overflow-x: auto; border: 1px solid var(--mu-line); border-radius: var(--mu-r-lg); background: var(--m-card); }
 .mu-table { width: 100%; border-collapse: collapse; font-size: var(--mu-fs-body); }
 .mu-table th { text-align: left; padding: 10px 14px; font-size: var(--mu-fs-label); font-weight: 600; color: var(--mu-muted); background: var(--m-bg); border-bottom: 1px solid var(--mu-line); white-space: nowrap; }
 .mu-table td { padding: 10px 14px; border-bottom: 1px solid var(--mu-line); }
@@ -104,7 +104,7 @@
 .mu-table tbody tr:hover { background: var(--m-bg); }
 /* Stat cards */
 .mu-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--mu-s3); margin-bottom: var(--mu-s4); }
-.mu-stat { background: #fff; border: 1px solid var(--mu-line); border-radius: var(--mu-r-lg); padding: var(--mu-s4); box-shadow: var(--mu-shadow); }
+.mu-stat { background: var(--m-card); border: 1px solid var(--mu-line); border-radius: var(--mu-r-lg); padding: var(--mu-s4); box-shadow: var(--mu-shadow); }
 .mu-stat small { display: block; font-size: var(--mu-fs-label); font-weight: 600; color: var(--mu-muted); }
 .mu-stat b { display: block; font-size: 1.75rem; line-height: 1.2; color:var(--m-text); }
 .mu-stat em { font-style: normal; font-size: var(--mu-fs-label); color: var(--mu-muted); }
@@ -113,7 +113,7 @@
 .mu-empty b { display: block; color: var(--mu-text); margin-bottom: 4px; }
 /* Modal and toast */
 .mu-overlay { position: fixed; inset: 0; z-index: 50; background: rgba(15,39,71,.45); display: flex; align-items: center; justify-content: center; padding: var(--mu-s4); }
-.mu-modal { width: 100%; max-width: 440px; background: #fff; border-radius: var(--mu-r-lg); padding: var(--mu-s5); box-shadow: 0 10px 30px rgba(15,39,71,.2); }
+.mu-modal { width: 100%; max-width: 440px; background: var(--m-card); border-radius: var(--mu-r-lg); padding: var(--mu-s5); box-shadow: 0 10px 30px rgba(15,39,71,.2); }
 .mu-modal h3 { margin: 0 0 var(--mu-s2); font-size: var(--mu-fs-section); color: var(--mu-text); }
 .mu-modal-actions { display: flex; justify-content: flex-end; gap: var(--mu-s2); margin-top: var(--mu-s4); }
 .mu-toasts { position: fixed; right: var(--mu-s4); bottom: 84px; z-index: 60; display: flex; flex-direction: column; gap: var(--mu-s2); max-width: calc(100vw - 32px); }

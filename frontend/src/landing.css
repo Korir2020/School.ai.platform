@@ -11,7 +11,7 @@ body:has(.mu-ld)::before{display:none}
   width:3px;border-radius:3px;
   background:linear-gradient(#0F8B8D,#4F46E5,#EA580C,#CA8A04,#0F8B8D)}
 .mu-ld-ch{position:relative;margin:0 0 18px;padding:18px;border-radius:16px;
-  background:#fff;border:1px solid var(--mu-line);box-shadow:var(--mu-shadow);
+  background:var(--m-card);border:1px solid var(--mu-line);box-shadow:var(--mu-shadow);
   border-left:4px solid var(--c);opacity:0;transform:translateY(26px);
   transition:opacity .6s ease,transform .6s ease}
 .mu-ld-ch.in{opacity:1;transform:none}
@@ -25,7 +25,7 @@ body:has(.mu-ld)::before{display:none}
 .mu-ld-bar{position:fixed;left:0;right:0;bottom:0;z-index:5;display:flex;
   justify-content:center;gap:10px;padding:10px 16px;
   padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));
-  background:#fffffff0;border-top:1px solid var(--mu-line)}
+  background:var(--m-card);border-top:1px solid var(--mu-line)}
 .mu-ld-bar .mu-btn{flex:1;max-width:220px;height:46px;font-size:1rem}
 @media (prefers-reduced-motion:reduce){.mu-ld-ch{transition:none}}
 
