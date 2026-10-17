@@ -77,3 +77,9 @@ NEXT:
 3. Remaining fixed colours: login.css and intro.css animation rules (logo animation, now unused by Login.jsx), index.css splash glow, kit.css skeleton shimmer.
 4. Swap in the owner's logo when supplied (Logo.jsx).
 5. Still to design from the brief: registration form, registration-status page, admin dashboard polish (cards, charts, tables), mobile bottom navigation check.
+
+## 2026-10-17 LATE UPDATE
+- Fixed: landing hero background was wrongly set to the card colour (white text on white). Now var(--m-side) navy; eyebrow line #7CC4FF.
+- Added: ThemeToggle on the login page (still missing on the landing page).
+- Render serves a different branch from pro-release (origin has release-for-render, main, ui-pro, ui-redesign). pro-release is NOT merged anywhere yet. To deploy: confirm which branch Render builds, then merge pro-release into it.
+- Still unverified in a browser: Light and Dark on all screens. Landing logo wordmark is navy (disappears on dark surfaces) - owner will supply the final logo.
