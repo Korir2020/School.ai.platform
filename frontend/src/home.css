@@ -92,3 +92,11 @@ body:has(.mk)::before{display:none}
 .mk :is(div,li,article):has(> h3)::after{content:"";position:absolute;top:12px;left:50%;margin-left:2px;width:12px;height:5px;border-radius:50%;background:rgba(15,39,71,.22);filter:blur(2px)}
 .mk :is(div,li,article) > h3::before{display:none}
 .mk :is(div,li,article) > h3{display:block;margin-top:0}
+.mk section:has(h3){background:#e8edf5;background-image:radial-gradient(rgba(15,39,71,.09) 1px,transparent 1.2px);background-size:14px 14px;border-radius:20px;padding:30px 16px 22px;margin:22px 0;box-shadow:inset 0 2px 14px rgba(15,39,71,.12)}
+.mk :is(div,li,article):has(> h3){position:relative;background:#fff;border:0;border-radius:14px;padding:36px 20px 20px;margin:24px 0;box-shadow:0 14px 26px rgba(15,39,71,.2),0 2px 4px rgba(15,39,71,.12);transform:rotate(-1.2deg);transition:transform .25s ease}
+.mk :is(div,li,article):has(> h3):nth-child(even){transform:rotate(1.2deg)}
+.mk :is(div,li,article):has(> h3):hover{transform:rotate(0) translateY(-3px)}
+.mk :is(div,li,article):has(> h3)::before{content:"";position:absolute;top:-11px;left:50%;width:20px;height:20px;margin-left:-10px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#9cc2ff,#0a66ff 55%,#063a99);box-shadow:0 5px 7px rgba(0,0,0,.35)}
+.mk :is(div,li,article):has(> h3)::after{content:"";position:absolute;top:12px;left:50%;margin-left:2px;width:12px;height:5px;border-radius:50%;background:rgba(15,39,71,.22);filter:blur(2px)}
+.mk :is(div,li,article) > h3::before{display:none}
+.mk :is(div,li,article) > h3{display:block;margin-top:0}
