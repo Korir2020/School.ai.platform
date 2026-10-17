@@ -98,10 +98,10 @@
 /* Tables */
 .mu-tablewrap { overflow-x: auto; border: 1px solid var(--mu-line); border-radius: var(--mu-r-lg); background: #fff; }
 .mu-table { width: 100%; border-collapse: collapse; font-size: var(--mu-fs-body); }
-.mu-table th { text-align: left; padding: 10px 14px; font-size: var(--mu-fs-label); font-weight: 600; color: var(--mu-muted); background: #F8FAFC; border-bottom: 1px solid var(--mu-line); white-space: nowrap; }
+.mu-table th { text-align: left; padding: 10px 14px; font-size: var(--mu-fs-label); font-weight: 600; color: var(--mu-muted); background: var(--m-bg); border-bottom: 1px solid var(--mu-line); white-space: nowrap; }
 .mu-table td { padding: 10px 14px; border-bottom: 1px solid var(--mu-line); }
 .mu-table tr:last-child td { border-bottom: 0; }
-.mu-table tbody tr:hover { background: #F8FAFC; }
+.mu-table tbody tr:hover { background: var(--m-bg); }
 /* Stat cards */
 .mu-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--mu-s3); margin-bottom: var(--mu-s4); }
 .mu-stat { background: #fff; border: 1px solid var(--mu-line); border-radius: var(--mu-r-lg); padding: var(--mu-s4); box-shadow: var(--mu-shadow); }

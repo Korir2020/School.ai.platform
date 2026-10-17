@@ -6,7 +6,7 @@
 .kt-info{background:#DBEAFE;color:#1D4ED8}
 .kt-empty{text-align:center;padding:36px 16px;color:#64748B}
 .kt-empty h4{margin:0 0 6px;color:var(--mu-text,#172033)}
-.kt-skel{height:14px;margin:12px 0;border-radius:6px;background:linear-gradient(90deg,#EEF2F7,#F8FAFC,#EEF2F7);background-size:200% 100%;animation:kts 1.2s infinite}
+.kt-skel{height:14px;margin:12px 0;border-radius:6px;background:linear-gradient(90deg,var(--m-info-bg),var(--m-card),var(--m-info-bg));background-size:200% 100%;animation:kts 1.2s infinite}
 @keyframes kts{to{background-position:-200% 0}}
 @media(prefers-reduced-motion:reduce){.kt-skel{animation:none}}
 .kt-tabs{display:flex;gap:4px;border-bottom:1px solid var(--mu-line,#E2E8F0);overflow-x:auto}
