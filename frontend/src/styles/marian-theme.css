@@ -40,3 +40,9 @@ html:root{
   --accent:var(--m-action);--accent-bg:var(--m-info-bg);--accent-border:var(--m-action);--code-bg:var(--m-info-bg);
 }
 .m-theme-wrap{display:flex;justify-content:flex-end;margin-bottom:8px}
+body:has(.recovery-page){background:var(--m-bg);color:var(--m-text)}
+body:has(.recovery-page)::before{display:none}
+.recovery-page{min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px 16px;background:var(--m-bg);color:var(--m-text);font-size:1rem}
+.recovery-page .recovery-card{width:100%;max-width:440px;background:var(--m-card);border:1px solid var(--m-border);border-radius:16px;padding:28px 20px;backdrop-filter:none;text-align:left;color:var(--m-text)}
+.recovery-page .recovery-card h2{color:var(--m-text)}
+.recovery-page .recovery-card .sub{color:var(--m-muted)}
