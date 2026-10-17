@@ -9,6 +9,7 @@ const KIND = { pending: "warn", joined: "ok" };
 function Assign({ q, onClose }) {
   const toast = useToast();
   const [x, setX] = useState(null), [a, setA] = useState({ s: "", t: "" });
+  const [queue, setQueue] = useState([]);
   const [busy, setBusy] = useState(false);
   useEffect(() => { (async () => {
     const g = (p) => listAll("/api/" + p + "/");
@@ -19,19 +20,23 @@ function Assign({ q, onClose }) {
     setX({ sj, sm: sm.map((s) => ({ ...s, label: lab(s) })) });
   })(); }, []);
   const go = async () => {
+    const list = a.s && a.t ? [...queue, a] : queue;
+    if (!list.length) return;
     setBusy(true);
-    const body = { teacher: q.teacher_id, subject: a.s, stream: a.t };
-    const r = await api("/api/teacher-assignments/", "POST", body);
-    const j = await r.json().catch(() => ({}));
+    let ok = 0; const errs = [];
+    for (const it of list) {
+      const r = await api("/api/teacher-assignments/", "POST", { teacher: q.teacher_id, subject: it.s, stream: it.t });
+      if (r.ok) ok++; else { const j = await r.json().catch(() => ({})); errs.push(j.detail || JSON.stringify(j)); }
+    }
     setBusy(false);
-    if (r.ok) { toast("Assigned", "ok"); setA({ s: "", t: "" }); }
-    else toast(j.detail || JSON.stringify(j), "err");
+    toast("Assigned " + ok + ", failed " + errs.length + (errs.length ? ": " + errs[0] : ""), errs.length ? "err" : "ok");
+    setQueue([]); setA({ s: "", t: "" });
   };
   const opt = (arr) => arr.map((o) => (
     <option key={o.id} value={o.id}>{o.label || o.name}</option>));
   return (<Modal title={"Assign: " + q.name} onClose={onClose}
     actions={<><Button kind="secondary" onClick={onClose}>Close</Button>
-      <Button kind="teal" busy={busy} disabled={!a.s || !a.t}
+      <Button kind="teal" busy={busy} disabled={!queue.length && (!a.s || !a.t)}
         onClick={go}>Assign</Button></>}>
     {!x ? <p>Loading...</p> : <>
       <Select label="Subject" id="st-s" value={a.s}
@@ -40,7 +45,9 @@ function Assign({ q, onClose }) {
       <Select label="Class / stream" id="st-t" value={a.t}
         onChange={(e) => setA({ ...a, t: e.target.value })}>
         <option value="">Select...</option>{opt(x.sm)}</Select>
-      <p>A teacher can have at most 4 subjects.</p></>}
+      {queue.map((it, i) => <p key={i}>{(x.sj.find((o) => String(o.id) === String(it.s)) || {}).name} - {(x.sm.find((o) => String(o.id) === String(it.t)) || {}).label}</p>)}
+        <Button kind="secondary" size="sm" disabled={!a.s || !a.t} onClick={() => { setQueue([...queue, a]); setA({ s: "", t: "" }); }}>Add to list</Button>
+        <p>A teacher can have at most 4 subjects. Each subject can have several classes or streams: add them one at a time, then press Assign. The server enforces the limit.</p></>}
   </Modal>);
 }
 

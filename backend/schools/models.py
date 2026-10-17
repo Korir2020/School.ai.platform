@@ -15,6 +15,11 @@ class School(models.Model):
     sub_county = models.CharField(max_length=100, blank=True)
     logo = models.FileField(upload_to="school-logos/", null=True, blank=True)
     setup_completed_at = models.DateTimeField(null=True, blank=True)
+    is_suspended = models.BooleanField(default=False)
+    suspended_at = models.DateTimeField(null=True, blank=True)
+    suspended_reason = models.CharField(max_length=255, blank=True)
+    suspended_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
+                                     on_delete=models.SET_NULL, related_name='+')
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

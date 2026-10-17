@@ -16,6 +16,8 @@ from api.views import (
 )
 
 from api import setup_views
+from api import profile_views
+from api import resend_views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -243,10 +245,12 @@ urlpatterns += [
     path('api/school-registration/', school_register),
     path('api/school-registration/status/', school_register_status),
     path('api/school-registration/verify/', school_register_verify),
+    path('api/school-registration/resend/', resend_views.school_register_resend),
     path('api/admin/school-registrations/', registration_admin_list),
     path('api/admin/school-registrations/<int:pk>/action/', registration_admin_action),
     path('api/setup/', setup_views.setup_status),
     path('api/setup/complete/', setup_views.setup_complete),
+    path('api/school/profile/', profile_views.school_profile),
     path('api/teacher-transfers/', transfer_collection),
     path('api/teacher-transfers/targets/', transfer_targets),
     path('api/teacher-transfers/<int:pk>/action/', transfer_action),
@@ -290,3 +294,8 @@ urlpatterns += [
 from django.conf import settings
 from django.conf.urls.static import static
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+from api.school_suspension import school_suspension
+urlpatterns += [
+    path('api/schools/<int:pk>/suspension/', school_suspension),
+]

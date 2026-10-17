@@ -41,6 +41,16 @@ function refresh() {
   return inflight;
 }
 
+async function flagSuspended(r) {
+  if (r.status !== 403) return;
+  try {
+    const d = await r.clone().json();
+    if (/suspended/i.test(d.detail || "")) {
+      window.dispatchEvent(new CustomEvent("marian:suspended", { detail: d.detail }));
+    }
+  } catch (e) {}
+}
+
 export async function api(path, method = "GET", body) {
   const run = () => fetch(`${BASE}${path}`, {
     method,
@@ -51,6 +61,7 @@ export async function api(path, method = "GET", body) {
   if (!access) await refresh();
   let r = await run();
   if (r.status === 401 && (await refresh())) r = await run();
+  await flagSuspended(r);
   return r;
 }
 
@@ -59,6 +70,7 @@ export async function upload(path, formData) {
   if (!access) await refresh();
   let r = await run();
   if (r.status === 401 && (await refresh())) r = await run();
+  await flagSuspended(r);
   return r;
 }
 

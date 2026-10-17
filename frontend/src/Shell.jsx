@@ -1,3 +1,4 @@
+import ThemeToggle from "./ThemeToggle.jsx";
 import { useState } from "react";
 import Logo from "./Logo";
 import Ic from "./icons";
@@ -8,7 +9,7 @@ import "./shell.css";
 
 const SETTINGS = ["Setup", "Admins"];
 
-export default function Shell({ tabs, tab, go, me, out, children }) {
+export default function Shell({ tabs, tab, go, me, out, term, children }) {
   const [more, setMore] = useState(false);
   const main = tabs.filter((t) => !SETTINGS.includes(t));
   const sets = tabs.filter((t) => SETTINGS.includes(t));
@@ -30,7 +31,7 @@ export default function Shell({ tabs, tab, go, me, out, children }) {
         <Button kind="secondary" size="sm" onClick={out}>Log out</Button></div>
     </div>
     <div className="mu-body">
-      <div className="mu-content"><h1 className="mu-title">{tab}</h1>{children}</div>
+      <div className="mu-content"><div className="m-theme-wrap"><ThemeToggle /></div><nav className="mu-crumb" aria-label="Breadcrumb"><span>{school || "Platform"}</span><span aria-hidden="true"> › </span><span aria-current="page">{tab}</span></nav><h1 className="mu-title">{tab}</h1>{term ? <p className="mu-ctx">Active term: {term}</p> : null}{children}</div>
     </div>
     <div className="mu-bar" role="navigation" aria-label="Main">
       {bar.map(item)}

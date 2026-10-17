@@ -12,6 +12,7 @@ export default function Exams({ d }) {
   const [name, setName] = useState(""), [lvl, setLvl] = useState("");
   const [res, setRes] = useState(null), [ask, setAsk] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [scope, setScope] = useState("class");
   const load = async () => {
     try {
       const get = (p) => list("/api/" + p + "/");
@@ -56,13 +57,18 @@ export default function Exams({ d }) {
       : <Button kind="secondary" size="sm" onClick={() => view(e)}>Results</Button>
     ) },
   ];
+  const isStream = scope === "stream";
+  const pos = (r) => (isStream ? r.stream_rank : r.class_rank);
+  const other = (r) => (isStream ? r.class_rank : r.stream_rank);
+  const rk = (v) => (v == null ? "No rank" : v);
   const rcols = [
-    { label: "Rank", key: "class_rank", sort: true },
+    { label: isStream ? "Stream position" : "Class position", key: isStream ? "stream_rank" : "class_rank", sort: true, render: (r) => rk(pos(r)) },
     { label: "Student", key: "name", sort: true },
-    { label: "Average", key: "overall_average", sort: true,
-      render: (r) => r.overall_average + "%" },
-    { label: "Stream rank", key: "stream_rank", sort: true },
+    { label: "Admission no.", key: "admission_number", sort: true },
+    { label: "Average", key: "overall_average", sort: true, render: (r) => r.overall_average + "%" },
+    { label: isStream ? "Class position" : "Stream position", key: isStream ? "class_rank" : "stream_rank", sort: true, render: (r) => rk(other(r)) },
   ];
+  const byScope = (a, b) => (pos(a) ?? 1e9) - (pos(b) ?? 1e9);
   return (
     <div>
       <h2>Exams</h2>
@@ -82,7 +88,12 @@ export default function Exams({ d }) {
           disabled={!name || !lvl}>Create exam</Button>
       </Card>
       {res && <Card title={"Results: " + res.exam}>
-        <DataTable cols={rcols} rows={res.results} search="Search students"
+        <p className="sub">Official published results for this exam only. Positions are not comparable with other exams. {res.results.length} student{res.results.length === 1 ? "" : "s"} listed.</p>
+        <Select id="rank-scope" label="Ranking scope" value={scope} onChange={(e) => setScope(e.target.value)}>
+          <option value="class">Class position</option>
+          <option value="stream">Stream position</option>
+        </Select>
+        <DataTable cols={rcols} rows={[...res.results].sort(byScope)} search="Search students"
           empty="No results" />
         <Button kind="ghost" size="sm" onClick={() => setRes(null)}>Close</Button>
       </Card>}

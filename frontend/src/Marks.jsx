@@ -101,7 +101,7 @@ export default function Marks({ d }) {
   const cols = [
     { label: "Student", key: "name", sort: true },
     { label: "Marks", render: (r) => (r.o ? r.o.marks :
-      <input type="number" min="1" max="100" value={vals[r.student] ?? ""}
+      <MarkInput type="number" min="1" max="100" value={vals[r.student] ?? ""}
         aria-label={"Marks for " + r.name}
         onChange={(ev) => setVals({ ...vals, [r.student]: ev.target.value })} />) },
     { label: "Status", key: "status", sort: true, render: (r) => (r.o
@@ -149,5 +149,16 @@ export default function Marks({ d }) {
         text="Submitted marks go to the admin for approval."
         onYes={() => submit(ask)} onNo={() => setAsk(null)} />}
     </div>
+  );
+}
+
+function MarkInput(props) {
+  const v = props.value;
+  const bad = v !== "" && v != null && !(Number(v) >= 1 && Number(v) <= 100);
+  return (
+    <span>
+      <input {...props} aria-invalid={bad || undefined} />
+      {bad && <small style={{ display: "block", color: "#B91C1C" }}>Use 1 to 100</small>}
+    </span>
   );
 }

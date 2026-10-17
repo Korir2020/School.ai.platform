@@ -102,7 +102,7 @@ def _superadmin_data():
         "total_schools": schools.count(),
         "schools": [
             {"id": s.id, "name": s.name, "students": s.student_count,
-             "teachers": s.teacher_count}
+             "teachers": s.teacher_count, "is_suspended": s.is_suspended}
             for s in schools
         ],
     }
