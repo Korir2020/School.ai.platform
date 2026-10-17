@@ -61,3 +61,19 @@ NEXT, in order:
 4. Backend with tests (do not invent endpoints): security center, school suspend and billing, platform health, fuller audit log.
 5. Merge ui-pro into main only after step 1, then deploy.
 RULES: inspect before editing, patch scripts assert one match, tests first, commit by name.
+
+## 2026-10-17 UPDATE: bright theme, dark mode, new login (branch pro-release)
+
+Done and pushed (frontend only, no backend changes):
+- src/styles/marian-theme.css: --m-* colour tokens (brand navy #0B2F66, blue #0A86F0, green #3DB54A, brighter tints), Light / Auto / Dark via data-theme. src/theme.js and src/ThemeToggle.jsx (switch is in Shell.jsx header only). main.jsx imports the theme and calls initTheme().
+- Old --mu-* (ui.css) and --txt/--line (light.css, app.css) variables now point at --m-* tokens. Hard-coded white, gold (#facc15) and old dark backgrounds replaced in shell, ui, kit, landing, pub, login, intro, index, app css. Gradients and blur removed from app.css and landing.css.
+- src/Login.jsx rewritten: split layout, 16px text, 48px targets, states for loading, disabled, error, locked (60s after "Too many attempts"), suspended (marian:suspended event or error text) and success. Exact suspended text: "This school's account is suspended. Contact Marian support." Styles in src/login-pro.css. Old login.css kept because PasswordRecovery.jsx still uses it.
+
+NOT verified: nothing has been seen rendered. Builds pass, but nobody has checked Light or Dark in the browser yet.
+
+NEXT:
+1. Run npm run dev, check Dark mode on: landing, login (phone width), dashboard, a table page, public pages, password recovery. Fix any white boxes, unreadable text or leftover gold.
+2. Add ThemeToggle to the landing page and login page (it is only in the signed-in shell).
+3. Remaining fixed colours: login.css and intro.css animation rules (logo animation, now unused by Login.jsx), index.css splash glow, kit.css skeleton shimmer.
+4. Swap in the owner's logo when supplied (Logo.jsx).
+5. Still to design from the brief: registration form, registration-status page, admin dashboard polish (cards, charts, tables), mobile bottom navigation check.
