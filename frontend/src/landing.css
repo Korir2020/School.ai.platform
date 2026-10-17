@@ -21,7 +21,7 @@ body:has(.mu-ld)::before{display:none}
   border-radius:12px;color:#fff;background:var(--c)}
 .mu-ld-ch small{display:block;margin:12px 0 4px;color:var(--c);font-weight:700;
   letter-spacing:2px;font-size:.72rem}
-.mu-ld-ch h2{margin:0;font-size:1.28rem;line-height:1.3;color:var(--mu-navy)}
+.mu-ld-ch h2{margin:0;font-size:1.28rem;line-height:1.3;color:var(--m-text)}
 .mu-ld-bar{position:fixed;left:0;right:0;bottom:0;z-index:5;display:flex;
   justify-content:center;gap:10px;padding:10px 16px;
   padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));

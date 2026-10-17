@@ -106,7 +106,7 @@
 .mu-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--mu-s3); margin-bottom: var(--mu-s4); }
 .mu-stat { background: #fff; border: 1px solid var(--mu-line); border-radius: var(--mu-r-lg); padding: var(--mu-s4); box-shadow: var(--mu-shadow); }
 .mu-stat small { display: block; font-size: var(--mu-fs-label); font-weight: 600; color: var(--mu-muted); }
-.mu-stat b { display: block; font-size: 1.75rem; line-height: 1.2; color: var(--mu-navy); }
+.mu-stat b { display: block; font-size: 1.75rem; line-height: 1.2; color:var(--m-text); }
 .mu-stat em { font-style: normal; font-size: var(--mu-fs-label); color: var(--mu-muted); }
 /* Empty state */
 .mu-empty { text-align: center; padding: var(--mu-s6) var(--mu-s4); color: var(--mu-muted); }
