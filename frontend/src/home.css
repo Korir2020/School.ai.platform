@@ -76,3 +76,5 @@ body:has(.mk)::before{display:none}
 .mk .mk-brand{margin:0 auto}
 .mk h1,.mk h2,.mk h3,.mk h4{color:#0f2747;opacity:1}
 .mk p,.mk li{opacity:1}
+.mk h1,.mk h2,.mk h3,.mk h4{color:#0f2747;opacity:1}
+.mk p,.mk li{opacity:1}
