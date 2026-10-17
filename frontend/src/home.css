@@ -72,3 +72,5 @@ body:has(.mk)::before{display:none}
 .mk .mk-brand{margin:0 auto 0 0;color:#fff}
 .mk .mk-hero h1{color:#0f2747}
 .mk .mk-hero h1,.mk .mk-lead,.mk .mk-eyebrow{opacity:1}
+.mk .mk-bar{justify-content:center}
+.mk .mk-brand{margin:0 auto}
