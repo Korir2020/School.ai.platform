@@ -291,3 +291,18 @@ IF `git log -1` does not say "B1: school registration", the final test gate
 failed: run `git status --short` (B1 files uncommitted), run
 `python manage.py test api.test_school_registration`, fix, then commit by name.
 NEXT: B2 (see PROJECT B TODO above). Start there. Do not redo B1.
+
+## END OF CHAT (2026-10-17) - landing and UI session
+Branch ui-pro, pushed to original repo main up to 8ba7c91 (and origin ui-pro).
+DONE:
+- Sidebar and top bar (Shell.jsx, shell.css); sidebar icons match every menu label (icons.jsx).
+- Landing: heading and brand colour fixes (home.css), bulb-and-wall scene (wall.css, lamp SVG in Landing.jsx), pinned 3D headings, footer columns Platform/Access/Support.
+- No fake stats remain; Analytics.jsx reads the real pass_rate.
+- Render web service School.ai.platform: DJANGO_FRONTEND_URL and DJANGO_EMAIL_* set (Gmail SMTP with a Google app password named Marian); redeploy succeeded.
+PENDING:
+- Test school registration and the verification email on https://marian-app-1mzf.onrender.com (check spam too).
+- Check the bulb-and-wall landing on a phone (reference: Figma "3D Wall and Bulb Design"); adjust if needed.
+- Footer Support column only has "Check my application"; add Privacy/Terms/Help links (Terms.jsx exists).
+- vite.config.js allowedHosts edit is dev-only and intentionally uncommitted.
+- Free Postgres has no Render backups; use a proper email sender (Brevo or Resend) before real schools; Gmail has daily send limits.
+- Then continue item 7: setup wizard, registration verification screen, Superadmin review improvements.
