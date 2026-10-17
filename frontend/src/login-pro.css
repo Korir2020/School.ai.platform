@@ -44,3 +44,4 @@ body:has(.lp)::before{display:none}
   .lp-brand-m{display:none}
   .lp-card{padding:40px 44px}
 }
+.lp-theme{margin-top:16px;display:flex;justify-content:center}

@@ -2,10 +2,10 @@ body:has(.mu-ld){background:var(--mu-bg)}
 body:has(.mu-ld)::before{display:none}
 .mu-ld{max-width:480px;margin:0 auto;color:var(--mu-text);padding-bottom:90px}
 .mu-ld-hero{padding:52px 22px 40px;text-align:center;color:#fff;
-  background:var(--m-card)}
+  background:var(--m-side)}
 .mu-ld-hero h1{margin:12px 0 6px;font-size:2.4rem;letter-spacing:4px;color:#fff}
 .mu-ld-hero p{margin:0 auto;max-width:300px;font-size:1.08rem;opacity:.92}
-.mu-ld-hero b{display:block;margin-top:16px;color:var(--m-link);letter-spacing:1px}
+.mu-ld-hero b{display:block;margin-top:16px;color:#7CC4FF;letter-spacing:1px}
 .mu-ld-story{position:relative;padding:28px 16px 6px 44px}
 .mu-ld-story::before{content:"";position:absolute;left:22px;top:0;bottom:0;
   width:3px;border-radius:3px;
