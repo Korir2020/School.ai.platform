@@ -30,3 +30,16 @@ body:has(.mk.wall){background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w
 .mk.wall .mk-fcols span{display:block;padding:4px 0;color:#aab6c8}
 .mk.wall .mk-fcols button{display:block;background:none;border:0;padding:4px 0;color:#cdd7e6;font:inherit;text-align:left;cursor:pointer}
 .mk.wall .mk-foot{margin-top:18px;color:#8794a8;font-size:.78rem}
+.mk.wall h1,.mk.wall .mk-hero h1,.mk.wall .mk-sec>h2,.mk.wall .mk-final h2{color:#efeae0!important}
+.mk.wall .mk-card h3{color:#0f2747!important}
+.mk.wall .mk-bar{justify-content:center;background:rgba(11,14,19,.78);backdrop-filter:blur(8px);box-shadow:0 2px 12px rgba(0,0,0,.5)}
+.mk.wall .mk-brand{margin:0 auto;color:#fff}
+.mk.wall .mk-brand svg{filter:drop-shadow(0 0 10px rgba(255,200,90,.65))}
+.mk.wall .mk-bulb{top:60px}
+.mk.wall .mk-cone{top:236px;height:calc(100% - 236px)}
+.mk.wall>main{padding-top:250px}
+.mk.wall .mk-steps li{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);border-radius:12px;color:#e8edf5}
+.mk.wall .mk-steps li *{color:inherit}
+.mk.wall .mk-steps b,.mk.wall .mk-steps strong{color:#f0c36a}
+.mk.wall .mk-chips li{background:#fffdf6;color:#0f2747}
+.mk.wall .mk-sub,.mk.wall .mk-note,.mk.wall .mk-cap{color:#aab6c8}
