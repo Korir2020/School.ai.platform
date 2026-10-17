@@ -307,3 +307,4 @@ PENDING:
 - Free Postgres has no Render backups; use a proper email sender (Brevo or Resend) before real schools; Gmail has daily send limits.
 - Then continue item 7: setup wizard, registration verification screen, Superadmin review improvements.
 - Landing polish pushed: wall.css headings forced light, bulb hangs below bar, logo glow, steps/chips readable. Verify on phone.
+- Logo: Mark in brand.jsx now a green tile with a white M (owner's sample). Verify on phone.
