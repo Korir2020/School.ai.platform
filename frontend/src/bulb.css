@@ -4,7 +4,7 @@
   background:radial-gradient(ellipse at 50% 23%,rgba(151,105,42,.12),transparent 38%),
   linear-gradient(180deg,#17181b 0%,#101114 55%,#0c0d10 100%)}
 
-.bulb-scene::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.17;mix-blend-mode:soft-light;
+.bulb-scene::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.05;
   background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.92' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.30'/%3E%3C/svg%3E")}
 
 .bulb-scene .ambient-light{position:absolute;top:7%;left:50%;width:min(90vw,700px);height:min(100vw,700px);
@@ -25,7 +25,7 @@
 
 .bulb-scene .bulb-glow{position:absolute;top:95px;left:50%;width:220px;height:240px;transform:translateX(-50%);border-radius:50%;
   background:radial-gradient(ellipse,rgba(255,203,105,.30) 0%,rgba(255,183,75,.15) 30%,rgba(255,172,55,.05) 55%,transparent 75%);
-  filter:blur(17px);animation:bulbglow 4s ease-in-out infinite alternate}
+  filter:blur(17px)}
 
 .bulb-scene .bulb-art{position:absolute;top:75px;left:50%;width:170px;height:250px;transform:translateX(-50%);
   overflow:visible;filter:drop-shadow(0 0 12px rgba(255,190,80,.25))}
