@@ -1,14 +1,6 @@
 import "./bulb.css";
 
-/* Original bulb page (public/bulb.html), shown unchanged as a fixed background. */
+/* Photo of the bulb on a dark wall, fixed behind the page. */
 export default function Bulb() {
-  return (
-    <iframe
-      className="bulb-frame"
-      src="/bulb.html"
-      title="Background"
-      aria-hidden="true"
-      tabIndex={-1}
-    />
-  );
+  return <div className="bulb-bg" aria-hidden="true" />;
 }
