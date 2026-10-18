@@ -50,6 +50,18 @@ def _payment_data(x):
             "notes": x.notes}
 
 
+def _amt(raw):
+    try:
+        v = Decimal(str(raw).strip())
+    except (InvalidOperation, ValueError, TypeError):
+        raise ValueError("Enter a valid amount.")
+    if not v.is_finite() or v < 0:
+        raise ValueError("Amount cannot be negative.")
+    if v != v.quantize(Decimal("0.01")):
+        raise ValueError("Use at most 2 decimal places.")
+    return v
+
+
 def _parse_amount(raw):
     try:
         v = Decimal(str(raw).strip())
@@ -75,6 +87,7 @@ def fee_summary(request):
     qs = StudentFee.objects.all()
     if school_id is not None:
         qs = qs.filter(student__school_id=school_id)
+    qs = qs.exclude(status="waived")
     totals = qs.aggregate(due=Sum("amount_due"), paid=Sum("amount_paid"))
     due = totals["due"] or Decimal("0.00")
     paid = totals["paid"] or Decimal("0.00")
@@ -106,10 +119,12 @@ def fee_structures(request):
         x = FeeStructure.objects.create(
             school_id=school_id or year.school_id, academic_year=year,
             name=data["name"].strip(), description=data.get("description", ""),
-            amount=Decimal(str(data.get("amount", "0"))), due_date=data.get("due_date") or None,
+            amount=_amt(data.get("amount", "0")), due_date=data.get("due_date") or None,
         )
-    except Exception as exc:
+    except ValueError as exc:
         return Response({"detail": str(exc)}, status=400)
+    except Exception:
+        return Response({"detail": "Could not save. Check the details and try again."}, status=400)
     return Response(_structure_data(x), status=201)
 
 
@@ -135,11 +150,13 @@ def fee_invoices(request):
         return Response({"detail": "Student is not in your school."}, status=403)
     try:
         x = StudentFee.objects.create(student=student, fee_structure=structure,
-                                      amount_due=Decimal(str(data.get("amount_due", structure.amount))),
+                                      amount_due=_amt(data.get("amount_due", structure.amount)),
                                       notes=data.get("notes", ""))
         _audit(request, x, "fee_assigned", {"amount_due": _money(x.amount_due)})
-    except Exception as exc:
+    except ValueError as exc:
         return Response({"detail": str(exc)}, status=400)
+    except Exception:
+        return Response({"detail": "Could not save. Check the details and try again."}, status=400)
     return Response(_invoice_data(x), status=201)
 
 

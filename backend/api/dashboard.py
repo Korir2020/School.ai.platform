@@ -39,7 +39,7 @@ def _admin_data(school_id):
     exams = {"draft": 0, "published": 0}
     for row in Exam.objects.filter(school_id=school_id).values("status").annotate(n=Count("id")):
         exams[row["status"]] = row["n"]
-    fees = StudentFee.objects.filter(student__school_id=school_id)
+    fees = StudentFee.objects.filter(student__school_id=school_id).exclude(status="waived")
     fee_totals = fees.aggregate(due=Sum("amount_due"), paid=Sum("amount_paid"))
     due = fee_totals["due"] or 0
     paid = fee_totals["paid"] or 0

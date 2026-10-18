@@ -118,3 +118,21 @@ class FeeApiTests(APITestCase):
         self.client.force_authenticate(self.bursar)
         self.assertEqual(self._pay().status_code, 201)
         self.assertEqual(self._pay().status_code, 201)
+
+    def test_negative_amounts_are_rejected(self):
+        self.client.force_authenticate(self.admin)
+        r = self.client.post("/api/fees/structures/", {
+            "academic_year": self.year.id, "name": "Bad", "amount": "-5"}, format="json")
+        self.assertEqual(r.status_code, 400)
+        r = self.client.post("/api/fees/invoices/", {
+            "student": self.student.id, "fee_structure": self.invoice.fee_structure_id,
+            "amount_due": "-1"}, format="json")
+        self.assertEqual(r.status_code, 400)
+
+    def test_waived_invoice_is_not_counted_as_owed(self):
+        self.client.force_authenticate(self.admin)
+        self.assertEqual(self.client.post(
+            f"/api/fees/invoices/{self.invoice.id}/waive/", {}, format="json").status_code, 200)
+        data = self.client.get("/api/fees/summary/").json()
+        self.assertEqual(data["balance"], "0.00")
+        self.assertEqual(data["overdue"], 0)
