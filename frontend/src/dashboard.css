@@ -1,0 +1,12 @@
+.dash-kpis{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+@media (max-width:520px){
+  .dash-kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .dash-kpis .mu-stat{padding:10px 12px}
+}
+.dash-alerts{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.dash-alerts li{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.dash-alerts button{min-height:40px}
+.dash-fee{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:8px 0}
+.dash-fee div{border:1px solid var(--mu-line);border-radius:var(--mu-r-lg);padding:var(--mu-s3);background:#fff}
+.dash-fee small{display:block;color:var(--mu-muted);font-size:var(--mu-fs-label)}
+.dash-fee b{color:var(--mu-navy)}

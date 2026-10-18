@@ -1,7 +1,7 @@
 from decimal import Decimal, InvalidOperation
 
 from django.db import transaction
-from django.db.models import Count, Sum
+from django.db.models import Count, DecimalField, ExpressionWrapper, F, Sum
 from django.utils import timezone
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -83,7 +83,7 @@ def fee_summary(request):
     return Response({"invoices": qs.count(), "students": qs.values("student_id").distinct().count(),
                      "amount_due": _money(due), "amount_paid": _money(paid),
                      "balance": _money(max(due - paid, 0)), "overdue": overdue.count(),
-                     "overdue_amount": _money(overdue.aggregate(x=Sum("amount_due"))["x"] or 0)})
+                     "overdue_amount": _money(overdue.aggregate(x=Sum(ExpressionWrapper(F("amount_due") - F("amount_paid"), output_field=DecimalField(max_digits=12, decimal_places=2))))["x"] or 0)})
 
 
 @api_view(["GET", "POST"])

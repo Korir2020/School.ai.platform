@@ -1,13 +1,14 @@
 from datetime import date
+from decimal import Decimal
 
 from django.contrib.auth.models import User
 from django.utils import timezone
 from rest_framework.test import APITestCase
 
 from schools.models import (
-    AcademicYear, ClassLevel, Curriculum, Enrollment, Exam, Performance,
-    School, SchoolAdminProfile, Stream, Student, Subject, TeacherAssignment,
-    TeacherProfile, Term,
+    AcademicYear, ClassLevel, Curriculum, Enrollment, Exam, FeeStructure,
+    Performance, School, SchoolAdminProfile, Stream, Student, Subject, TeacherAssignment,
+    StudentFee, TeacherProfile, Term,
 )
 
 URL = "/api/dashboard/"
@@ -106,3 +107,20 @@ class DashboardTests(APITestCase):
         self.assertEqual(by_name["A"]["students"], 1)
         self.assertEqual(by_name["A"]["teachers"], 2)
         self.assertEqual(by_name["B"]["students"], 0)
+
+    def test_overdue_counts_unpaid_balance_only(self):
+        fs = FeeStructure.objects.create(
+            school=self.a, academic_year=self.year, name="Tuition",
+            amount=Decimal("1000.00"), due_date=date(2026, 1, 31))
+        StudentFee.objects.create(
+            student=self.student, fee_structure=fs, amount_due=Decimal("1000.00"),
+            amount_paid=Decimal("400.00"), status="partial")
+        fees = self.get(self.admin_a).json()["fees"]
+        self.assertEqual(Decimal(str(fees["overdue_amount"])), Decimal("600.00"))
+        self.assertEqual(Decimal(str(fees["balance"])), Decimal("600.00"))
+
+    def test_school_without_fees_is_all_zero(self):
+        fees = self.get(self.admin_a).json()["fees"]
+        self.assertEqual(fees["invoices"], 0)
+        self.assertEqual(fees["collection_percentage"], 0)
+        self.assertEqual(Decimal(str(fees["overdue_amount"])), Decimal("0"))

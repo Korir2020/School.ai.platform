@@ -95,7 +95,7 @@ export default function Shell({ tabs, tab, go, me, out, term, children }) {
         {school && <span className="mu-dt-s">{school}</span>}
         <div className="mu-dt-r"><Search tabs={tabs} go={go} hotkey /><Bell go={go} />{profile}</div>
       </div>
-      <div className="mu-content"><nav className="mu-crumb" aria-label="Breadcrumb"><span>{school || "Platform"}</span><span aria-hidden="true"> › </span><span aria-current="page">{tab}</span></nav><h1 className="mu-title">{tab}</h1>{term ? <p className="mu-ctx">Active term: {term}</p> : null}{children}</div>
+      <div className="mu-content"><nav className="mu-crumb" aria-label="Breadcrumb"><span>{school || "Platform"}</span><span aria-hidden="true"> › </span><span aria-current="page">{tab}</span></nav><h1 className="mu-title">{tab}</h1>{term && tab !== "Home" ? <p className="mu-ctx">Active term: {term}</p> : null}{children}</div>
     </div>
     <div className="mu-bar" role="navigation" aria-label="Main">
       {bar.map(item)}

@@ -1,4 +1,4 @@
-from django.db.models import Count, Sum
+from django.db.models import Count, DecimalField, ExpressionWrapper, F, Sum
 from django.utils import timezone
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -62,7 +62,7 @@ def _admin_data(school_id):
         "fees": {"invoices": fees.count(), "amount_due": str(due),
                  "amount_paid": str(paid), "balance": str(due - paid),
                  "collection_percentage": round(float(paid / due * 100), 1) if due else 0,
-                 "overdue_amount": str(overdue.aggregate(x=Sum("amount_due"))["x"] or 0),
+                 "overdue_amount": str(overdue.aggregate(x=Sum(ExpressionWrapper(F("amount_due") - F("amount_paid"), output_field=DecimalField(max_digits=12, decimal_places=2))))["x"] or 0),
                  "recent_payments": [{"student": str(p.student_fee.student),
                                       "amount": str(p.amount), "method": p.method,
                                       "reference": p.reference, "paid_at": p.paid_at}
