@@ -2,17 +2,17 @@
 .gwrap{position:relative;width:100%;max-width:400px;border-radius:28px;overflow:hidden}
 .gbox{position:relative;box-sizing:border-box;padding:40px 24px 30px;text-align:left;color:#f8fafc;border:1px solid rgba(255,255,255,.1);border-radius:28px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);clip-path:polygon(52px 0,100% 0,100% calc(100% - 52px),calc(100% - 52px) 100%,0 100%,0 52px);background:linear-gradient(135deg,transparent 36px,rgba(255,255,255,.25) 37px,transparent 38px) 0 0/60px 60px no-repeat,linear-gradient(-45deg,transparent 36px,rgba(255,255,255,.25) 37px,transparent 38px) 100% 100%/60px 60px no-repeat,rgba(14,14,14,.32)}
 .gbox h2{margin:0 0 4px;padding-left:12px;font-size:1.75rem;font-weight:700}
-.gbox h2 b{color:#facc15}
+.gbox h2 b{color:#3DA5FF}
 .lsub{margin:0 0 16px 12px;color:#a8a29e;font-size:.8rem}
 .gbox label{display:block;margin:14px 0 0 2px;font-size:.82rem;font-weight:600}
 .fld{position:relative;display:flex;align-items:center;margin:7px 3px 0;border:1px solid rgba(255,255,255,.09);border-radius:12px;background:rgba(255,255,255,.04);color:#8b8576;padding:0 12px;overflow:hidden}
-.fld:focus-within{border-color:#facc15;box-shadow:0 0 0 3px rgba(250,204,21,.16)}
+.fld:focus-within{border-color:#3DA5FF;box-shadow:0 0 0 3px rgba(61,165,255,.16)}
 .fld .lic{width:18px;height:18px;flex:none}
 .gbox .fld input{flex:1;min-width:0;max-width:none;margin:0;border:0;background:transparent;color:#f8fafc;padding:14px 8px;outline:0}
 .gbox .eye{background:none;margin:0;padding:6px;color:#8b8576;border-radius:8px}
 .pwrow{max-height:0;opacity:0;overflow:hidden;transition:max-height .4s,opacity .4s}
 .pwrow.show{max-height:110px;opacity:1}
-.gbox .sign{display:block;width:100%;margin:20px 0 0;padding:15px;border-radius:12px;color:#111;font-weight:700;background:linear-gradient(180deg,#fde047,#facc15);box-shadow:0 0 24px rgba(250,204,21,.4);white-space:pre}
+.gbox .sign{display:block;width:100%;margin:20px 0 0;padding:15px;border-radius:12px;color:#111;font-weight:700;background:linear-gradient(180deg,#7CC4FF,#3DA5FF);box-shadow:0 0 24px rgba(61,165,255,.4);white-space:pre}
 .fade{animation:lfin .45s ease forwards;opacity:0}
 .lerr{margin:12px 0 0;color:#fda4af;font-size:.88rem}
 .dog{position:absolute;z-index:2;width:44px;height:44px;pointer-events:none;background:linear-gradient(135deg,transparent 30px,rgba(255,255,255,.4) 31px,transparent 32px),linear-gradient(135deg,rgba(255,255,255,.22),rgba(255,255,255,.04))}
@@ -22,11 +22,11 @@
 .seal svg{box-sizing:content-box;padding:18px;border-radius:50%;background:#0b1220;box-shadow:0 6px 24px rgba(0,0,0,.5)}
 .shell{animation:shin .6s ease}
 .pwf.flip{animation:lflip 1.4s ease-in-out infinite}
-.pwf.flip::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgba(250,204,21,.45),transparent 70%);animation:lshine 1.4s linear infinite}
+.pwf.flip::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgba(61,165,255,.45),transparent 70%);animation:lshine 1.4s linear infinite}
 .lg.wait .gwrap{animation:lbreath 1s ease-in-out infinite alternate}
 .lg.bad .gwrap{animation:lshk .8s ease-in-out}
-.lg.ok .dog{background:linear-gradient(135deg,#a16207,#facc15 40%,#fff3b0 50%);animation:lfoldin 1.5s ease-in-out forwards}
-.lg.ok .dog.br{background:linear-gradient(-45deg,#a16207,#facc15 40%,#fff3b0 50%)}
+.lg.ok .dog{background:linear-gradient(135deg,#0670D6,#3DA5FF 40%,#CFE6FF 50%);animation:lfoldin 1.5s ease-in-out forwards}
+.lg.ok .dog.br{background:linear-gradient(-45deg,#0670D6,#3DA5FF 40%,#CFE6FF 50%)}
 .lg.ok .gbox{animation:lout .5s .7s forwards}
 .lg.ok .seal{animation:lseal .9s 1.6s cubic-bezier(.2,1.4,.4,1) forwards}
 .lg.ok .gwrap{animation:lzoom .8s 3s ease-in forwards}
@@ -60,15 +60,15 @@
 .gbox::after{content:"";position:absolute;inset:0;z-index:2;pointer-events:none;border-radius:28px;border:1px solid rgba(255,255,255,.3);background:linear-gradient(135deg,transparent 36px,rgba(255,255,255,.45) 37px,transparent 38px) 0 0/60px 60px no-repeat,linear-gradient(-45deg,transparent 36px,rgba(255,255,255,.45) 37px,transparent 38px) 100% 100%/60px 60px no-repeat}
 .dog{width:42px;height:42px;transform-origin:21px 21px;clip-path:none;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 42 42'%3E%3Cpath d='M2 2H38Q41 2 39 5L5 39Q2 41 2 38Z' fill='rgba(255,255,255,0.12)' stroke='rgba(255,255,255,0.6)' stroke-width='1.4' stroke-linejoin='round'/%3E%3C/svg%3E") center/100% 100% no-repeat}
 .dog.br{clip-path:none;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 42 42'%3E%3Cpath d='M40 40H4Q1 40 3 37L37 3Q40 1 40 4Z' fill='rgba(255,255,255,0.12)' stroke='rgba(255,255,255,0.6)' stroke-width='1.4' stroke-linejoin='round'/%3E%3C/svg%3E") center/100% 100% no-repeat}
-.lg.ok .dog.tl{clip-path:polygon(0 0,100% 0,0 100%);background:linear-gradient(135deg,#a16207,#facc15 45%,#fff3b0)}
-.lg.ok .dog.br{clip-path:polygon(100% 0,100% 100%,0 100%);background:linear-gradient(-45deg,#a16207,#facc15 45%,#fff3b0)}
+.lg.ok .dog.tl{clip-path:polygon(0 0,100% 0,0 100%);background:linear-gradient(135deg,#0670D6,#3DA5FF 45%,#CFE6FF)}
+.lg.ok .dog.br{clip-path:polygon(100% 0,100% 100%,0 100%);background:linear-gradient(-45deg,#0670D6,#3DA5FF 45%,#CFE6FF)}
 
 /* Extra rows in reference order */
 .rmrow{display:flex;justify-content:space-between;align-items:center;margin:12px 3px 0;font-size:.82rem;font-weight:700;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.9)}
 .gbox .rm{display:flex;align-items:center;gap:8px;margin:0;font-size:.82rem;cursor:pointer}
-.gbox .rm input{display:inline-block;width:16px;height:16px;margin:0;padding:0;accent-color:#facc15}
+.gbox .rm input{display:inline-block;width:16px;height:16px;margin:0;padding:0;accent-color:#3DA5FF}
 .gbox .lnk{border:0;background:none;margin:0;padding:2px 0;border-radius:0;color:#f1ede0;font-weight:700;font-size:inherit;box-shadow:none}
-.gbox .lnk.gold{color:#facc15;padding:0}
+.gbox .lnk.gold{color:#3DA5FF;padding:0}
 .alt{text-align:center}
 .orc{margin:20px 0 10px;font-size:.68rem;letter-spacing:.14em;font-weight:700;color:#d6d0bf;text-shadow:0 1px 6px rgba(0,0,0,.9)}
 .soc{display:flex;gap:10px;margin:0 3px}
@@ -86,5 +86,5 @@
 
 /* Yellow tick like the reference */
 .gbox .rm input{appearance:none;-webkit-appearance:none;position:relative;width:18px;height:18px;border-radius:5px;border:1.5px solid rgba(255,255,255,.6);background:rgba(0,0,0,.35)}
-.gbox .rm input:checked{background:#facc15;border-color:#facc15}
+.gbox .rm input:checked{background:#3DA5FF;border-color:#3DA5FF}
 .gbox .rm input:checked::after{content:"";position:absolute;left:5px;top:1px;width:5px;height:10px;border:solid #111;border-width:0 2.5px 2.5px 0;transform:rotate(45deg)}
