@@ -12,5 +12,21 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+#sw{position:fixed;right:16px;bottom:20px;z-index:9999;display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+#sw .sw-item{display:none;align-items:center;gap:8px;text-decoration:none}
+#sw.open .sw-item{display:flex}
+#sw .sw-label{background:#fff;color:#111;padding:4px 10px;border-radius:14px;font:500 13px sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+#sw .sw-ico{width:44px;height:44px;border-radius:50%;color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+#sw-main{width:56px;height:56px;border:0;border-radius:50%;background:#25D366;color:#fff;font-size:28px;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.35)}
+</style>
+<div id="sw">
+  <a class="sw-item" href="tel:+254703702690"><span class="sw-label">Call us</span><span class="sw-ico" style="background:#2563eb"><i class="fa-solid fa-phone"></i></span></a>
+  <a class="sw-item" href="mailto:korirmartin42@gmail.com"><span class="sw-label">Email</span><span class="sw-ico" style="background:#f59e0b"><i class="fa-solid fa-envelope"></i></span></a>
+  <a class="sw-item" href="https://instagram.com/marian.school.ke" target="_blank" rel="noopener"><span class="sw-label">Instagram</span><span class="sw-ico" style="background:#e1306c"><i class="fa-brands fa-instagram"></i></span></a>
+  <a class="sw-item" href="https://wa.me/254703702690" target="_blank" rel="noopener"><span class="sw-label">WhatsApp</span><span class="sw-ico" style="background:#25D366"><i class="fa-brands fa-whatsapp"></i></span></a>
+  <button id="sw-main" aria-label="Help & Support" onclick="document.getElementById('sw').classList.toggle('open')"><i class="fa-solid fa-headset"></i></button>
+</div>
   </body>
 </html>
