@@ -725,3 +725,32 @@ class ReportComment(models.Model):
 
     def __str__(self):
         return f"{self.student} - {self.field} - {self.status}"
+
+
+class ReportSettings(models.Model):
+    """Per-school report settings: grading scheme and section toggles."""
+    school = models.OneToOneField(School, on_delete=models.CASCADE, related_name="report_settings")
+    grading = models.JSONField(null=True, blank=True)
+    sections = models.JSONField(default=dict, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Report settings - {self.school}"
+
+
+class ReportAuditEntry(models.Model):
+    """Append-only audit trail for the report module. No marks or names."""
+    id = models.CharField(primary_key=True, max_length=32)
+    at = models.FloatField()
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name="report_audit_entries")
+    user_id = models.CharField(max_length=64)
+    role = models.CharField(max_length=20)
+    action = models.CharField(max_length=60)
+    target = models.CharField(max_length=100, blank=True)
+    detail = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["school", "-at"], name="reportaudit_school_at_idx")]
+
+    def __str__(self):
+        return f"{self.action} - {self.school}"

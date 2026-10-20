@@ -387,3 +387,114 @@ class CommentFlowTests(SourceCase):
         row = self.service().draft(user, exam, stu, "class_teacher", text="Hello.")
         listed = self.service().listing(user, exam, "Form 3")
         self.assertEqual([r["id"] for r in listed], [row["id"]])
+
+
+from marian_reports.audit import AuditAccessDenied  # noqa: E402
+from marian_reports.config import ReportConfig  # noqa: E402
+from marian_reports.grading import make_scheme  # noqa: E402
+from marian_reports.section_setup import allowed_keys, apply_sections  # noqa: E402
+from schools.models import ReportAuditEntry, ReportSettings  # noqa: E402
+from api.report_source import (  # noqa: E402
+    DjangoAuditLog, DjangoConfigStore, scheme_to_dict,
+)
+
+
+def user_for(school, role="admin", uid="1"):
+    return User(id=uid, school_id=str(school.id), role=role,
+                class_names=("*",) if role == "admin" else ("Form 3",))
+
+
+class AuditLogTests(SourceCase):
+    def setUp(self):
+        super().setUp()
+        self.log = DjangoAuditLog()
+        self.admin = user_for(self.school)
+
+    def test_record_returns_the_entry_and_saves_it(self):
+        e = self.log.record(self.admin, "grading_scale.changed", "scheme", {"bands": 8})
+        self.assertEqual(
+            (e.school_id, e.user_id, e.role, e.action, e.target, e.detail),
+            (str(self.school.id), "1", "admin", "grading_scale.changed",
+             "scheme", {"bands": 8}))
+        self.assertEqual(ReportAuditEntry.objects.count(), 1)
+
+    def test_entries_are_newest_first_and_filterable(self):
+        for at, action in ((1.0, "a.one"), (2.0, "b.two"), (3.0, "a.one")):
+            ReportAuditEntry.objects.create(
+                id=f"id{at}", at=at, school=self.school, user_id="1",
+                role="admin", action=action)
+        self.assertEqual([r["at"] for r in self.log.entries(self.admin)], [3.0, 2.0, 1.0])
+        self.assertEqual(
+            [r["at"] for r in self.log.entries(self.admin, action="a.one")], [3.0, 1.0])
+        self.assertEqual(len(self.log.entries(self.admin, limit=2)), 2)
+
+    def test_only_admins_can_read(self):
+        with self.assertRaises(AuditAccessDenied):
+            self.log.entries(user_for(self.school, "teacher", "2"))
+
+    def test_each_school_sees_only_its_own(self):
+        self.log.record(self.admin, "x.one")
+        other_admin = user_for(self.other, "admin", "9")
+        self.assertEqual(self.log.entries(other_admin), [])
+        self.log.record(other_admin, "y.two")
+        self.assertEqual([r["action"] for r in self.log.entries(self.admin)], ["x.one"])
+
+    def test_unknown_school_is_refused(self):
+        with self.assertRaises(NotFound):
+            self.log.record(User(id="1", school_id="999999", role="admin"), "x.one")
+
+
+BANDS = [("E", "0", "40", "1"), ("C", "40", "70", "2"), ("A", "70", "100", "3")]
+
+
+def sample_scheme():
+    return make_scheme(
+        BANDS, pass_pct=40, decimals=2, rounding="half_up",
+        mean_rule="total_over_max", absent_policy="pending", best_n=None)
+
+
+class ConfigStoreTests(SourceCase):
+    def store(self, school=None):
+        return DjangoConfigStore((school or self.school).id)
+
+    def test_nothing_saved_means_defaults(self):
+        self.assertIsNone(self.store().load_scheme())
+        self.assertEqual(self.store().saved_sections(), {})
+
+    def test_scheme_round_trips(self):
+        original = sample_scheme()
+        self.store().save_scheme(original)
+        self.assertEqual(scheme_to_dict(self.store().load_scheme()),
+                         scheme_to_dict(original))
+
+    def test_saving_twice_keeps_one_row_per_school(self):
+        self.store().save_scheme(sample_scheme())
+        self.store().save_scheme(sample_scheme())
+        self.assertEqual(ReportSettings.objects.count(), 1)
+
+    def test_sections_round_trip_and_apply(self):
+        key = sorted(allowed_keys())[0]
+        cfg1 = ReportConfig()
+        body = {key: not cfg1.sections.get(key, True)}
+        apply_sections(cfg1, {"sections": body})
+        self.store().save_sections(body)
+        cfg2 = ReportConfig()
+        self.store().apply_to(cfg2)
+        self.assertEqual(cfg2.sections.get(key), cfg1.sections.get(key))
+
+    def test_sections_merge_across_saves(self):
+        k0, k1 = sorted(allowed_keys())[:2]
+        cfg = ReportConfig()
+        b0 = {k0: not cfg.sections.get(k0, True)}
+        b1 = {k1: not cfg.sections.get(k1, True)}
+        self.store().save_sections(b0)
+        self.store().save_sections(b1)
+        self.assertEqual(self.store().saved_sections(), {**b0, **b1})
+
+    def test_other_school_has_its_own_settings(self):
+        self.store().save_scheme(sample_scheme())
+        self.assertIsNone(self.store(self.other).load_scheme())
+
+    def test_unknown_school_is_refused(self):
+        with self.assertRaises(NotFound):
+            DjangoConfigStore("999999").save_scheme(sample_scheme())

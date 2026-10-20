@@ -16,6 +16,8 @@ marian_reports is imported here only, so the rest of the backend does not
 depend on it until the report views are wired in.
 """
 import re
+import time
+import uuid
 from collections import defaultdict
 from decimal import Decimal
 
@@ -25,11 +27,16 @@ from marian_reports.domain import (
     Attendance, DataSource, NotFound,
     Exam as ReportExam, School as ReportSchool, Student as ReportStudent,
 )
-from marian_reports.grading import Component, MarkStatus, SubjectEntry
+from marian_reports.audit import AuditAccessDenied, AuditEntry
+from marian_reports.grading import (
+    Component, MarkStatus, SubjectEntry, make_scheme,
+)
+from marian_reports.section_setup import apply_sections
 
 from schools.models import (
-    AttendanceRecord, Enrollment, Exam, Performance, ReportComment,
-    ReportRemark, School, Student, SubjectPaper, TeacherAssignment, Term,
+    AttendanceRecord, Enrollment, Exam, Performance, ReportAuditEntry,
+    ReportComment, ReportRemark, ReportSettings, School, Student,
+    SubjectPaper, TeacherAssignment, Term,
 )
 
 OFFICIAL = ("approved", "locked")
@@ -325,3 +332,88 @@ class DjangoCommentStore:
 
     def delete(self, cid):
         ReportComment.objects.filter(id=cid, school_id=self.school_id).delete()
+
+
+def scheme_to_dict(scheme):
+    # Same shape the grading-config API returns.
+    return {
+        "bands": [[b.label, str(b.min_pct), str(b.max_pct), str(b.points)]
+                  for b in scheme.bands],
+        "pass_pct": str(scheme.pass_pct), "decimals": scheme.decimals,
+        "rounding": scheme.rounding, "mean_rule": scheme.mean_rule,
+        "absent_policy": scheme.absent_policy, "best_n": scheme.best_n,
+    }
+
+
+def scheme_from_dict(d):
+    # Same call the grading-config PUT makes, so saved data is re-validated.
+    return make_scheme(
+        [tuple(x) for x in d["bands"]], pass_pct=d.get("pass_pct", 40),
+        decimals=int(d.get("decimals", 2)), rounding=d.get("rounding", "half_up"),
+        mean_rule=d.get("mean_rule", "total_over_max"),
+        absent_policy=d.get("absent_policy", "pending"), best_n=d.get("best_n"))
+
+
+class DjangoConfigStore:
+    # Per-school grading scheme and section toggles. Bound to one school.
+    def __init__(self, school_id):
+        self.school_id = _pk(school_id)
+
+    def _require_school(self):
+        if not School.objects.filter(pk=self.school_id).exists():
+            raise NotFound("not found")
+
+    def _row(self):
+        return ReportSettings.objects.filter(school_id=self.school_id).first()
+
+    def load_scheme(self):
+        row = self._row()
+        return scheme_from_dict(row.grading) if row and row.grading else None
+
+    def save_scheme(self, scheme):
+        self._require_school()
+        ReportSettings.objects.update_or_create(
+            school_id=self.school_id,
+            defaults={"grading": scheme_to_dict(scheme)})
+
+    def saved_sections(self):
+        row = self._row()
+        return dict(row.sections) if row else {}
+
+    def save_sections(self, body):
+        self._require_school()
+        merged = {**self.saved_sections(), **body}
+        ReportSettings.objects.update_or_create(
+            school_id=self.school_id, defaults={"sections": merged})
+
+    def apply_to(self, cfg):
+        saved = self.saved_sections()
+        if saved:
+            apply_sections(cfg, {"sections": saved})
+
+
+class DjangoAuditLog:
+    # Same interface and rules as marian_reports.audit.AuditLog, but durable:
+    # admin only, own school only, newest first.
+    def record(self, user, action, target="", detail=None):
+        sid = _pk(user.school_id)
+        if not School.objects.filter(pk=sid).exists():
+            raise NotFound("not found")
+        e = AuditEntry(uuid.uuid4().hex, time.time(), str(sid), user.id,
+                       user.role, action, target, dict(detail or {}))
+        ReportAuditEntry.objects.create(
+            id=e.id, at=e.at, school_id=sid, user_id=str(e.user_id),
+            role=e.role, action=e.action, target=e.target, detail=e.detail)
+        return e
+
+    def entries(self, user, action=None, limit=100):
+        if user.role != "admin":
+            raise AuditAccessDenied("admin only")
+        rows = ReportAuditEntry.objects.filter(school_id=_pk(user.school_id))
+        if action:
+            rows = rows.filter(action=action)
+        return [{
+            "id": r.id, "at": r.at, "school_id": str(r.school_id),
+            "user_id": r.user_id, "role": r.role, "action": r.action,
+            "target": r.target, "detail": r.detail,
+        } for r in rows.order_by("-at")[:limit]]
