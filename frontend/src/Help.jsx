@@ -4,7 +4,7 @@ import "./dash2.css";
 const LINKS = [
   ["Call us", "+254 703 702 690", "tel:+254703702690", "blue", "Help", false],
   ["WhatsApp", "+254 703 702 690", "https://wa.me/254703702690", "green", "Help", true],
-  ["Email", "korirmartin42@gmail.com", "mailto:korirmartin42@gmail.com", "orange", "Help", false],
+  ["Email", "foundwithin2026@gmail.com", "mailto:foundwithin2026@gmail.com", "orange", "Help", false],
   ["Instagram", "@marian.school.ke", "https://instagram.com/marian.school.ke", "pink", "Help", true],
 ];
 
