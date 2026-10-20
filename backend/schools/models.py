@@ -699,3 +699,29 @@ class ReportRemark(models.Model):
 
     def __str__(self):
         return f"{self.student} - {self.exam} - {self.field}"
+
+
+class ReportComment(models.Model):
+    """Comment workflow row (draft or approved) used by marian_reports.
+    The text that is printed lives in ReportRemark, written only on approval."""
+    STATUSES = [("draft", "Draft"), ("approved", "Approved")]
+    SOURCES = [("teacher", "Teacher"), ("ai", "AI-drafted")]
+    id = models.CharField(primary_key=True, max_length=32)
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name="report_comments")
+    exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name="report_comments")
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="report_comments")
+    class_name = models.CharField(max_length=50)
+    field = models.CharField(max_length=20, choices=ReportRemark.FIELDS)
+    text = models.CharField(max_length=400)
+    status = models.CharField(max_length=10, choices=STATUSES)
+    source = models.CharField(max_length=10, choices=SOURCES)
+    edited = models.BooleanField(default=False)
+    approved_by = models.CharField(max_length=64, blank=True)
+    created_by = models.CharField(max_length=64, blank=True)
+    at = models.FloatField()
+
+    class Meta:
+        indexes = [models.Index(fields=["school", "exam"], name="reportcomment_school_exam_idx")]
+
+    def __str__(self):
+        return f"{self.student} - {self.field} - {self.status}"

@@ -291,3 +291,99 @@ class RemarkTests(SourceCase):
     def test_unknown_field_is_refused(self):
         with self.assertRaises(ValueError):
             self.store.set_remark(self.exam.id, self.student.id, "caretaker", "No.")
+
+
+from schools.models import ReportComment  # noqa: E402
+from api.report_source import DjangoCommentStore  # noqa: E402
+from marian_reports.comments import CommentService  # noqa: E402
+from marian_reports.domain import User  # noqa: E402
+
+
+def comment_row(school, exam, student, cid="c1", text="Good work.", status="draft"):
+    return {"id": cid, "school_id": str(school.id), "exam_id": str(exam.id),
+            "student_id": str(student.id), "class_name": "Form 3",
+            "field": "class_teacher", "text": text, "status": status,
+            "source": "teacher", "edited": False, "approved_by": "",
+            "created_by": "7", "at": 1234.5}
+
+
+class CommentStoreTests(SourceCase):
+    def store(self, school=None):
+        return DjangoCommentStore((school or self.school).id)
+
+    def row(self, **kw):
+        return comment_row(self.school, self.exam, self.student, **kw)
+
+    def test_save_then_load_round_trips(self):
+        row = self.row()
+        self.store().save(row)
+        self.assertEqual(self.store().load(), {"c1": row})
+
+    def test_saving_again_updates_and_never_duplicates(self):
+        self.store().save(self.row())
+        self.store().save(self.row(text="Better.", status="approved"))
+        self.assertEqual(ReportComment.objects.count(), 1)
+        loaded = self.store().load()["c1"]
+        self.assertEqual((loaded["text"], loaded["status"]), ("Better.", "approved"))
+
+    def test_delete_removes_only_that_row(self):
+        self.store().save(self.row(cid="c1"))
+        self.store().save(self.row(cid="c2"))
+        self.store().delete("c1")
+        self.assertEqual(list(self.store().load()), ["c2"])
+
+    def test_other_school_sees_nothing(self):
+        self.store().save(self.row())
+        self.assertEqual(self.store(self.other).load(), {})
+
+    def test_other_school_cannot_save_or_delete_our_rows(self):
+        self.store().save(self.row())
+        with self.assertRaises(NotFound):
+            self.store(self.other).save(self.row())
+        self.store(self.other).delete("c1")
+        self.assertEqual(ReportComment.objects.count(), 1)
+
+    def test_student_of_another_school_is_refused(self):
+        outsider = Student.objects.create(
+            school=self.other, first_name="X", last_name="Y", admission_number="B-1")
+        bad = comment_row(self.school, self.exam, outsider)
+        with self.assertRaises(NotFound):
+            self.store().save(bad)
+        self.assertEqual(ReportComment.objects.count(), 0)
+
+
+class CommentFlowTests(SourceCase):
+    def service(self):
+        class Svc:
+            def authorize_class(self, user, class_name):
+                return None
+
+        class Audit:
+            def record(self, *args):
+                pass
+
+        remarks = DjangoRemarkStore()
+        return CommentService(
+            self.ds, Svc(), Audit(), remarks.set_remark, remarks.clear_remark,
+            store=DjangoCommentStore(self.school.id))
+
+    def teacher(self):
+        return User(id="7", school_id=str(self.school.id), role="teacher",
+                    class_names=("Form 3",))
+
+    def test_draft_approve_print_across_service_instances(self):
+        user, exam, stu = self.teacher(), str(self.exam.id), str(self.student.id)
+        ids = (str(self.school.id), exam, stu)
+        row = self.service().draft(user, exam, stu, "class_teacher", text="Good work.")
+        self.assertEqual(self.ds.get_remarks(*ids), {})  # a draft never prints
+        self.service().approve(user, row["id"])  # a fresh instance, as a new request
+        self.assertEqual(self.ds.get_remarks(*ids), {"class_teacher": "Good work."})
+        self.service().edit(user, row["id"], "Better.")
+        self.assertEqual(self.ds.get_remarks(*ids), {})  # edit pulls it back to draft
+        self.assertEqual(ReportComment.objects.get(id=row["id"]).status, "draft")
+
+    def test_listing_in_a_new_instance_sees_the_saved_draft(self):
+        user, exam, stu = self.teacher(), str(self.exam.id), str(self.student.id)
+        row = self.service().draft(user, exam, stu, "class_teacher", text="Hello.")
+        listed = self.service().listing(user, exam, "Form 3")
+        self.assertEqual([r["id"] for r in listed], [row["id"]])

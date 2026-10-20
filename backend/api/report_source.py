@@ -28,8 +28,8 @@ from marian_reports.domain import (
 from marian_reports.grading import Component, MarkStatus, SubjectEntry
 
 from schools.models import (
-    AttendanceRecord, Enrollment, Exam, Performance, ReportRemark, School,
-    Student, SubjectPaper, TeacherAssignment, Term,
+    AttendanceRecord, Enrollment, Exam, Performance, ReportComment,
+    ReportRemark, School, Student, SubjectPaper, TeacherAssignment, Term,
 )
 
 OFFICIAL = ("approved", "locked")
@@ -279,3 +279,49 @@ class DjangoRemarkStore:
     def clear_remark(self, exam_id, student_id, field):
         ReportRemark.objects.filter(
             exam_id=_pk(exam_id), student_id=_pk(student_id), field=field).delete()
+
+
+class DjangoCommentStore:
+    # Durable storage for marian_reports CommentService (draft and approved rows).
+    # Make one per request, bound to the signed-in user's school. It refuses any
+    # row, exam or student that does not belong to that school.
+    def __init__(self, school_id):
+        self.school_id = _pk(school_id)
+
+    def load(self):
+        out = {}
+        for c in ReportComment.objects.filter(school_id=self.school_id):
+            out[c.id] = {
+                "id": c.id, "school_id": str(c.school_id),
+                "exam_id": str(c.exam_id), "student_id": str(c.student_id),
+                "class_name": c.class_name, "field": c.field, "text": c.text,
+                "status": c.status, "source": c.source, "edited": c.edited,
+                "approved_by": c.approved_by, "created_by": c.created_by,
+                "at": c.at,
+            }
+        return out
+
+    def save(self, row):
+        if str(row["school_id"]) != str(self.school_id):
+            raise NotFound("not found")
+        exam = Exam.objects.filter(
+            pk=_pk(row["exam_id"]), school_id=self.school_id).first()
+        student = Student.objects.filter(
+            pk=_pk(row["student_id"]), school_id=self.school_id).first()
+        if exam is None or student is None:
+            raise NotFound("not found")
+        if ReportComment.objects.filter(id=row["id"]).exclude(
+                school_id=self.school_id).exists():
+            raise NotFound("not found")
+        ReportComment.objects.update_or_create(id=row["id"], defaults={
+            "school_id": self.school_id, "exam": exam, "student": student,
+            "class_name": row["class_name"], "field": row["field"],
+            "text": row["text"], "status": row["status"],
+            "source": row["source"], "edited": bool(row.get("edited", False)),
+            "approved_by": str(row.get("approved_by", "")),
+            "created_by": str(row.get("created_by", "")),
+            "at": float(row["at"]),
+        })
+
+    def delete(self, cid):
+        ReportComment.objects.filter(id=cid, school_id=self.school_id).delete()
