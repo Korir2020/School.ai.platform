@@ -28,8 +28,8 @@ from marian_reports.domain import (
 from marian_reports.grading import Component, MarkStatus, SubjectEntry
 
 from schools.models import (
-    AttendanceRecord, Enrollment, Exam, Performance, School, Student,
-    SubjectPaper, TeacherAssignment, Term,
+    AttendanceRecord, Enrollment, Exam, Performance, ReportRemark, School,
+    Student, SubjectPaper, TeacherAssignment, Term,
 )
 
 OFFICIAL = ("approved", "locked")
@@ -223,10 +223,13 @@ class DjangoDataSource(DataSource):
         return entries
 
     def get_remarks(self, school_id, exam_id, student_id):
-        # Marian has no remarks store yet; checks tenancy, returns nothing.
-        self._exam_row(school_id, exam_id)
-        self._student_row(school_id, student_id)
-        return {}
+        # Only teacher-approved text is ever stored (see DjangoRemarkStore).
+        exam = self._exam_row(school_id, exam_id)
+        student = self._student_row(school_id, student_id)
+        return {
+            r.field: r.text for r in ReportRemark.objects.filter(
+                school_id=exam.school_id, exam=exam, student=student)
+        }
 
     def get_fee_note(self, school_id, student_id):
         self._student_row(school_id, student_id)
@@ -256,3 +259,23 @@ class DjangoDataSource(DataSource):
             days_absent=counts.get("absent", 0),
             days_late=late,
         )
+
+
+class DjangoRemarkStore:
+    # Callbacks for marian_reports CommentService (set_remark / clear_remark).
+    # They fire only on approval, so this table holds approved text only.
+    # The school comes from the exam; a student of another school is refused.
+    def set_remark(self, exam_id, student_id, field, text):
+        if field not in dict(ReportRemark.FIELDS):
+            raise ValueError("unknown remark field")
+        exam = Exam.objects.filter(pk=_pk(exam_id)).first()
+        student = Student.objects.filter(pk=_pk(student_id)).first()
+        if exam is None or student is None or exam.school_id != student.school_id:
+            raise NotFound("not found")
+        ReportRemark.objects.update_or_create(
+            exam=exam, student=student, field=field,
+            defaults={"school_id": exam.school_id, "text": text})
+
+    def clear_remark(self, exam_id, student_id, field):
+        ReportRemark.objects.filter(
+            exam_id=_pk(exam_id), student_id=_pk(student_id), field=field).delete()

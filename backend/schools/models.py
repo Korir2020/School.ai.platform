@@ -677,3 +677,25 @@ class SuperadminSecurity(models.Model):
 
     def __str__(self):
         return f"MFA security for {self.user.username}"
+
+
+class ReportRemark(models.Model):
+    """Teacher-approved remark printed on a report card. Drafts never live here."""
+    FIELDS = [("class_teacher", "Class teacher"), ("principal", "Principal")]
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name="report_remarks")
+    exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name="report_remarks")
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="report_remarks")
+    field = models.CharField(max_length=20, choices=FIELDS)
+    text = models.CharField(max_length=400)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["exam", "student", "field"],
+                name="unique_report_remark_per_exam_student_field",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.student} - {self.exam} - {self.field}"

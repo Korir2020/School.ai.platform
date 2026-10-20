@@ -240,3 +240,54 @@ class IsolationTests(SourceCase):
             self.ds.get_school("999999")
         with self.assertRaises(NotFound):
             self.ds.get_exam(str(self.school.id), "abc")
+
+
+from schools.models import ReportRemark  # noqa: E402
+from api.report_source import DjangoRemarkStore  # noqa: E402
+
+
+class RemarkTests(SourceCase):
+    def setUp(self):
+        super().setUp()
+        self.store = DjangoRemarkStore()
+        self.ids = (str(self.school.id), str(self.exam.id), str(self.student.id))
+
+    def remarks(self):
+        return self.ds.get_remarks(*self.ids)
+
+    def test_nothing_stored_means_no_remarks(self):
+        self.assertEqual(self.remarks(), {})
+
+    def test_approved_text_is_returned_by_field(self):
+        self.store.set_remark(self.exam.id, self.student.id, "class_teacher", "Good work.")
+        self.store.set_remark(str(self.exam.id), str(self.student.id), "principal", "Keep going.")
+        self.assertEqual(self.remarks(), {
+            "class_teacher": "Good work.", "principal": "Keep going."})
+
+    def test_setting_again_replaces_and_never_duplicates(self):
+        self.store.set_remark(self.exam.id, self.student.id, "principal", "First.")
+        self.store.set_remark(self.exam.id, self.student.id, "principal", "Second.")
+        self.assertEqual(ReportRemark.objects.count(), 1)
+        self.assertEqual(self.remarks(), {"principal": "Second."})
+
+    def test_clear_removes_only_that_field(self):
+        self.store.set_remark(self.exam.id, self.student.id, "class_teacher", "A.")
+        self.store.set_remark(self.exam.id, self.student.id, "principal", "B.")
+        self.store.clear_remark(self.exam.id, self.student.id, "principal")
+        self.assertEqual(self.remarks(), {"class_teacher": "A."})
+
+    def test_other_school_cannot_read_remarks(self):
+        self.store.set_remark(self.exam.id, self.student.id, "principal", "Private.")
+        with self.assertRaises(NotFound):
+            self.ds.get_remarks(str(self.other.id), self.ids[1], self.ids[2])
+
+    def test_remark_for_a_student_of_another_school_is_refused(self):
+        outsider = Student.objects.create(
+            school=self.other, first_name="X", last_name="Y", admission_number="B-1")
+        with self.assertRaises(NotFound):
+            self.store.set_remark(self.exam.id, outsider.id, "principal", "No.")
+        self.assertEqual(ReportRemark.objects.count(), 0)
+
+    def test_unknown_field_is_refused(self):
+        with self.assertRaises(ValueError):
+            self.store.set_remark(self.exam.id, self.student.id, "caretaker", "No.")
