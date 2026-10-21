@@ -23,6 +23,8 @@ export default function ReportModule() {
   const [sel, setSel] = useState(null);
   const [msg, setMsg] = useState("");
   const [busyId, setBusyId] = useState("");
+  const [bulk, setBulk] = useState("");
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   useEffect(() => {
     api(P + "meta/").then(async (r) => {
@@ -74,6 +76,42 @@ export default function ReportModule() {
   const students = meta.students.filter((s) => s.class_name === cls && (!stream || s.stream === stream));
   const why = {};
   ((sel && sel.excluded) || []).forEach((x) => { why[x.student_id] = x.reason; });
+  const ready = students.filter((s) => !why[s.id]);
+
+  const preview = async (s) => {
+    const w = window.open("", "_blank");
+    setMsg("");
+    try {
+      const r = await api(P + "student/" + s.id + "/pdf/?" + qs({}));
+      if (!r.ok) { if (w) w.close(); setMsg(await errText(r)); return; }
+      const url = URL.createObjectURL(await r.blob());
+      if (w) { w.location.href = url; } else { setMsg("Allow pop-ups for this site to preview."); }
+    } catch { if (w) w.close(); setMsg("Preview failed."); }
+  };
+
+  const downloadAll = async () => {
+    setBulk(""); setMsg(""); setBulkBusy(true);
+    let ok = 0; const failed = [];
+    for (let i = 0; i < ready.length; i++) {
+      const s = ready[i];
+      setBulk("Downloading " + (i + 1) + " of " + ready.length + "...");
+      try {
+        const r = await api(P + "student/" + s.id + "/pdf/?" + qs({ download: "1" }));
+        if (!r.ok) { failed.push(s.adm_no || s.id); }
+        else {
+          const url = URL.createObjectURL(await r.blob());
+          const a = document.createElement("a");
+          a.href = url; a.download = (s.adm_no || s.id) + ".pdf";
+          document.body.appendChild(a); a.click(); a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 5000);
+          ok += 1;
+        }
+      } catch { failed.push(s.adm_no || s.id); }
+      await new Promise((res) => setTimeout(res, 700));
+    }
+    setBulk("Done: " + ok + " downloaded" + (failed.length ? ", failed: " + failed.join(", ") : "") + ".");
+    setBulkBusy(false);
+  };
 
   return (
     <div>
@@ -102,12 +140,19 @@ export default function ReportModule() {
           {sel.excluded.length > 0 && <p>{sel.excluded.length} student(s) cannot be printed yet. The reason is shown beside each name.</p>}
         </Card>
       )}
-      {exam && cls && <ReportInsights exam={exam} cls={cls} stream={stream} prov={prov} />}
+      {sel && ready.length > 0 && (
+          <Card title="Download all">
+            <p>{ready.length} report(s) ready. They download one after another; keep this page open.</p>
+            <p><Button busy={bulkBusy} onClick={downloadAll}>Download all ({ready.length})</Button></p>
+            {bulk && <p>{bulk}</p>}
+          </Card>
+        )}
+        {exam && cls && <ReportInsights exam={exam} cls={cls} stream={stream} prov={prov} />}
     {cls && students.length === 0 && <EmptyState title="No students" text="No students in this class." />}
       {exam && students.map((s) => (
         <Card key={s.id} title={s.name + " (Adm " + s.adm_no + ")"}>
           {why[s.id] && <p>{why[s.id]}</p>}
-          <Button busy={busyId === s.id} onClick={() => download(s)}>Download PDF</Button>
+          <Button onClick={() => preview(s)}>Preview</Button> <Button busy={busyId === s.id} onClick={() => download(s)}>Download PDF</Button>
         </Card>
       ))}
     </div>
