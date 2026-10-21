@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { api } from "./api";
 import { Button, Card, Select, Badge, Alert, EmptyState, Loading, ErrorState } from "./ui";
 import GradingScale from "./GradingScale";
+import ReportInsights from "./ReportInsights";
 
 const P = "/api/report-module/";
 
@@ -101,7 +102,8 @@ export default function ReportModule() {
           {sel.excluded.length > 0 && <p>{sel.excluded.length} student(s) cannot be printed yet. The reason is shown beside each name.</p>}
         </Card>
       )}
-      {cls && students.length === 0 && <EmptyState title="No students" text="No students in this class." />}
+      {exam && cls && <ReportInsights exam={exam} cls={cls} stream={stream} prov={prov} />}
+    {cls && students.length === 0 && <EmptyState title="No students" text="No students in this class." />}
       {exam && students.map((s) => (
         <Card key={s.id} title={s.name + " (Adm " + s.adm_no + ")"}>
           {why[s.id] && <p>{why[s.id]}</p>}
