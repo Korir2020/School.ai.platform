@@ -9,7 +9,7 @@ import './shell.css';
 
 const GROUPS = [
   ['Main', ['Home', 'Approve', 'Registrations']],
-  ['Academics', ['Students', 'Teachers', 'Marks', 'Attendance', 'Exams', 'Reports', 'Analytics']],
+  ['Academics', ['Students', 'Teachers', 'Marks', 'Attendance', 'Exams', 'Reports', 'Report Cards', 'Analytics']],
   ['Manage', ['Parents', 'Staff', 'Fees', 'Documents', 'Transfers', 'Schools']],
   ['Settings', ['Audit', 'Setup', 'Admins']],
 ];
