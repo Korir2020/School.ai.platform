@@ -1,0 +1,105 @@
+import { useState, useEffect } from "react";
+import { api } from "./api";
+import { Button, Card, Select, Badge, Alert, EmptyState, Loading, ErrorState } from "./ui";
+
+const P = "/api/report-module/";
+
+async function errText(r) {
+  try { const d = await r.json(); return d.message || d.detail || "Request failed."; }
+  catch { return "Request failed (" + r.status + ")."; }
+}
+
+export default function ReportModule() {
+  const [meta, setMeta] = useState(null);
+  const [bad, setBad] = useState("");
+  const [tries, setTries] = useState(0);
+  const [exam, setExam] = useState("");
+  const [cls, setCls] = useState("");
+  const [stream, setStream] = useState("");
+  const [prov, setProv] = useState(false);
+  const [sel, setSel] = useState(null);
+  const [msg, setMsg] = useState("");
+  const [busyId, setBusyId] = useState("");
+
+  useEffect(() => {
+    api(P + "meta/").then(async (r) => {
+      if (!r.ok) return setBad(await errText(r));
+      setMeta(await r.json());
+    }).catch(() => setBad("Could not reach the server."));
+  }, [tries]);
+
+  const qs = (extra) => {
+    const q = new URLSearchParams({ exam_id: exam, ...extra });
+    if (prov) q.set("provisional", "1");
+    return q.toString();
+  };
+
+  const check = async () => {
+    setMsg(""); setSel(null);
+    const extra = { class_name: cls };
+    if (stream) extra.stream = stream;
+    const r = await api(P + "selection/?" + qs(extra));
+    if (!r.ok) return setMsg(await errText(r));
+    setSel(await r.json());
+  };
+
+  const download = async (s) => {
+    setMsg(""); setBusyId(s.id);
+    try {
+      const r = await api(P + "student/" + s.id + "/pdf/?" + qs({ download: "1" }));
+      if (!r.ok) { setMsg(await errText(r)); }
+      else {
+        const url = URL.createObjectURL(await r.blob());
+        const a = document.createElement("a");
+        a.href = url; a.download = (s.adm_no || s.id) + ".pdf";
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+      }
+    } catch { setMsg("Download failed."); }
+    setBusyId("");
+  };
+
+  if (bad) return <ErrorState text={bad} onRetry={() => { setBad(""); setTries(tries + 1); }} />;
+  if (!meta) return <Loading />;
+
+  const students = meta.students.filter((s) => s.class_name === cls && (!stream || s.stream === stream));
+  const why = {};
+  ((sel && sel.excluded) || []).forEach((x) => { why[x.student_id] = x.reason; });
+
+  return (
+    <div>
+      <Card title="Report cards">
+        <Select id="rm-exam" label="Exam" value={exam} onChange={(e) => { setExam(e.target.value); setSel(null); }}>
+          <option value="">Choose exam</option>
+          {meta.exams.map((x) => <option key={x.id} value={x.id}>{x.name}{x.published ? "" : " (not published)"}</option>)}
+        </Select>
+        <Select id="rm-class" label="Class" value={cls} onChange={(e) => { setCls(e.target.value); setSel(null); }}>
+          <option value="">Choose class</option>
+          {meta.classes.map((c) => <option key={c} value={c}>{c}</option>)}
+        </Select>
+        <Select id="rm-stream" label="Stream" value={stream} onChange={(e) => { setStream(e.target.value); setSel(null); }}>
+          <option value="">All streams</option>
+          {meta.streams.map((c) => <option key={c} value={c}>{c}</option>)}
+        </Select>
+        {meta.config.allow_provisional && (
+          <p><label><input type="checkbox" checked={prov} onChange={(e) => { setProv(e.target.checked); setSel(null); }} /> Allow provisional reports</label></p>
+        )}
+        <p><Button onClick={check} disabled={!exam || !cls}>Check readiness</Button></p>
+      </Card>
+      {msg && <Alert>{msg}</Alert>}
+      {sel && (
+        <Card title={sel.population}>
+          <p><Badge>{sel.selected} selected</Badge> <Badge>{sel.eligible} ready</Badge> <Badge kind="warn">{sel.pending} pending</Badge></p>
+          {sel.excluded.length > 0 && <p>{sel.excluded.length} student(s) cannot be printed yet. The reason is shown beside each name.</p>}
+        </Card>
+      )}
+      {cls && students.length === 0 && <EmptyState title="No students" text="No students in this class." />}
+      {exam && students.map((s) => (
+        <Card key={s.id} title={s.name + " (Adm " + s.adm_no + ")"}>
+          {why[s.id] && <p>{why[s.id]}</p>}
+          <Button busy={busyId === s.id} onClick={() => download(s)}>Download PDF</Button>
+        </Card>
+      ))}
+    </div>
+  );
+}
