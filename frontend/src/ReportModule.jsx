@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { api } from "./api";
 import { Button, Card, Select, Badge, Alert, EmptyState, Loading, ErrorState } from "./ui";
+import GradingScale from "./GradingScale";
 
 const P = "/api/report-module/";
 
@@ -12,6 +13,7 @@ async function errText(r) {
 export default function ReportModule() {
   const [meta, setMeta] = useState(null);
   const [bad, setBad] = useState("");
+  const [needScale, setNeedScale] = useState(false);
   const [tries, setTries] = useState(0);
   const [exam, setExam] = useState("");
   const [cls, setCls] = useState("");
@@ -23,7 +25,12 @@ export default function ReportModule() {
 
   useEffect(() => {
     api(P + "meta/").then(async (r) => {
-      if (!r.ok) return setBad(await errText(r));
+      if (!r.ok) {
+        let d = null;
+        try { d = await r.clone().json(); } catch { d = null; }
+        if (d && d.error === "no_grading_scale") return setNeedScale(true);
+        return setBad(await errText(r));
+      }
       setMeta(await r.json());
     }).catch(() => setBad("Could not reach the server."));
   }, [tries]);
@@ -59,6 +66,7 @@ export default function ReportModule() {
     setBusyId("");
   };
 
+  if (needScale) return <GradingScale onSaved={() => { setNeedScale(false); setTries(tries + 1); }} />;
   if (bad) return <ErrorState text={bad} onRetry={() => { setBad(""); setTries(tries + 1); }} />;
   if (!meta) return <Loading />;
 
