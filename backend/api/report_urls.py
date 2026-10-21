@@ -36,4 +36,9 @@ if marian_reports is not None:
         path(P + "support-list/", v.report_support_list),
         path(P + "export/<str:fmt>/", v.report_export),
         path(P + "verify/<path:report_no>/", v.report_verify),
+        path(P + "comments/", v.report_comments_list),
+        path(P + "comments/draft/", v.report_comment_draft),
+        path(P + "comments/<str:cid>/", v.report_comment_edit),
+        path(P + "comments/<str:cid>/approve/", v.report_comment_approve),
+        path(P + "comments/<str:cid>/reject/", v.report_comment_reject),
     ]

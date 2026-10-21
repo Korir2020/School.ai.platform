@@ -267,3 +267,81 @@ def report_verify(request, report_no):
     if ok:
         return Response({"valid": True, "report_no": report_no})
     return Response({"valid": False}, status=404)
+
+
+# ------------------------------------------------------------ comments
+from marian_reports.comments import AINotConfigured, CommentError, CommentService
+
+from api.report_source import DjangoAuditLog, DjangoCommentStore, DjangoRemarkStore
+
+
+def comment_service(user, svc):
+    """Built per request: durable store + approved-remark store + audit log."""
+    try:
+        remarks = DjangoRemarkStore()
+    except TypeError:
+        remarks = DjangoRemarkStore(str(user.school_id))
+    return CommentService(
+        svc.ds, svc, DjangoAuditLog(), remarks.set_remark, remarks.clear_remark,
+        drafter=None, store=DjangoCommentStore(str(user.school_id)))
+
+
+def comment_call(fn, *args):
+    try:
+        return Response({"comment": jsonable(fn(*args))})
+    except CommentError as e:
+        return _err("invalid_comment", str(e), 400)
+    except AINotConfigured as e:
+        return _err("ai_not_configured", str(e), 501)
+
+
+def cbody(request):
+    b = request.data
+    return b if isinstance(b, dict) else {}
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+@guard
+def report_comments_list(request):
+    user, svc = ctx(request)
+    cs = comment_service(user, svc)
+    q = request.query_params
+    return Response({"comments": jsonable(
+        cs.listing(user, q.get("exam_id", ""), q.get("class_name", "")))})
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+@guard
+def report_comment_draft(request):
+    user, svc = ctx(request)
+    b = cbody(request)
+    return comment_call(comment_service(user, svc).draft, user,
+                        str(b.get("exam_id", "")), str(b.get("student_id", "")),
+                        b.get("field", "class_teacher"), b.get("text"))
+
+
+@api_view(["PUT"])
+@permission_classes([IsAuthenticated])
+@guard
+def report_comment_edit(request, cid):
+    user, svc = ctx(request)
+    return comment_call(comment_service(user, svc).edit, user, cid,
+                        cbody(request).get("text"))
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+@guard
+def report_comment_approve(request, cid):
+    user, svc = ctx(request)
+    return comment_call(comment_service(user, svc).approve, user, cid)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+@guard
+def report_comment_reject(request, cid):
+    user, svc = ctx(request)
+    return comment_call(comment_service(user, svc).reject, user, cid)
