@@ -1,0 +1,3 @@
+source: Korir2020/marian-reports commit ee95514
+excluded: web/ (Flask demo), seed.py (demo data), tests
+Update by re-copying; do not edit here.

@@ -300,3 +300,6 @@ from api.school_suspension import school_suspension
 urlpatterns += [
     path('api/schools/<int:pk>/suspension/', school_suspension),
 ]
+
+from api.report_urls import report_urlpatterns  # noqa: E402
+urlpatterns += report_urlpatterns

@@ -677,3 +677,80 @@ class SuperadminSecurity(models.Model):
 
     def __str__(self):
         return f"MFA security for {self.user.username}"
+
+
+class ReportRemark(models.Model):
+    """Teacher-approved remark printed on a report card. Drafts never live here."""
+    FIELDS = [("class_teacher", "Class teacher"), ("principal", "Principal")]
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name="report_remarks")
+    exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name="report_remarks")
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="report_remarks")
+    field = models.CharField(max_length=20, choices=FIELDS)
+    text = models.CharField(max_length=400)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["exam", "student", "field"],
+                name="unique_report_remark_per_exam_student_field",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.student} - {self.exam} - {self.field}"
+
+
+class ReportComment(models.Model):
+    """Comment workflow row (draft or approved) used by marian_reports.
+    The text that is printed lives in ReportRemark, written only on approval."""
+    STATUSES = [("draft", "Draft"), ("approved", "Approved")]
+    SOURCES = [("teacher", "Teacher"), ("ai", "AI-drafted")]
+    id = models.CharField(primary_key=True, max_length=32)
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name="report_comments")
+    exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name="report_comments")
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="report_comments")
+    class_name = models.CharField(max_length=50)
+    field = models.CharField(max_length=20, choices=ReportRemark.FIELDS)
+    text = models.CharField(max_length=400)
+    status = models.CharField(max_length=10, choices=STATUSES)
+    source = models.CharField(max_length=10, choices=SOURCES)
+    edited = models.BooleanField(default=False)
+    approved_by = models.CharField(max_length=64, blank=True)
+    created_by = models.CharField(max_length=64, blank=True)
+    at = models.FloatField()
+
+    class Meta:
+        indexes = [models.Index(fields=["school", "exam"], name="reportcomment_school_exam_idx")]
+
+    def __str__(self):
+        return f"{self.student} - {self.field} - {self.status}"
+
+
+class ReportSettings(models.Model):
+    """Per-school report settings: grading scheme and section toggles."""
+    school = models.OneToOneField(School, on_delete=models.CASCADE, related_name="report_settings")
+    grading = models.JSONField(null=True, blank=True)
+    sections = models.JSONField(default=dict, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Report settings - {self.school}"
+
+
+class ReportAuditEntry(models.Model):
+    """Append-only audit trail for the report module. No marks or names."""
+    id = models.CharField(primary_key=True, max_length=32)
+    at = models.FloatField()
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name="report_audit_entries")
+    user_id = models.CharField(max_length=64)
+    role = models.CharField(max_length=20)
+    action = models.CharField(max_length=60)
+    target = models.CharField(max_length=100, blank=True)
+    detail = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["school", "-at"], name="reportaudit_school_at_idx")]
+
+    def __str__(self):
+        return f"{self.action} - {self.school}"
