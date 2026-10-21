@@ -3,6 +3,7 @@ import { api } from "./api";
 import { Button, Card, Select, Badge, Alert, EmptyState, Loading, ErrorState } from "./ui";
 import GradingScale from "./GradingScale";
 import ReportInsights from "./ReportInsights";
+import ReportComments from "./ReportComments";
 
 const P = "/api/report-module/";
 
@@ -148,6 +149,7 @@ export default function ReportModule() {
           </Card>
         )}
         {exam && cls && <ReportInsights exam={exam} cls={cls} stream={stream} prov={prov} />}
+        {exam && cls && <ReportComments key={exam + "|" + cls} exam={exam} cls={cls} students={students} />}
     {cls && students.length === 0 && <EmptyState title="No students" text="No students in this class." />}
       {exam && students.map((s) => (
         <Card key={s.id} title={s.name + " (Adm " + s.adm_no + ")"}>
