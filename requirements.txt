@@ -104,3 +104,5 @@ websocket-client==1.9.2
 django-cors-headers==4.9.0
 psycopg==3.3.6
 psycopg-binary==3.3.6
+openpyxl==3.1.5
+reportlab==4.4.4
