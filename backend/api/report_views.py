@@ -345,3 +345,101 @@ def report_comment_approve(request, cid):
 def report_comment_reject(request, cid):
     user, svc = ctx(request)
     return comment_call(comment_service(user, svc).reject, user, cid)
+
+
+# ------------------------------------------------------- admin settings
+from marian_reports.audit import AuditAccessDenied
+from marian_reports.grading import make_scheme
+from marian_reports.section_setup import SectionError, apply_sections, effective_sections
+
+OPTIONS = {"rounding": ["half_up", "half_even", "down"],
+           "mean_rule": ["total_over_max", "average_of_percentages"],
+           "absent_policy": ["pending", "zero", "exclude"]}
+
+
+def admin_user(request):
+    user = build_report_user(request.user)
+    if user.role != "admin":
+        raise PermissionDenied("admin only")
+    return user
+
+
+def scheme_json(s):
+    return {"configured": True, "options": OPTIONS,
+            "bands": [[b.label, str(b.min_pct), str(b.max_pct), str(b.points)]
+                      for b in sorted(s.bands, key=lambda b: b.min_pct)],
+            "pass_pct": str(s.pass_pct), "decimals": s.decimals,
+            "rounding": s.rounding, "mean_rule": s.mean_rule,
+            "absent_policy": s.absent_policy, "best_n": s.best_n}
+
+
+@api_view(["GET", "PUT"])
+@permission_classes([IsAuthenticated])
+@guard
+def report_grading_config(request):
+    user = admin_user(request)
+    store = DjangoConfigStore(str(user.school_id))
+    if request.method == "PUT":
+        b = cbody(request)
+        try:
+            bands = b["bands"]
+            if not isinstance(bands, list):
+                raise TypeError("bands")
+            best = b.get("best_n")
+            new = make_scheme(
+                [tuple(x) for x in bands], pass_pct=b["pass_pct"],
+                decimals=int(b.get("decimals", 2)),
+                rounding=b.get("rounding", "half_up"),
+                mean_rule=b.get("mean_rule", "total_over_max"),
+                absent_policy=b.get("absent_policy", "pending"),
+                best_n=int(best) if best not in (None, "") else None)
+        except (KeyError, TypeError):
+            return _err("invalid_grading",
+                        'Send {"bands": [[label, from, to, points], ...], "pass_pct": number}.', 400)
+        except ValueError as e:      # includes GradingError: overlaps, gaps, bad numbers
+            return _err("invalid_grading", str(e), 400)
+        store.save_scheme(new)
+        DjangoAuditLog().record(user, "grading_scale.changed", "scheme",
+                                {"bands": len(new.bands), "pass_pct": str(new.pass_pct), "best_n": new.best_n})
+    s = store.load_scheme()
+    if s is None:
+        return Response({"configured": False, "options": OPTIONS})
+    return Response(scheme_json(s))
+
+
+@api_view(["GET", "PUT"])
+@permission_classes([IsAuthenticated])
+@guard
+def report_section_config(request):
+    user = admin_user(request)
+    store = DjangoConfigStore(str(user.school_id))
+    cfg = ReportConfig()
+    store.apply_to(cfg)
+    extra = {}
+    if request.method == "PUT":
+        try:
+            changed = apply_sections(cfg, cbody(request))
+        except SectionError as e:
+            return _err("invalid_sections", str(e), 400)
+        if changed:
+            store.save_sections({k: new for k, (_old, new) in changed.items()})
+            DjangoAuditLog().record(user, "sections.changed", "sections", {"changed": changed})
+        extra["changed"] = changed
+    return Response({"sections": effective_sections(cfg), **extra})
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+@guard
+def report_audit(request):
+    user = admin_user(request)
+    q = request.query_params
+    try:
+        lim = max(1, min(500, int(q.get("limit", 100))))
+    except ValueError:
+        lim = 100
+    try:
+        rows = DjangoAuditLog().entries(user, q.get("action") or None, lim)
+    except AuditAccessDenied:
+        raise PermissionDenied("admin only")
+    return Response({"entries": jsonable(rows)})

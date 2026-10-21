@@ -41,4 +41,7 @@ if marian_reports is not None:
         path(P + "comments/<str:cid>/", v.report_comment_edit),
         path(P + "comments/<str:cid>/approve/", v.report_comment_approve),
         path(P + "comments/<str:cid>/reject/", v.report_comment_reject),
+        path(P + "grading-config/", v.report_grading_config),
+        path(P + "section-config/", v.report_section_config),
+        path(P + "audit/", v.report_audit),
     ]
