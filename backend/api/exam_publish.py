@@ -155,6 +155,8 @@ def exam_publish(request, pk):
             details={"exam": exam.id, "ranked": len(overall),
                      "not_ranked": [n["admission_number"] for n in not_ranked]},
         )
+        from api.framework_rules import record_on_exam
+        record_on_exam(exam)
         exam.status = "published"
         exam.published_at = timezone.now()
         exam.published_by = request.user
