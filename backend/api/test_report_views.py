@@ -126,6 +126,15 @@ class ApiCase(TestCase):
         self.assertIn("A-1", r.content.decode("utf-8-sig"))
         self.assertEqual(self.get("export/exe/", self.admin).status_code, 404)
 
+    def test_verify_with_exam_id(self):
+        user, svc = build_report_user(self.admin), service(self.school.id)
+        snap = svc.snapshot(user, str(self.exam.pk), "Form 3")
+        rd = svc.build_report(user, snap, str(self.s1.pk))
+        url = f"{B}verify/{rd.report_no}/"
+        q = {"s": str(self.school.id), "t": rd.token}
+        self.assertEqual(APIClient().get(url, {**q, "e": str(self.exam.pk)}).status_code, 200)
+        self.assertEqual(APIClient().get(url, {**q, "e": "999999"}).status_code, 404)
+
     def test_verify_valid_and_tampered(self):
         user, svc = build_report_user(self.admin), service(self.school.id)
         snap = svc.snapshot(user, str(self.exam.pk), "Form 3")
