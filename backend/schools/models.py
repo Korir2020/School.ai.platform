@@ -732,6 +732,7 @@ class ReportSettings(models.Model):
     school = models.OneToOneField(School, on_delete=models.CASCADE, related_name="report_settings")
     grading = models.JSONField(null=True, blank=True)
     sections = models.JSONField(default=dict, blank=True)
+    options = models.JSONField(default=dict, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):

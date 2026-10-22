@@ -354,6 +354,7 @@ def report_comment_reject(request, cid):
 from marian_reports.audit import AuditAccessDenied
 from marian_reports.grading import make_scheme
 from marian_reports.section_setup import SectionError, apply_sections, effective_sections
+from api.report_options import OPTION_CHOICES, OptionError, effective_options, validate_options
 
 OPTIONS = {"rounding": ["half_up", "half_even", "down"],
            "mean_rule": ["total_over_max", "average_of_percentages"],
@@ -429,6 +430,25 @@ def report_section_config(request):
             DjangoAuditLog().record(user, "sections.changed", "sections", {"changed": changed})
         extra["changed"] = changed
     return Response({"sections": effective_sections(cfg), **extra})
+
+
+@api_view(["GET", "PUT"])
+@permission_classes([IsAuthenticated])
+@guard
+def report_options(request):
+    user = admin_user(request)
+    store = DjangoConfigStore(str(user.school_id))
+    if request.method == "PUT":
+        try:
+            clean = validate_options(cbody(request).get("options"))
+        except OptionError as e:
+            return _err("invalid_options", str(e), 400)
+        if clean:
+            store.save_options(clean)
+            DjangoAuditLog().record(user, "options.changed", "options", {"changed": sorted(clean)})
+    cfg = ReportConfig()
+    store.apply_to(cfg)
+    return Response({"options": effective_options(cfg), "choices": OPTION_CHOICES})
 
 
 @api_view(["GET"])

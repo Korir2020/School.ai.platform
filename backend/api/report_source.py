@@ -386,10 +386,23 @@ class DjangoConfigStore:
         ReportSettings.objects.update_or_create(
             school_id=self.school_id, defaults={"sections": merged})
 
+    def saved_options(self):
+        row = self._row()
+        return dict(row.options) if row and row.options else {}
+
+    def save_options(self, body):
+        self._require_school()
+        merged = {**self.saved_options(), **body}
+        merged = {k: v for k, v in merged.items() if v is not None}
+        ReportSettings.objects.update_or_create(
+            school_id=self.school_id, defaults={"options": merged})
+
     def apply_to(self, cfg):
+        from api.report_options import apply_options
         saved = self.saved_sections()
         if saved:
             apply_sections(cfg, {"sections": saved})
+        apply_options(cfg, self.saved_options())
 
 
 class DjangoAuditLog:
