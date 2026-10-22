@@ -256,7 +256,10 @@ def report_verify(request, report_no):
         svc = service(sid)
         sysu = User("system", sid, "admin")
         stu = next(s for s in svc.ds.list_students(sid) if s.adm_no == adm)
+        want = request.query_params.get("e", "")
         for e in svc.ds.list_exams(sid):
+            if want and str(e.id) != want:
+                continue
             if e.year == year and e.term == term:
                 snap = svc.snapshot(sysu, e.id, stu.class_name)
                 if sign(report_no, snap.snapshot_id) == tok:

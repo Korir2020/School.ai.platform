@@ -294,7 +294,7 @@ def draw_report(c: canvas.Canvas, rd: ReportData, page_no: int = 1, page_total: 
         txt(c, M + 9, y + 79, rd.fee_note, FONT, 7.5, INK, maxw=lw2 - 18)
     if sec.get("qr", True):
         rbox(c, rx, y, rw, 84, 6)
-        qr = QrCodeWidget(f"{verify_base}/verify/{rd.report_no}?s={rd.school.id}&t={rd.token}"); b = qr.getBounds()
+        qr = QrCodeWidget(f"{verify_base}/verify/{rd.report_no}?s={rd.school.id}&t={rd.token}&e={rd.exam.id}"); b = qr.getBounds()
         d = Drawing(66, 66, transform=[66 / (b[2] - b[0]), 0, 0, 66 / (b[3] - b[1]), 0, 0]); d.add(qr)
         renderPDF.draw(d, c, rx + 9, H - y - 75)
         txt(c, rx + 86, y + 30, "Verify this report", BOLD, 10, INK)
