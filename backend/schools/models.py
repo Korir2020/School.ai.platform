@@ -866,3 +866,78 @@ class FrameworkChangeLog(models.Model):
     note = models.CharField(max_length=200, blank=True)
     at = models.DateTimeField(auto_now_add=True)
 
+
+class LevelScale(models.Model):
+    """A school's own list of performance levels (for example Grades 1 to 6).
+    Versioned: a change makes a new row. Set by the school, not official KNEC wording.
+    levels is a list of {"key", "label", "description"} in display order."""
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name="level_scales")
+    curriculum = models.ForeignKey(Curriculum, on_delete=models.PROTECT, related_name="level_scales")
+    min_level = models.PositiveIntegerField()
+    max_level = models.PositiveIntegerField()
+    version = models.PositiveIntegerField()
+    source = models.CharField(max_length=30, default="school")
+    levels = models.JSONField(default=list)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name="+",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["school", "curriculum", "version"], name="unique_level_scale_version"),
+            models.CheckConstraint(
+                condition=models.Q(min_level__lte=models.F("max_level")),
+                name="level_scale_levels_ordered"),
+        ]
+
+    def covers(self, class_level):
+        return (class_level.curriculum_id == self.curriculum_id
+                and self.min_level <= class_level.level_number <= self.max_level)
+
+    def keys(self):
+        return [x["key"] for x in self.levels]
+
+    def __str__(self):
+        return f"Level scale v{self.version} - {self.school}"
+
+
+class LevelResult(models.Model):
+    """A level-based assessment result with no marks, percentage or letter grade.
+    Same four statuses as Performance."""
+    STATUS_CHOICES = [
+        ("draft", "Draft"), ("submitted", "Submitted"),
+        ("approved", "Approved"), ("locked", "Locked"),
+    ]
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="level_results")
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name="level_results")
+    academic_year = models.ForeignKey(AcademicYear, on_delete=models.CASCADE, related_name="+")
+    term = models.ForeignKey(Term, on_delete=models.CASCADE, related_name="+")
+    assessment_type = models.CharField(
+        max_length=10,
+        choices=[("opener", "Opener"), ("mid", "Mid-term"), ("end", "End-term")],
+        default="end",
+    )
+    scale = models.ForeignKey(LevelScale, on_delete=models.PROTECT, related_name="results")
+    level_key = models.CharField(max_length=40)
+    comment = models.CharField(max_length=300, blank=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="draft")
+    entered_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name="+",
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["student", "subject", "academic_year", "term", "assessment_type"],
+                name="unique_level_result"),
+        ]
+
+    def __str__(self):
+        return f"{self.student} - {self.subject} - {self.level_key}"
+
