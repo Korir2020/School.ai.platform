@@ -2,16 +2,16 @@
 
 Identity comes ONLY from the login, never from request parameters.
 Roles follow api/permissions.py: SchoolAdminProfile -> admin,
-TeacherProfile -> teacher, GuardianProfile -> guardian.
+GuardianProfile -> guardian. Teachers are denied.
 Superusers have no school, so report access is denied for them.
-Known limit: teachers are limited by CLASS name, but Marian's
-TeacherAssignment is per subject and stream (stricter).
+Policy: teachers only upload marks; reports belong to administrators
+and deputies, so a teacher login is denied here.
 """
 from marian_reports.domain import PermissionDenied, User
 
 from schools.models import (
     GuardianProfile, SchoolAdminProfile, StudentGuardian,
-    TeacherAssignment, TeacherProfile,
+    TeacherProfile,
 )
 
 
@@ -23,13 +23,8 @@ def build_report_user(user):
     admin = SchoolAdminProfile.objects.filter(user=user).first()
     if admin:
         return User(uid, str(admin.school_id), "admin", can_view_fees=True)
-    teacher = TeacherProfile.objects.filter(user=user).first()
-    if teacher:
-        levels = TeacherAssignment.objects.filter(
-            teacher=teacher, school_id=teacher.school_id,
-        ).values_list("stream__class_level__name", flat=True)
-        return User(uid, str(teacher.school_id), "teacher",
-                    class_names=tuple(sorted(set(levels))))
+    if TeacherProfile.objects.filter(user=user).exists():
+        raise PermissionDenied('teachers do not open reports')
     guardian = GuardianProfile.objects.filter(user=user).first()
     if guardian:
         ids = StudentGuardian.objects.filter(
