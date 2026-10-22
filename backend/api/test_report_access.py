@@ -45,17 +45,12 @@ class AccessCase(TestCase):
         u = mkuser("adm2"); SchoolAdminProfile.objects.create(user=u, school=self.other)
         self.assertEqual(build_report_user(u).school_id, str(self.other.id))
 
-    def test_teacher_classes_come_from_assignments(self):
-        u = mkuser("tch"); tp = TeacherProfile.objects.create(user=u, school=self.school, staff_id="T1")
-        for sc, sb, sm in ((self.school, self.maths, self.s3), (self.school, self.maths, self.s4),
-                           (self.other, self.oth_sub, self.so)):
-            TeacherAssignment.objects.create(teacher=tp, school=sc, subject=sb, stream=sm)
-        r = build_report_user(u)
-        self.assertEqual((r.role, r.class_names), ("teacher", ("Form 3", "Form 4")))
-
-    def test_teacher_without_assignments_has_no_classes(self):
-        u = mkuser("tch2"); TeacherProfile.objects.create(user=u, school=self.school, staff_id="T2")
-        self.assertEqual(build_report_user(u).class_names, ())
+    def test_teacher_is_denied(self):
+        from marian_reports.domain import PermissionDenied
+        u = mkuser("tch")
+        TeacherProfile.objects.create(user=u, school=self.school, staff_id="T1")
+        with self.assertRaises(PermissionDenied):
+            build_report_user(u)
 
     def test_guardian_gets_only_linked_students_in_own_school(self):
         u = mkuser("gua"); g = GuardianProfile.objects.create(user=u, school=self.school)

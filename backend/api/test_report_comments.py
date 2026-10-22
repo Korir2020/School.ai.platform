@@ -40,27 +40,31 @@ class CommentCase(TestCase):
     def test_teacher_of_other_class_blocked(self):
         self.assertEqual(self.call("get", "", self.t4, self.q).status_code, 403)
 
+    def test_teachers_denied_all_comment_routes(self):
+        self.assertEqual(self.draft(self.t3).status_code, 403)
+        self.assertEqual(self.call("get", "", self.t3, self.q).status_code, 403)
+
     def test_teacher_cannot_draft_principal_comment(self):
         self.assertEqual(self.draft(self.t3, field="principal").status_code, 403)
 
     def test_draft_edit_approve_flow(self):
-        r = self.draft(self.t3)
+        r = self.draft(self.admin)
         self.assertEqual(r.status_code, 200, r.data)
         cid = r.data["comment"].get("id")
         self.assertIsNotNone(cid, r.data)
         self.assertIsNone(self.remarks().get("class_teacher"))      # a draft is never on the report
-        e = self.call("put", f"{cid}/", self.t3, {"text": "Edited comment text."})
+        e = self.call("put", f"{cid}/", self.admin, {"text": "Edited comment text."})
         self.assertEqual(e.status_code, 200, e.data)
-        a = self.call("post", f"{cid}/approve/", self.t3)
+        a = self.call("post", f"{cid}/approve/", self.admin)
         self.assertEqual(a.status_code, 200, a.data)
         self.assertEqual(self.remarks().get("class_teacher"), "Edited comment text.")
-        lst = self.call("get", "", self.t3, self.q)
+        lst = self.call("get", "", self.admin, self.q)
         self.assertEqual(lst.status_code, 200)
         self.assertTrue(lst.data["comments"])
 
     def test_reject_flow(self):
-        cid = self.draft(self.t3).data["comment"].get("id")
-        r = self.call("post", f"{cid}/reject/", self.t3)
+        cid = self.draft(self.admin).data["comment"].get("id")
+        r = self.call("post", f"{cid}/reject/", self.admin)
         self.assertEqual(r.status_code, 200, r.data)
         self.assertIsNone(self.remarks().get("class_teacher"))
 
@@ -72,7 +76,7 @@ class CommentCase(TestCase):
         self.assertEqual(self.draft(self.admin2).status_code, 404)
 
     def test_audit_entry_written(self):
-        cid = self.draft(self.t3).data["comment"].get("id")
-        self.call("post", f"{cid}/approve/", self.t3)
+        cid = self.draft(self.admin).data["comment"].get("id")
+        self.call("post", f"{cid}/approve/", self.admin)
         entries = DjangoAuditLog().entries(build_report_user(self.admin), None, 50)
         self.assertTrue(any("comment" in str(e).lower() for e in entries), entries)

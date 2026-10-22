@@ -106,9 +106,10 @@ class ApiCase(TestCase):
         for p in ("selection/", "analytics/", f"student/{self.s1.pk}/pdf/"):
             self.assertEqual(self.get(p, self.admin2).status_code, 404, p)
 
-    def test_teacher_class_limits(self):
-        self.assertEqual(self.get("selection/", self.t4).status_code, 403)
-        self.assertEqual(self.get("export/csv/", self.t3).status_code, 200)
+    def test_teachers_cannot_open_reports(self):
+        for t in (self.t3, self.t4):
+            for p in ("selection/", "export/csv/", "analytics/", f"student/{self.s1.pk}/pdf/"):
+                self.assertEqual(self.get(p, t).status_code, 403, p)
 
     def test_rankings_analytics_support(self):
         r = self.get("rankings/", self.admin)
