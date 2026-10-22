@@ -2,7 +2,7 @@ from api.auth_throttle import LoginView
 from api.admin_create import academic_year_collection, term_collection, stream_collection, subject_collection, enrollment_collection, teacher_assignment_collection
 from api.students_api import student_collection
 from django.contrib import admin
-from django.urls import path
+from django.urls import include, path
 from api.views import (
     performance_list,
     school_list,
@@ -55,6 +55,7 @@ from api.workflow import performance_action
 
 urlpatterns += [
     path('api/performance/<int:pk>/<str:action>/', performance_action),
+    path('api/levels/', include('api.level_urls')),
 ]
 
 from api.report_cards import report_card
