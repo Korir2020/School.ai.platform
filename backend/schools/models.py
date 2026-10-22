@@ -316,6 +316,8 @@ class Exam(models.Model):
     class_level = models.ForeignKey(ClassLevel, on_delete=models.PROTECT, related_name="exams")
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="draft")
     published_at = models.DateTimeField(null=True, blank=True)
+    framework_key = models.CharField(max_length=40, null=True, blank=True)
+    framework_version = models.PositiveIntegerField(null=True, blank=True)
     published_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
         null=True, blank=True, related_name="+",
@@ -755,3 +757,112 @@ class ReportAuditEntry(models.Model):
 
     def __str__(self):
         return f"{self.action} - {self.school}"
+
+
+class FrameworkVersion(models.Model):
+    """One saved set of grading rules. Never edited: a change makes a new version.
+    Rules are set by the school, not official KNEC rules."""
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name="framework_versions")
+    framework_key = models.CharField(max_length=40)
+    version = models.PositiveIntegerField()
+    curriculum = models.ForeignKey(Curriculum, on_delete=models.PROTECT, related_name="framework_versions")
+    min_level = models.PositiveIntegerField()
+    max_level = models.PositiveIntegerField()
+    source = models.CharField(max_length=30, default="school")
+    rules = models.JSONField(default=dict, blank=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name="+",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["school", "framework_key", "version"],
+                name="unique_framework_version",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(min_level__lte=models.F("max_level")),
+                name="framework_levels_ordered",
+            ),
+        ]
+
+    def covers(self, class_level):
+        return (class_level.curriculum_id == self.curriculum_id
+                and self.min_level <= class_level.level_number <= self.max_level)
+
+    def __str__(self):
+        return f"{self.framework_key} v{self.version} - {self.school}"
+
+
+class FrameworkSetting(models.Model):
+    """School default (no class level) or a class-level override, optionally for one year."""
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name="framework_settings")
+    class_level = models.ForeignKey(
+        ClassLevel, on_delete=models.CASCADE, null=True, blank=True, related_name="+",
+    )
+    academic_year = models.ForeignKey(
+        AcademicYear, on_delete=models.CASCADE, null=True, blank=True, related_name="+",
+    )
+    framework_version = models.ForeignKey(
+        FrameworkVersion, on_delete=models.PROTECT, related_name="settings",
+    )
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name="+",
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["school", "class_level", "academic_year"],
+                condition=models.Q(class_level__isnull=False, academic_year__isnull=False),
+                name="fs_unique_level_year",
+            ),
+            models.UniqueConstraint(
+                fields=["school", "class_level"],
+                condition=models.Q(class_level__isnull=False, academic_year__isnull=True),
+                name="fs_unique_level",
+            ),
+            models.UniqueConstraint(
+                fields=["school", "academic_year"],
+                condition=models.Q(class_level__isnull=True, academic_year__isnull=False),
+                name="fs_unique_year",
+            ),
+            models.UniqueConstraint(
+                fields=["school"],
+                condition=models.Q(class_level__isnull=True, academic_year__isnull=True),
+                name="fs_unique_default",
+            ),
+        ]
+
+
+class FrameworkChangeLog(models.Model):
+    """Append-only record of framework changes. No marks or names."""
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name="framework_changes")
+    class_level = models.ForeignKey(
+        ClassLevel, on_delete=models.SET_NULL, null=True, blank=True, related_name="+",
+    )
+    academic_year = models.ForeignKey(
+        AcademicYear, on_delete=models.SET_NULL, null=True, blank=True, related_name="+",
+    )
+    from_version = models.ForeignKey(
+        FrameworkVersion, on_delete=models.SET_NULL, null=True, blank=True, related_name="+",
+    )
+    to_version = models.ForeignKey(
+        FrameworkVersion, on_delete=models.PROTECT, related_name="+",
+    )
+    changed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name="+",
+    )
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name="+",
+    )
+    results_existed = models.BooleanField(default=False)
+    note = models.CharField(max_length=200, blank=True)
+    at = models.DateTimeField(auto_now_add=True)
+
