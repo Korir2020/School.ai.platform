@@ -7,6 +7,7 @@ import Shell from "./Shell";
 import { Loading } from "./ui";
 import Login from "./Login";
 import Marks from "./Marks";
+import LevelEntry from "./LevelEntry";
 import Approvals from "./Approvals";
 import Exams from "./Exams";
 import ReportCards from "./ReportCards";
@@ -62,7 +63,7 @@ function Dash({ onOut }) {
   const role = d && d.role;
   const need = (el) => (d.active_term ? el : <p className="plain">No active term yet. Create one in Setup first.</p>);
   const home = d && <>{role === "school_admin" ? <Dash2Top me={me} d={d} go={setTab} tabs={{ Students: 1, Teachers: 1, Exams: 1, Approve: 1, Fees: 1 }}><Dash2Mid d={d} go={setTab} /><Dash2Low d={d} go={setTab} tabs={{ Approve: 1, Exams: 1, Reports: 1, Students: 1, Analytics: 1, Fees: 1 }} /></Dash2Top> : <Home me={me} d={d} />}{role === "teacher" && <TeacherTodo d={d} go={setTab} />}{role === "teacher" && <Mine d={d} />}{role === "school_admin" && <Dash2Act go={setTab} />}<Password /></>;
-  const baseTabs = role === "teacher" ? { Home: home, Marks: need(<Marks d={d} />), Attendance: <Attendance /> }
+  const baseTabs = role === "teacher" ? { Home: home, Marks: need(<Marks d={d} />), Levels: need(<LevelEntry d={d} />), Attendance: <Attendance /> }
     : role === "school_admin" ? { Home: home, Approve: <Approvals />, Exams: need(<Exams d={d} />), Reports: need(<ReportCards d={d} />), 'Report Cards': <ReportModule />, Analytics: need(<Analytics d={d} />), Attendance: <Attendance />, Fees: <Fees admin />, Documents: <BulkDocuments admin />, Students: need(<Students d={d} />), Parents: <ParentAccounts />, Transfers: <TeacherTransfers />, Teachers: need(<><Teachers />{me && !me.is_deputy && <Deputies />}</>), Staff: <Staff />, Audit: <AuditLog />, Setup: <><SetupWizard /><Terms /><Setup /></> }
     : role === "bursar" ? { Fees: <Fees />, Documents: <BulkDocuments /> }
     : role === "parent" ? { Home: <Parent /> }
