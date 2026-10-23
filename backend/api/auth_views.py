@@ -28,10 +28,13 @@ def me(request):
                     "school").filter(user=user).first()
                 if guardian:
                     role, school = "parent", guardian.school
+    from schools.models import ClassTeacher
+    is_ct = role == "teacher" and ClassTeacher.objects.filter(teacher__user=user).exists()
     return Response({
         "username": user.username,
         "role": role,
         "is_deputy": is_deputy,
+        "is_class_teacher": is_ct,
         "school": {"id": school.id, "name": school.name} if school else None,
         "setup_complete": (school.setup_completed_at is not None) if school else None,
     })
