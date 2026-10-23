@@ -2,6 +2,7 @@ import { useState } from "react";
 import { upload } from "./api";
 
 const CHECK_PATH = "/api/students/migration/check/";
+const COMMIT_PATH = CHECK_PATH.replace("/check/", "/commit/");
 const PAGE = 100;
 const LINE = "1px solid rgba(128,128,128,.4)";
 const TONE = {
@@ -33,9 +34,13 @@ export default function MigrationCentre() {
   const [err, setErr] = useState("");
   const [only, setOnly] = useState(true);
   const [limit, setLimit] = useState(PAGE);
+  const [ask, setAsk] = useState(false);
+  const [done, setDone] = useState(null);
 
   async function run(c) {
     if (!file && !text.trim()) { setErr("Choose a file or paste the table first."); return; }
+    setDone(null);
+    setAsk(false);
     setBusy(true);
     setErr("");
     try {
@@ -66,6 +71,30 @@ export default function MigrationCentre() {
     if (set.has(code)) set.delete(code); else set.add(code);
     if (set.size) cur[row] = [...set]; else delete cur[row];
     run(cur);
+  }
+
+  async function commit() {
+    setBusy(true);
+    setErr("");
+    try {
+      const fd = new FormData();
+      if (file) fd.append("file", file); else fd.append("text", text);
+      fd.append("source", source);
+      if (Object.keys(conf).length) fd.append("confirmations", JSON.stringify(conf));
+      const r = await upload(COMMIT_PATH, fd);
+      let data = null;
+      try { data = await r.json(); } catch { data = null; }
+      if (!r.ok) {
+        setErr((data && data.detail) || "Saving failed (" + r.status + "). Nothing was added.");
+      } else {
+        setDone(data);
+        setRes(null); setFile(null); setText(""); setConf({});
+      }
+    } catch {
+      setErr("The connection dropped. Open the Students list to see whether the learners were added before you try again.");
+    }
+    setAsk(false);
+    setBusy(false);
   }
 
   const sum = res && res.summary ? res.summary : null;
@@ -113,6 +142,12 @@ export default function MigrationCentre() {
         </button>
       </div>
 
+      {done && (
+        <div role="status" style={{ ...card, borderColor: "#16a34a", background: "rgba(22,163,74,.1)" }}>
+          <b>Done.</b> {done.created} learner(s) added{done.skipped ? ", " + done.skipped + " left out" : ""}. Find them under Students. To add the left-out ones, fix your file and check it again.
+        </div>
+      )}
+
       {err && (
         <div role="alert" style={{ ...card, borderColor: "#dc2626", background: "rgba(220,38,38,.1)" }}>{err}</div>
       )}
@@ -155,6 +190,26 @@ export default function MigrationCentre() {
                 </div>
               )}
             </>
+          )}
+
+          {sum && sum.ready > 0 && !(res.file_issues || []).some((i) => i.severity === "block") && (
+            ask ? (
+              <div style={{ ...card, borderColor: "#2563eb" }}>
+                <b>Add {sum.ready} learner(s) now?</b>
+                <div style={{ fontSize: 14, margin: "6px 0 10px" }}>
+                  {sum.needs_confirmation + sum.blocked > 0 ? (sum.needs_confirmation + sum.blocked) + " will be left out (blocked, or not yet accepted). " : ""}
+                  Added learners go into the classes shown above. This cannot be undone from this screen.
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button style={{ ...btn, flex: 1 }} disabled={busy} onClick={() => setAsk(false)}>Cancel</button>
+                  <button style={{ ...btnMain, flex: 1 }} disabled={busy} onClick={commit}>{busy ? "Adding..." : "Yes, add them"}</button>
+                </div>
+              </div>
+            ) : (
+              <button style={{ ...btnMain, width: "100%", marginBottom: 10 }} disabled={busy} onClick={() => setAsk(true)}>
+                3. Add {sum.ready} ready learner(s)
+              </button>
+            )
           )}
 
           {total === 0 && rows.length > 0 && only && (
