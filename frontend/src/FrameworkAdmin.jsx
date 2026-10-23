@@ -18,6 +18,7 @@ export default function FrameworkAdmin() {
   const [cur, setCur] = useState("");
   const [minL, setMinL] = useState("");
   const [maxL, setMaxL] = useState("");
+  const [freeze, setFreeze] = useState(false);
   const [ver, setVer] = useState("");
   const [scope, setScope] = useState("");
   const [yr, setYr] = useState("");
@@ -39,7 +40,7 @@ export default function FrameworkAdmin() {
     if (!key || !cur || !minL || !maxL) { setMsg("Choose the framework, curriculum and level range first."); return; }
     setBusy("cv");
     try {
-      const r = await api(P + "version/", "POST", { framework_key: key, curriculum_id: cur, min_level: minL, max_level: maxL });
+      const r = await api(P + "version/", "POST", { framework_key: key, curriculum_id: cur, min_level: minL, max_level: maxL, freeze_school_scale: freeze });
       if (!r.ok) setMsg(await errText(r));
       else {
         const j = await r.json();
@@ -124,6 +125,8 @@ export default function FrameworkAdmin() {
                 <option value="">Choose</option>
                 {nums.map((n) => <option key={n} value={n}>{n}</option>)}
               </Select>}
+              <p><label><input type="checkbox" checked={freeze} onChange={(e) => setFreeze(e.target.checked)} /> Freeze the current school grading scale into this version</label></p>
+              <p>Exams published after you assign a frozen version keep its bands, even if the school scale changes later. Exams already published are not changed.</p>
               <p><Button busy={busy === "cv"} onClick={makeVersion}>Save version</Button></p>
               <h4>2. Assign it</h4>
               <Select id="fw-scope" label="Applies to" value={scope} onChange={(e) => { setScope(e.target.value); setVer(""); }}>
@@ -138,7 +141,7 @@ export default function FrameworkAdmin() {
                 <option value="">Choose version</option>
                 {usable.map((v) => (
                   <option key={v.id} value={v.id}>
-                    {fwName(v.framework_key)} v{v.version} ({v.curriculum_name}, levels {v.min_level}-{v.max_level})
+                    {fwName(v.framework_key)} v{v.version} ({v.curriculum_name}, levels {v.min_level}-{v.max_level}{v.frozen_scale ? ", scale frozen" : ""})
                   </option>
                 ))}
               </Select>
