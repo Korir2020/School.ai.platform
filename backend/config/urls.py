@@ -56,6 +56,7 @@ from api.workflow import performance_action
 urlpatterns += [
     path('api/performance/<int:pk>/<str:action>/', performance_action),
     path('api/levels/', include('api.level_urls')),
+    path('api/frameworks/', include('api.framework_urls')),
 ]
 
 from api.report_cards import report_card
