@@ -163,7 +163,7 @@ def roster(user, subject, stream, year, term, atype):
     rows = []
     for e in enrolled:
         r = got.get(e.student_id)
-        rows.append({"student_id": e.student_id, "name": str(e.student),
+        rows.append({"id": r.id if r else None, "student_id": e.student_id, "name": str(e.student),
                      "level": r.level_key if r else None,
                      "comment": r.comment if r else "",
                      "status": r.status if r else None})
