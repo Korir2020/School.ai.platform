@@ -6,6 +6,7 @@ import ReportInsights from "./ReportInsights";
 import ReportComments from "./ReportComments";
 import ReportAdmin from "./ReportAdmin";
 import FrameworkAdmin from "./FrameworkAdmin";
+import ClassTeacherAdmin from "./ClassTeacherAdmin";
 
 const P = "/api/report-module/";
 
@@ -154,6 +155,7 @@ export default function ReportModule() {
         {exam && cls && <ReportComments key={exam + "|" + cls} exam={exam} cls={cls} students={students} />}
         <ReportAdmin />
         <FrameworkAdmin />
+        <ClassTeacherAdmin />
     {cls && students.length === 0 && <EmptyState title="No students" text="No students in this class." />}
       {exam && students.map((s) => (
         <Card key={s.id} title={s.name + " (Adm " + s.adm_no + ")"}>
