@@ -941,3 +941,43 @@ class LevelResult(models.Model):
     def __str__(self):
         return f"{self.student} - {self.subject} - {self.level_key}"
 
+
+
+
+class ClassTeacher(models.Model):
+    """The class teacher of one stream for one academic year."""
+    school = models.ForeignKey("School", on_delete=models.CASCADE, related_name="class_teachers")
+    stream = models.ForeignKey("Stream", on_delete=models.CASCADE, related_name="class_teachers")
+    academic_year = models.ForeignKey("AcademicYear", on_delete=models.CASCADE, related_name="class_teachers")
+    teacher = models.ForeignKey("TeacherProfile", on_delete=models.CASCADE, related_name="class_teacher_of")
+    assigned_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["stream", "academic_year"], name="ct_unique_stream_year"),
+        ]
+
+
+class NationalRecord(models.Model):
+    """What a learner received in a national assessment, typed in by the school
+    from the official result. Never calculated here and never mixed into school
+    exam marks, grades or ranks. A blank subject means the overall result."""
+    EXAM_CHOICES = [("kpsea", "KPSEA"), ("kjsea", "KJSEA"), ("kcse", "KCSE")]
+    school = models.ForeignKey("School", on_delete=models.CASCADE, related_name="national_records")
+    student = models.ForeignKey("Student", on_delete=models.CASCADE, related_name="national_records")
+    exam_type = models.CharField(max_length=10, choices=EXAM_CHOICES)
+    year = models.PositiveIntegerField()
+    subject_name = models.CharField(max_length=80, blank=True)
+    result = models.CharField(max_length=40)
+    note = models.CharField(max_length=200, blank=True)
+    entered_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["student", "exam_type", "year", "subject_name"], name="nr_unique_learner_exam_year_subject"),
+        ]
