@@ -54,7 +54,11 @@ def service(school_id):
 
 
 def ctx(request):
-    user = build_report_user(request.user)
+    try:
+        user = build_report_user(request.user)
+    except PermissionDenied:
+        from api.class_teacher_access import class_teacher_user
+        user = class_teacher_user(request)
     return user, service(user.school_id)
 
 
@@ -116,6 +120,9 @@ def report_meta(request):
         studs = [s for s in studs if s.id in user.student_ids]
     exams = [{"id": e.id, "name": e.name, "published": e.published}
              for e in ds.list_exams(user.school_id)]
+    if user.role == "teacher":
+        from api.class_teacher_access import limit_meta
+        studs, exams = limit_meta(request.user, studs, exams)
     return Response({
         "role": user.role, "exams": exams,
         "classes": sorted({s.class_name for s in studs}),
@@ -133,6 +140,9 @@ def report_meta(request):
 def report_selection(request):
     user, svc = ctx(request)
     exam_id, cn, stream, ids = params(request)
+    if user.role == "teacher":
+        from api.class_teacher_access import enforce_selection
+        stream, ids = enforce_selection(request, user, exam_id, cn, stream, ids)
     from api.level_report import level_selection
     lv = level_selection(request, svc, user, exam_id, cn, stream, ids)
     if lv is not None:
@@ -163,6 +173,9 @@ def report_student_pdf(request, student_id):
     user, svc = ctx(request)
     st = svc.ds.get_student(user.school_id, str(student_id))
     svc.authorize_student(user, st)
+    if user.role == "teacher":
+        from api.class_teacher_access import enforce_student
+        enforce_student(request, user, st)
     from api.level_report import level_pdf_response
     lv = level_pdf_response(request, user, st)
     if lv is not None:
