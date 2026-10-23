@@ -58,7 +58,8 @@ def framework_overview(request):
                          for c in levels],
         "versions": [{"id": v.id, "framework_key": v.framework_key, "version": v.version,
                       "curriculum_id": v.curriculum_id, "curriculum_name": v.curriculum.name,
-                      "min_level": v.min_level, "max_level": v.max_level, "source": v.source}
+                      "min_level": v.min_level, "max_level": v.max_level, "source": v.source,
+                      "frozen_scale": bool(isinstance(v.rules, dict) and v.rules.get("scheme"))}
                      for v in versions],
         "settings": [{"id": s.id, "class_level_id": s.class_level_id,
                       "academic_year_id": s.academic_year_id,
@@ -84,10 +85,18 @@ def framework_version(request):
     if lo is None or hi is None:
         return _err("framework_error", "Check the level numbers.", 400)
     try:
-        v = create_version(school, str(d.get("framework_key", "")), cur, lo, hi, request.user)
+        rules = None
+        if d.get("freeze_school_scale") in (True, "true", "1", 1):
+            from api.report_source import DjangoConfigStore, scheme_to_dict
+            current = DjangoConfigStore(str(school.id)).load_scheme()
+            if current is None:
+                return _err("no_grading_scale", "Set the school's grading scale first.", 400)
+            rules = {"scheme": scheme_to_dict(current)}
+        v = create_version(school, str(d.get("framework_key", "")), cur, lo, hi, request.user, rules=rules)
     except FrameworkError as e:
         return _err("framework_error", str(e), 400)
-    return Response({"id": v.id, "framework_key": v.framework_key, "version": v.version})
+    return Response({"id": v.id, "framework_key": v.framework_key, "version": v.version,
+                     "frozen_scale": bool(rules)})
 
 
 @api_view(["POST"])

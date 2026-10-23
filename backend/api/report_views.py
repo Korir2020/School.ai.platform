@@ -42,7 +42,29 @@ def guard(fn):
     return inner
 
 
-def service(school_id):
+def _exam_scheme(school_id, exam_id):
+    """Grading scale frozen into the framework version recorded on this exam,
+    or None (legacy and untracked exams use the school's scale)."""
+    from api.report_source import scheme_from_dict
+    from schools.models import Exam, FrameworkVersion
+    try:
+        pk = int(exam_id)
+    except (TypeError, ValueError):
+        return None
+    exam = Exam.objects.filter(pk=pk, school_id=school_id).first()
+    if exam is None or not exam.framework_key or not exam.framework_version:
+        return None
+    fv = FrameworkVersion.objects.filter(
+        school_id=school_id, framework_key=exam.framework_key,
+        version=exam.framework_version).first()
+    rules = fv.rules if fv is not None and isinstance(fv.rules, dict) else {}
+    frozen = rules.get("scheme")
+    if not isinstance(frozen, dict):
+        return None
+    return scheme_from_dict(frozen)
+
+
+def service(school_id, exam_id=None):
     store = DjangoConfigStore(str(school_id))
     scheme = store.load_scheme()
     if scheme is None:
@@ -50,6 +72,7 @@ def service(school_id):
                              "This school has not set a grading scale yet.")
     cfg = ReportConfig()
     store.apply_to(cfg)
+    scheme = _exam_scheme(school_id, exam_id) or scheme
     return ReportService(DjangoDataSource(), scheme, cfg)
 
 
@@ -59,7 +82,7 @@ def ctx(request):
     except PermissionDenied:
         from api.class_teacher_access import class_teacher_user
         user = class_teacher_user(request)
-    return user, service(user.school_id)
+    return user, service(user.school_id, request.query_params.get("exam_id"))
 
 
 def verify_base():
