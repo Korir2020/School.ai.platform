@@ -31,6 +31,7 @@ class Student(models.Model):
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
     admission_number = models.CharField(max_length=50)
+    assessment_number = models.CharField(max_length=50, blank=True, default="")
     date_of_birth = models.DateField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

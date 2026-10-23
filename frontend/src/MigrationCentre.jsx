@@ -1,0 +1,263 @@
+import { useState } from "react";
+import { upload } from "./api";
+
+const CHECK_PATH = "/api/students/migration/check/";
+const COMMIT_PATH = CHECK_PATH.replace("/check/", "/commit/");
+const PAGE = 100;
+const LINE = "1px solid rgba(128,128,128,.4)";
+const TONE = {
+  ready: ["#16a34a", "Ready"],
+  needs_confirmation: ["#d97706", "Confirm"],
+  blocked: ["#dc2626", "Blocked"],
+};
+const SEV = { block: "#dc2626", confirm: "#d97706", notice: "#6b7280" };
+const btn = { minHeight: 44, padding: "0 16px", borderRadius: 10, border: LINE, background: "transparent", color: "inherit", font: "inherit", cursor: "pointer" };
+const btnMain = { ...btn, background: "#2563eb", borderColor: "#2563eb", color: "#fff", fontWeight: 600 };
+const card = { border: LINE, borderRadius: 12, padding: 12, marginBottom: 10 };
+
+function Chip({ n, label, color }) {
+  return (
+    <div style={{ ...card, flex: "1 1 90px", marginBottom: 0, textAlign: "center", borderColor: color || "rgba(128,128,128,.4)" }}>
+      <div style={{ fontSize: 22, fontWeight: 700, color }}>{n}</div>
+      <div style={{ fontSize: 12, opacity: 0.8 }}>{label}</div>
+    </div>
+  );
+}
+
+export default function MigrationCentre() {
+  const [file, setFile] = useState(null);
+  const [text, setText] = useState("");
+  const [source, setSource] = useState("digital");
+  const [res, setRes] = useState(null);
+  const [conf, setConf] = useState({});
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const [only, setOnly] = useState(true);
+  const [limit, setLimit] = useState(PAGE);
+  const [ask, setAsk] = useState(false);
+  const [done, setDone] = useState(null);
+
+  async function run(c) {
+    if (!file && !text.trim()) { setErr("Choose a file or paste the table first."); return; }
+    setDone(null);
+    setAsk(false);
+    setBusy(true);
+    setErr("");
+    try {
+      const fd = new FormData();
+      if (file) fd.append("file", file); else fd.append("text", text);
+      fd.append("source", source);
+      if (c && Object.keys(c).length) fd.append("confirmations", JSON.stringify(c));
+      const r = await upload(CHECK_PATH, fd);
+      let data = null;
+      try { data = await r.json(); } catch { data = null; }
+      if (!r.ok) {
+        setErr((data && data.detail) || "The check failed (" + r.status + "). Try again.");
+        setRes(null);
+      } else {
+        setRes(data);
+        setConf(c || {});
+        setLimit(PAGE);
+      }
+    } catch {
+      setErr("Could not reach the server. Check your connection and try again.");
+    }
+    setBusy(false);
+  }
+
+  function accept(row, code) {
+    const cur = { ...conf };
+    const set = new Set(cur[row] || []);
+    if (set.has(code)) set.delete(code); else set.add(code);
+    if (set.size) cur[row] = [...set]; else delete cur[row];
+    run(cur);
+  }
+
+  async function commit() {
+    setBusy(true);
+    setErr("");
+    try {
+      const fd = new FormData();
+      if (file) fd.append("file", file); else fd.append("text", text);
+      fd.append("source", source);
+      if (Object.keys(conf).length) fd.append("confirmations", JSON.stringify(conf));
+      const r = await upload(COMMIT_PATH, fd);
+      let data = null;
+      try { data = await r.json(); } catch { data = null; }
+      if (!r.ok) {
+        setErr((data && data.detail) || "Saving failed (" + r.status + "). Nothing was added.");
+      } else {
+        setDone(data);
+        setRes(null); setFile(null); setText(""); setConf({});
+      }
+    } catch {
+      setErr("The connection dropped. Open the Students list to see whether the learners were added before you try again.");
+    }
+    setAsk(false);
+    setBusy(false);
+  }
+
+  const sum = res && res.summary ? res.summary : null;
+  const rows = res && res.rows ? res.rows : [];
+  const shown = (only ? rows.filter((r) => r.status !== "ready") : rows).slice(0, limit);
+  const total = only ? rows.filter((r) => r.status !== "ready").length : rows.length;
+
+  return (
+    <div style={{ maxWidth: 760, margin: "0 auto", padding: 12 }}>
+      <h2 style={{ marginTop: 0 }}>Migration Centre</h2>
+      <p style={{ opacity: 0.85, marginTop: 0 }}>
+        Add many learners at once. Upload an Excel or CSV file, or paste the table. This step only checks the list. Nothing is saved yet.
+      </p>
+
+      <div style={card}>
+        <label style={{ display: "block", fontWeight: 600, marginBottom: 6 }}>1. Choose a file (.xlsx or .csv)</label>
+        <input
+          type="file"
+          accept=".csv,.xlsx,.tsv,.txt"
+          onChange={(e) => { setFile(e.target.files && e.target.files[0] ? e.target.files[0] : null); setRes(null); setConf({}); }}
+          style={{ width: "100%", minHeight: 44 }}
+        />
+        <label style={{ display: "block", fontWeight: 600, margin: "12px 0 6px" }}>or paste the table here</label>
+        <textarea
+          value={text}
+          onChange={(e) => { setText(e.target.value); setRes(null); setConf({}); }}
+          placeholder={"Admission No, First name, Surname, Class\n1001, Amina, Otieno, Grade 7 East"}
+          rows={5}
+          disabled={!!file}
+          style={{ width: "100%", boxSizing: "border-box", borderRadius: 10, border: LINE, padding: 10, font: "inherit", background: "transparent", color: "inherit" }}
+        />
+        {file && (
+          <div style={{ marginTop: 6, fontSize: 13 }}>
+            Using file: <b>{file.name}</b>{" "}
+            <button style={{ ...btn, minHeight: 36, padding: "0 10px" }} onClick={() => { setFile(null); setRes(null); setConf({}); }}>Remove</button>
+          </div>
+        )}
+        <label style={{ display: "block", fontWeight: 600, margin: "12px 0 6px" }}>Where did this list come from?</label>
+        <select value={source} onChange={(e) => { setSource(e.target.value); setRes(null); setConf({}); }} style={{ ...btn, width: "100%" }}>
+          <option value="digital">A computer file (Excel, CSV)</option>
+          <option value="paper">A handwritten or typed register</option>
+        </select>
+        <button style={{ ...btnMain, width: "100%", marginTop: 14 }} disabled={busy} onClick={() => run({})}>
+          {busy ? "Checking..." : "2. Check the list"}
+        </button>
+      </div>
+
+      {done && (
+        <div role="status" style={{ ...card, borderColor: "#16a34a", background: "rgba(22,163,74,.1)" }}>
+          <b>Done.</b> {done.created} learner(s) added{done.skipped ? ", " + done.skipped + " left out" : ""}. Find them under Students. To add the left-out ones, fix your file and check it again.
+        </div>
+      )}
+
+      {err && (
+        <div role="alert" style={{ ...card, borderColor: "#dc2626", background: "rgba(220,38,38,.1)" }}>{err}</div>
+      )}
+
+      {res && (
+        <>
+          {(res.file_issues || []).map((i, k) => (
+            <div key={k} role="alert" style={{ ...card, borderColor: SEV[i.severity] || "#6b7280", background: i.severity === "block" ? "rgba(220,38,38,.1)" : "rgba(128,128,128,.08)" }}>
+              <b style={{ color: SEV[i.severity] || "inherit" }}>{i.severity === "block" ? "Fix the file: " : "Note: "}</b>
+              {i.message}
+            </div>
+          ))}
+
+          {sum && (
+            <>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+                <Chip n={sum.total} label="Learners" />
+                <Chip n={sum.ready} label="Ready" color="#16a34a" />
+                <Chip n={sum.needs_confirmation} label="To confirm" color="#d97706" />
+                <Chip n={sum.blocked} label="Blocked" color="#dc2626" />
+              </div>
+              {sum.temporary_admission > 0 && (
+                <div style={{ ...card, fontSize: 14 }}>
+                  {sum.temporary_admission} learner(s) have no admission number and will get a temporary one.
+                </div>
+              )}
+              {sum.by_class && Object.keys(sum.by_class).length > 0 && (
+                <div style={{ ...card, fontSize: 14 }}>
+                  <b>By class:</b>{" "}
+                  {Object.entries(sum.by_class).map(([k, v]) => k + " (" + v + ")").join(", ")}
+                </div>
+              )}
+              <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+                <button style={{ ...btn, flex: 1, fontWeight: only ? 700 : 400 }} onClick={() => { setOnly(true); setLimit(PAGE); }}>Problems only</button>
+                <button style={{ ...btn, flex: 1, fontWeight: only ? 400 : 700 }} onClick={() => { setOnly(false); setLimit(PAGE); }}>All learners</button>
+              </div>
+              {sum.blocked > 0 && (
+                <div style={{ ...card, borderColor: "#dc2626", fontSize: 14 }}>
+                  Blocked learners can't be added until you fix them in your file. Correct the file, choose it again, and check again.
+                </div>
+              )}
+            </>
+          )}
+
+          {sum && sum.ready > 0 && !(res.file_issues || []).some((i) => i.severity === "block") && (
+            ask ? (
+              <div style={{ ...card, borderColor: "#2563eb" }}>
+                <b>Add {sum.ready} learner(s) now?</b>
+                <div style={{ fontSize: 14, margin: "6px 0 10px" }}>
+                  {sum.needs_confirmation + sum.blocked > 0 ? (sum.needs_confirmation + sum.blocked) + " will be left out (blocked, or not yet accepted). " : ""}
+                  Added learners go into the classes shown above. This cannot be undone from this screen.
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button style={{ ...btn, flex: 1 }} disabled={busy} onClick={() => setAsk(false)}>Cancel</button>
+                  <button style={{ ...btnMain, flex: 1 }} disabled={busy} onClick={commit}>{busy ? "Adding..." : "Yes, add them"}</button>
+                </div>
+              </div>
+            ) : (
+              <button style={{ ...btnMain, width: "100%", marginBottom: 10 }} disabled={busy} onClick={() => setAsk(true)}>
+                3. Add {sum.ready} ready learner(s)
+              </button>
+            )
+          )}
+
+          {total === 0 && rows.length > 0 && only && (
+            <div style={{ ...card, borderColor: "#16a34a" }}>No problems found. Every learner is ready.</div>
+          )}
+
+          {shown.map((r) => {
+            const t = TONE[r.status] || ["#6b7280", r.status];
+            const given = conf[r.row] || [];
+            return (
+              <div key={r.row} style={{ ...card, borderLeft: "5px solid " + t[0] }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "baseline" }}>
+                  <b>{(r.first_name || "") + " " + (r.last_name || "")}</b>
+                  <span style={{ color: t[0], fontWeight: 700, fontSize: 13 }}>{t[1]}</span>
+                </div>
+                <div style={{ fontSize: 13, opacity: 0.85 }}>
+                  Row {r.row} · Adm {r.admission_number || "none"}{r.provisional ? " (temporary)" : ""} · {r.class_label || "No class"}
+                </div>
+                {(r.issues || []).map((i, k) => {
+                  const isConfirm = i.severity === "confirm";
+                  const done = given.includes(i.code);
+                  return (
+                    <div key={k} style={{ marginTop: 8, fontSize: 14 }}>
+                      <span style={{ color: SEV[i.severity] || "inherit", fontWeight: 600 }}>
+                        {i.severity === "block" ? "Problem: " : isConfirm ? "Check: " : "Note: "}
+                      </span>
+                      {i.message}
+                      {isConfirm && (
+                        <div>
+                          <button style={{ ...btn, marginTop: 6, background: done ? "rgba(22,163,74,.15)" : "transparent" }} disabled={busy} onClick={() => accept(r.row, i.code)}>
+                            {done ? "Accepted. Tap to undo" : "This is correct, accept"}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+
+          {total > shown.length && (
+            <button style={{ ...btn, width: "100%" }} onClick={() => setLimit(limit + PAGE)}>
+              Show more ({total - shown.length} left)
+            </button>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
