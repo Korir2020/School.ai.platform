@@ -133,6 +133,10 @@ def report_meta(request):
 def report_selection(request):
     user, svc = ctx(request)
     exam_id, cn, stream, ids = params(request)
+    from api.level_report import level_selection
+    lv = level_selection(request, svc, user, exam_id, cn, stream, ids)
+    if lv is not None:
+        return lv
     snap, pool = selection(user, svc, exam_id, cn, stream, ids)
     prov = request.query_params.get("provisional") == "1"
     out = {"selected": len(pool), "eligible": 0, "complete": 0, "pending": 0,
@@ -159,6 +163,10 @@ def report_student_pdf(request, student_id):
     user, svc = ctx(request)
     st = svc.ds.get_student(user.school_id, str(student_id))
     svc.authorize_student(user, st)
+    from api.level_report import level_pdf_response
+    lv = level_pdf_response(request, user, st)
+    if lv is not None:
+        return lv
     snap = svc.snapshot(user, request.query_params.get("exam_id", ""), st.class_name)
     prov = request.query_params.get("provisional") == "1"
     rd = svc.build_report(user, snap, st.id, provisional_ok=prov)
