@@ -83,3 +83,30 @@ class FrameworkViewsTests(TestCase):
         r = self._version()
         a = self._c(self.outsider).post(URL + "assign/", {"version_id": r.data["id"]}, format="json")
         self.assertEqual(a.status_code, 404)
+
+    def _freeze(self):
+        return self._c(self.admin).post(URL + "version/", {
+            "framework_key": "cbe_junior_levels", "curriculum_id": self.cur.id,
+            "min_level": 1, "max_level": 6, "freeze_school_scale": True}, format="json")
+
+    def test_freeze_needs_a_school_scale(self):
+        r = self._freeze()
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(r.data["error"], "no_grading_scale")
+
+    def test_freeze_copies_the_current_school_scale(self):
+        from api.report_source import DjangoConfigStore, scheme_from_dict
+        DjangoConfigStore(str(self.school.id)).save_scheme(scheme_from_dict({
+            "bands": [["X", 0, 50, 1], ["Y", 50, 100, 2]], "pass_pct": 50, "decimals": 2,
+            "rounding": "half_up", "mean_rule": "total_over_max",
+            "absent_policy": "pending", "best_n": None}))
+        r = self._freeze()
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(r.data["frozen_scale"])
+        ov = self._c(self.admin).get(URL)
+        self.assertTrue(ov.data["versions"][0]["frozen_scale"])
+
+    def test_plain_version_is_not_frozen(self):
+        r = self._version()
+        self.assertEqual(r.status_code, 200)
+        self.assertFalse(r.data["frozen_scale"])
