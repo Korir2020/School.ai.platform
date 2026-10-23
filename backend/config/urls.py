@@ -57,6 +57,7 @@ urlpatterns += [
     path('api/performance/<int:pk>/<str:action>/', performance_action),
     path('api/levels/', include('api.level_urls')),
     path('api/frameworks/', include('api.framework_urls')),
+    path('api/records/', include('api.national_urls')),
 ]
 
 from api.report_cards import report_card
