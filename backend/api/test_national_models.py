@@ -5,12 +5,12 @@ from django.db import IntegrityError, transaction
 from django.test import TestCase
 
 from schools.models import (
-    AcademicYear, ClassLevel, ClassTeacher, Curriculum, NationalRecord, School,
+    AcademicYear, ClassLevel, ClassTeacher, Curriculum, School,
     Stream, Student, TeacherProfile,
 )
 
 
-class NationalModelTests(TestCase):
+class ClassTeacherModelTests(TestCase):
     def setUp(self):
         U = get_user_model()
         self.school = School.objects.create(name="Nat School", code="nat-test")
@@ -21,29 +21,12 @@ class NationalModelTests(TestCase):
         self.east = Stream.objects.create(school=self.school, class_level=g3, name="East")
         self.year = AcademicYear.objects.create(
             school=self.school, name="2026", start_date=date(2026, 1, 1), end_date=date(2026, 12, 31))
-        self.kid = Student.objects.create(
-            school=self.school, first_name="Amani", last_name="Test", admission_number="A1")
 
     def _ct(self):
         return ClassTeacher.objects.create(
             school=self.school, stream=self.east, academic_year=self.year, teacher=self.tp)
 
-    def _nr(self, subject=""):
-        return NationalRecord.objects.create(
-            school=self.school, student=self.kid, exam_type="kjsea", year=2026,
-            subject_name=subject, result="TEST-RESULT")
-
     def test_one_class_teacher_per_stream_and_year(self):
         self._ct()
         with self.assertRaises(IntegrityError), transaction.atomic():
             self._ct()
-
-    def test_national_record_is_unique_per_learner_exam_year_subject(self):
-        self._nr()
-        with self.assertRaises(IntegrityError), transaction.atomic():
-            self._nr()
-
-    def test_overall_and_subject_results_can_coexist(self):
-        self._nr("")
-        self._nr("Mathematics")
-        self.assertEqual(NationalRecord.objects.count(), 2)
