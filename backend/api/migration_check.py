@@ -122,8 +122,8 @@ def build_structure(school_id):
 
 
 def build_existing(school_id):
-    rows = Student.objects.filter(school_id=school_id).values("id", "first_name", "last_name", "admission_number")
-    return [{**r, "assessment_number": "", "upi": ""} for r in rows]
+    rows = Student.objects.filter(school_id=school_id).values("id", "first_name", "last_name", "admission_number", "assessment_number")
+    return [{**r, "upi": ""} for r in rows]
 
 
 @extend_schema(request=OpenApiTypes.OBJECT, responses={

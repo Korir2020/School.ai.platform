@@ -282,6 +282,7 @@ from api.student_center import student_center
 from api.attendance import attendance_collection, interventions
 from api.student_import import student_import
 from api.migration_check import migration_check
+from api.migration_commit import migration_commit
 urlpatterns += [
     path('api/parents/', parent_accounts),
     path('api/parent/children/', parent_children),
@@ -295,6 +296,7 @@ urlpatterns += [
     path('api/students/<int:student_id>/interventions/', interventions),
     path('api/students/import/', student_import),
     path('api/students/migration/check/', migration_check),
+    path('api/students/migration/commit/', migration_commit),
 ]
 
 from django.conf import settings
