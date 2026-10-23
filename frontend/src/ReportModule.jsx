@@ -132,7 +132,7 @@ export default function ReportModule() {
           <option value="">All streams</option>
           {meta.streams.map((c) => <option key={c} value={c}>{c}</option>)}
         </Select>
-        {meta.config.allow_provisional && (
+        {meta.config.allow_provisional && meta.role !== "teacher" && (
           <p><label><input type="checkbox" checked={prov} onChange={(e) => { setProv(e.target.checked); setSel(null); }} /> Allow provisional reports</label></p>
         )}
         <p><Button onClick={check} disabled={!exam || !cls}>Check readiness</Button></p>
@@ -151,11 +151,11 @@ export default function ReportModule() {
             {bulk && <p>{bulk}</p>}
           </Card>
         )}
-        {exam && cls && <ReportInsights exam={exam} cls={cls} stream={stream} prov={prov} />}
-        {exam && cls && <ReportComments key={exam + "|" + cls} exam={exam} cls={cls} students={students} />}
-        <ReportAdmin />
-        <FrameworkAdmin />
-        <ClassTeacherAdmin />
+        {exam && cls && meta.role !== "teacher" && <ReportInsights exam={exam} cls={cls} stream={stream} prov={prov} />}
+        {exam && cls && meta.role !== "teacher" && <ReportComments key={exam + "|" + cls} exam={exam} cls={cls} students={students} />}
+        {meta.role !== "teacher" && <ReportAdmin />}
+        {meta.role !== "teacher" && <FrameworkAdmin />}
+        {meta.role !== "teacher" && <ClassTeacherAdmin />}
     {cls && students.length === 0 && <EmptyState title="No students" text="No students in this class." />}
       {exam && students.map((s) => (
         <Card key={s.id} title={s.name + " (Adm " + s.adm_no + ")"}>
