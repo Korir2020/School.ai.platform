@@ -89,3 +89,12 @@ class NationalViewsTests(TestCase):
         r = self._c(self.outsider).post(NR, {
             "student_id": self.kid.id, "exam_type": "kjsea", "year": 2026, "result": "X"}, format="json")
         self.assertEqual(r.status_code, 404)
+
+    def test_options_list_streams_teachers_and_years(self):
+        r = self._c(self.admin).get(CT)
+        self.assertEqual(r.status_code, 200)
+        opt = r.data["options"]
+        self.assertEqual([s["id"] for s in opt["streams"]], [self.east.id])
+        self.assertEqual([t["id"] for t in opt["teachers"]], [self.tp.id])
+        self.assertEqual([y["id"] for y in opt["years"]], [self.year.id])
+        self.assertEqual(opt["streams"][0]["name"], "Grade 3 East")
