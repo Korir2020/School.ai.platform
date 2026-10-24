@@ -135,13 +135,14 @@ def _split_full_name(value, order):
 
 
 def analyse_upload(matrix, structure, existing=(), source="digital", name_order=None,
-                   default_class="", confirmations=None, provisional_start=1):
+                   default_class="", confirmations=None, provisional_start=1, fixes=None):
     """Check an uploaded table. `matrix` is a list of rows (list of cells).
     `structure` is the school's real classes: [{id, name, level_number, streams:[{id, name}]}].
     `existing` are students already in Marian. `source` is 'digital' or 'paper'.
     `confirmations` is {row_number: [codes]} or {'all': [codes]}.
     """
     confirmations = confirmations or {}
+    fixes = fixes or {}
     out = {"file_issues": [], "needs_input": [], "rows": [], "sorted_by": "", "summary": {},
            "senior_levels": [l["name"] for l in structure if is_senior_level(l["name"])]}
     head = detect_header_row(matrix)
@@ -170,7 +171,11 @@ def analyse_upload(matrix, structure, existing=(), source="digital", name_order=
         out["file_issues"].append(_issue("other_names", "notice", "The 'Other names' column is added after First name. It is not treated as a surname."))
     body = [(i + 1, row) for i, row in enumerate(matrix) if i > head and any(_cell(c) for c in row)]
 
+    fx = {}
+
     def get(row, canon):
+        if canon in fx:
+            return _cell(fx[canon])
         found = cols.get(canon)
         if not found or found[0][0] >= len(row):
             return ""
@@ -185,6 +190,8 @@ def analyse_upload(matrix, structure, existing=(), source="digital", name_order=
 
     rows = []
     for number, raw in body:
+        fx.clear()
+        fx.update(fixes.get(number) or {})
         if has_split:
             first = (get(raw, "first_name") + " " + get(raw, "other_names")).strip()
             last = get(raw, "last_name")
@@ -195,6 +202,9 @@ def analyse_upload(matrix, structure, existing=(), source="digital", name_order=
              "level": None, "stream": None, "provisional_admission": False}
         if not has_split and len((get(raw, "full_name")).split()) > 2:
             r["issues"].append(_issue("name_split", "notice", f"Name split as first: '{first}', surname: '{last}'.", "name"))
+        for _f in ("first_name", "last_name"):
+            if _f in fx:
+                r[_f] = _cell(fx[_f])
         r["class_text"] = get(raw, "class_level") or default_class
         r["stream_text"] = get(raw, "stream")
         rows.append(r)

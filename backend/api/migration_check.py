@@ -105,6 +105,32 @@ def _confirmations(raw):
     return out
 
 
+FIX_FIELDS = ("first_name", "last_name", "admission_number", "assessment_number", "class_level", "stream")
+
+
+def _fixes(raw):
+    if not raw:
+        return None
+    try:
+        data = json.loads(raw) if isinstance(raw, str) else raw
+    except ValueError:
+        raise UploadError("The corrections were not valid.")
+    if not isinstance(data, dict) or len(data) > MAX_ROWS:
+        raise UploadError("The corrections were not valid.")
+    out = {}
+    for key, fields in data.items():
+        if not str(key).isdigit() or not isinstance(fields, dict):
+            raise UploadError("The corrections were not valid.")
+        clean = {}
+        for name, value in fields.items():
+            if name not in FIX_FIELDS or not isinstance(value, str) or len(value) > 120:
+                raise UploadError("The corrections were not valid.")
+            clean[name] = value.strip()
+        if clean:
+            out[int(key)] = clean
+    return out or None
+
+
 def build_structure(school_id):
     levels = {}
     streams = Stream.objects.filter(school_id=school_id, is_active=True, class_level__is_active=True).select_related("class_level")
@@ -153,12 +179,13 @@ def migration_check(request):
     try:
         matrix = parse_table(upload, text)
         confirmations = _confirmations(request.data.get("confirmations"))
+        fixes = _fixes(request.data.get("fixes"))
     except UploadError as exc:
         return Response({"detail": str(exc)}, status=400)
     result = analyse_upload(
         matrix, build_structure(school_id), existing=build_existing(school_id), source=source,
         name_order=request.data.get("name_order") or None,
         default_class=str(request.data.get("default_class") or ""),
-        confirmations=confirmations)
+        confirmations=confirmations, fixes=fixes)
     result["committed"] = False
     return Response(result)

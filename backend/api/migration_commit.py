@@ -11,7 +11,7 @@ from rest_framework.response import Response
 
 from schools.models import AcademicYear, Enrollment, MarkAuditLog, School, Student
 
-from .migration_check import UploadError, _confirmations, build_existing, build_structure, parse_table
+from .migration_check import UploadError, _confirmations, _fixes, build_existing, build_structure, parse_table
 from .migration_rules import analyse_upload
 from .student_import import _admin
 from .views import _scope
@@ -72,6 +72,7 @@ def migration_commit(request):
     try:
         matrix = parse_table(upload, text)
         confirmations = _confirmations(request.data.get("confirmations"))
+        fixes = _fixes(request.data.get("fixes"))
     except UploadError as exc:
         return Response({"detail": str(exc)}, status=400)
     year = AcademicYear.objects.filter(school_id=school_id, is_active=True).first()
@@ -84,7 +85,7 @@ def migration_commit(request):
                 matrix, build_structure(school_id), existing=build_existing(school_id), source=source,
                 name_order=request.data.get("name_order") or None,
                 default_class=str(request.data.get("default_class") or ""),
-                confirmations=confirmations)
+                confirmations=confirmations, fixes=fixes)
             if any(i.get("severity") == "block" for i in result["file_issues"]):
                 return Response({"detail": "The file has problems. Check the list again and fix them first. Nothing was added."}, status=400)
             ready = [r for r in result["rows"] if r["status"] == "ready"]
