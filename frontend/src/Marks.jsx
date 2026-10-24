@@ -71,7 +71,12 @@ export default function Marks({ d }) {
   const old = (sid) => a && data.pf.find((p) => p.student === sid
     && p.subject === a.subject && p.term === term.id && p.paper_number === pn
     && p.assessment_type === kind);
-  const badVal = (v) => v !== "" && !(Number(v) >= 1 && Number(v) <= 100);
+  const maxFor = (() => {
+    const sp = a ? data.sp.find((x) => x.subject === a.subject && x.paper_number === pn) : null;
+    const n = sp ? Number(sp.max_marks) : 100;
+    return Number.isFinite(n) && n > 0 ? n : 100;
+  })();
+  const badVal = (v) => v !== "" && !(Number(v) >= 1 && Number(v) <= maxFor);
   const nBad = Object.values(vals).filter(badVal).length;
   const nNew = Object.values(vals).filter((v) => v !== "").length;
   const save = async () => {
@@ -100,8 +105,8 @@ export default function Marks({ d }) {
       status: o ? o.status : "not entered" }; });
   const cols = [
     { label: "Student", key: "name", sort: true },
-    { label: "Marks", render: (r) => (r.o ? r.o.marks :
-      <MarkInput type="number" min="1" max="100" value={vals[r.student] ?? ""}
+    { label: "Marks (out of " + maxFor + ")", render: (r) => (r.o ? r.o.marks :
+      <MarkInput type="number" min="1" max={maxFor} value={vals[r.student] ?? ""}
         aria-label={"Marks for " + r.name}
         onChange={(ev) => setVals({ ...vals, [r.student]: ev.target.value })} />) },
     { label: "Status", key: "status", sort: true, render: (r) => (r.o
