@@ -2,6 +2,7 @@
 import csv
 import io
 import json
+import re
 
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiTypes
 from rest_framework.decorators import api_view, parser_classes
@@ -10,7 +11,7 @@ from rest_framework.response import Response
 
 from schools.models import Enrollment, School, Stream, Student
 
-from .migration_rules import analyse_upload
+from .migration_rules import analyse_upload, detect_header_row
 from .student_import import _admin
 from .views import _scope
 
@@ -62,6 +63,57 @@ def _parse_xlsx(upload):
     return _trim(rows)
 
 
+PDF_PAGE_MARK = re.compile(r"^\s*(page\s*)?\d+\s*(of|/)\s*\d+\s*$", re.I)
+MAX_PDF_PAGES = 60
+
+
+def _parse_pdf(upload):
+    raw = upload.read()
+    if not raw.startswith(b"%PDF"):
+        raise UploadError("This does not look like a PDF file.")
+    rows, scanned = [], []
+    try:
+        from pypdf import PdfReader
+        reader = PdfReader(io.BytesIO(raw))
+        if reader.is_encrypted and not reader.decrypt(""):
+            raise UploadError("This PDF is password protected. Remove the password and try again.")
+        if len(reader.pages) > MAX_PDF_PAGES:
+            raise UploadError("This PDF has more than %d pages. Split it and upload it in parts." % MAX_PDF_PAGES)
+        for n, page in enumerate(reader.pages, start=1):
+            text = page.extract_text(extraction_mode="layout") or ""
+            lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+            if not lines:
+                try:
+                    has_picture = len(page.images) > 0
+                except Exception:
+                    has_picture = True
+                if has_picture:
+                    scanned.append(n)
+                continue
+            for ln in lines:
+                if not PDF_PAGE_MARK.match(ln):
+                    rows.append([c.strip() for c in re.split(r"\t|\s{2,}", ln)])
+    except UploadError:
+        raise
+    except Exception:
+        raise UploadError("Could not read this PDF. Save it again, or use an Excel or CSV file.")
+    if scanned:
+        nums = ", ".join(str(n) for n in scanned)
+        label = "Page %s of this PDF is a picture, not typed text," if len(scanned) == 1 else "Pages %s of this PDF are pictures, not typed text,"
+        raise UploadError(label % nums + " so it cannot be read yet. Nothing was skipped. Use an Excel or CSV file, or wait for photo reading.")
+    if not rows:
+        raise UploadError("No typed text was found in this PDF.")
+    head = detect_header_row(rows)
+    if head is not None:
+        hdr = [c.lower() for c in rows[head]]
+        rows = rows[:head + 1] + [r for r in rows[head + 1:] if [c.lower() for c in r] != hdr]
+        bad = [i for i in range(head + 1, len(rows)) if len(rows[i]) != len(hdr)]
+        if bad:
+            shown = "; ".join("line %d: %s" % (i + 1, " | ".join(rows[i])[:50]) for i in bad[:3])
+            raise UploadError("Some rows have a different number of columns than the header (" + shown + "). This usually means an empty cell, and a PDF cannot show which column it belonged to. Nothing was added. Fill every cell, or use an Excel or CSV file.")
+    return _trim(rows)
+
+
 def parse_table(upload=None, text=""):
     if upload is not None:
         if upload.size > MAX_BYTES:
@@ -69,6 +121,8 @@ def parse_table(upload=None, text=""):
         name = (getattr(upload, "name", "") or "").lower()
         if name.endswith(".xlsx"):
             return _parse_xlsx(upload)
+        if name.endswith(".pdf"):
+            return _parse_pdf(upload)
         if name.endswith(".xls"):
             raise UploadError("Old .xls files are not supported. Save as .xlsx or .csv and try again.")
         raw = upload.read()

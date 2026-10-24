@@ -180,14 +180,14 @@ export default function MigrationCentre() {
     <div style={{ maxWidth: 760, margin: "0 auto", padding: 12 }}>
       <h2 style={{ marginTop: 0 }}>Migration Centre</h2>
       <p style={{ opacity: 0.85, marginTop: 0 }}>
-        Add many learners at once. Upload an Excel or CSV file, or paste the table. This step only checks the list. Nothing is saved yet.
+        Add many learners at once. Upload an Excel, CSV or typed PDF file, or paste the table. Nothing is added until you confirm at the end.
       </p>
 
       <div style={card}>
-        <label style={{ display: "block", fontWeight: 600, marginBottom: 6 }}>1. Choose a file (.xlsx or .csv)</label>
+        <label style={{ display: "block", fontWeight: 600, marginBottom: 6 }}>1. Choose a file (.xlsx, .csv or typed .pdf)</label>
         <input
           type="file"
-          accept=".csv,.xlsx,.tsv,.txt"
+          accept=".csv,.xlsx,.pdf,.tsv,.txt"
           onChange={(e) => { setFile(e.target.files && e.target.files[0] ? e.target.files[0] : null); setRes(null); setConf({}); setFixes({}); }}
           style={{ width: "100%", minHeight: 44 }}
         />
