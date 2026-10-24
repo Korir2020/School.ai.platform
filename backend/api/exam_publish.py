@@ -54,8 +54,10 @@ def exam_publish(request, pk):
         return Response({"detail": "No marks entered for this exam."}, status=400)
 
     papers = defaultdict(dict)
+    maxes = defaultdict(dict)
     for sp in SubjectPaper.objects.filter(subject_id__in={m.subject_id for m in marks}):
         papers[sp.subject_id][sp.paper_number] = sp.weight
+        maxes[sp.subject_id][sp.paper_number] = sp.max_marks
     bad = sorted({
         m.subject.name for m in marks
         if papers.get(m.subject_id) and sum(papers[m.subject_id].values()) != HUNDRED
@@ -102,7 +104,7 @@ def exam_publish(request, pk):
                 })
                 continue
             subject_scores[subject_id] = sum(
-                got[n].marks * w / HUNDRED for n, w in weights.items()
+                got[n].marks * w / maxes.get(subject_id, {}).get(n, HUNDRED) for n, w in weights.items()
             )
             counted.extend(got[n] for n in weights)
         scores[student_id] = subject_scores

@@ -96,4 +96,16 @@ class PerformanceSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     "Paper number is not defined for this subject."
                 )
+        marks = attrs.get("marks")
+        inst = getattr(self, "instance", None)
+        subj = subject or (inst.subject if inst is not None else None)
+        pno = attrs.get("paper_number", inst.paper_number if inst is not None else 1)
+        if marks is not None and subj is not None:
+            from schools.models import SubjectPaper
+            paper = SubjectPaper.objects.filter(subject=subj, paper_number=pno).first()
+            if paper is not None and marks > paper.max_marks:
+                top = format(paper.max_marks.normalize(), "f")
+                raise serializers.ValidationError(
+                    {"marks": ["Marks cannot be above " + top + " for this paper."]}
+                )
         return attrs

@@ -215,7 +215,7 @@ class DjangoDataSource(DataSource):
             if papers.get(subject_id):
                 components = tuple(
                     Component(
-                        score=_score(got.get(p.paper_number)), max_mark=HUNDRED,
+                        score=_score(got.get(p.paper_number)), max_mark=p.max_marks,
                         weight=p.weight, status=_status(got.get(p.paper_number)),
                         name=f"Paper {p.paper_number}")
                     for p in papers[subject_id])

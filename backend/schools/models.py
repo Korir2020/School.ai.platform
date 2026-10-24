@@ -293,6 +293,13 @@ class SubjectPaper(models.Model):
         validators=[MinValueValidator(0), MaxValueValidator(100)],
     )
 
+    # Highest mark a teacher can enter for this paper. Marks become a
+    # percentage of this before the paper weights apply.
+    max_marks = models.DecimalField(
+        max_digits=5, decimal_places=2, default=100,
+        validators=[MinValueValidator(1), MaxValueValidator(100)],
+    )
+
     class Meta:
         constraints = [
             models.UniqueConstraint(
