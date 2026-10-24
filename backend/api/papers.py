@@ -13,7 +13,7 @@ from .views import _scope
 class SubjectPaperSerializer(serializers.ModelSerializer):
     class Meta:
         model = SubjectPaper
-        fields = ("id", "subject", "paper_number", "weight")
+        fields = ("id", "subject", "paper_number", "weight", "max_marks")
 
 
 def weights_locked(subject):
