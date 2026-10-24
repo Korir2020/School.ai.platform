@@ -14,6 +14,13 @@ const SEV = { block: "#dc2626", confirm: "#d97706", notice: "#6b7280" };
 const btn = { minHeight: 44, padding: "0 16px", borderRadius: 10, border: LINE, background: "transparent", color: "inherit", font: "inherit", cursor: "pointer" };
 const btnMain = { ...btn, background: "#2563eb", borderColor: "#2563eb", color: "#fff", fontWeight: 600 };
 const card = { border: LINE, borderRadius: 12, padding: 12, marginBottom: 10 };
+const inp = { display: "block", width: "100%", boxSizing: "border-box", minHeight: 44, marginTop: 4, padding: "0 10px", borderRadius: 10, border: LINE, background: "transparent", color: "inherit", font: "inherit", fontSize: 16 };
+const FIX_LABELS = [
+  ["first_name", "First name"],
+  ["last_name", "Surname"],
+  ["admission_number", "Admission number (leave blank for a temporary one)"],
+  ["class_level", "Class, for example Grade 7 East"],
+];
 
 function Chip({ n, label, color }) {
   return (
@@ -35,9 +42,13 @@ export default function MigrationCentre() {
   const [only, setOnly] = useState(true);
   const [limit, setLimit] = useState(PAGE);
   const [ask, setAsk] = useState(false);
+  const [fixes, setFixes] = useState({});
+  const [editing, setEditing] = useState(null);
+  const [draft, setDraft] = useState({});
   const [done, setDone] = useState(null);
 
-  async function run(c) {
+  async function run(c, f) {
+    const fx = f || fixes;
     if (!file && !text.trim()) { setErr("Choose a file or paste the table first."); return; }
     setDone(null);
     setAsk(false);
@@ -48,6 +59,7 @@ export default function MigrationCentre() {
       if (file) fd.append("file", file); else fd.append("text", text);
       fd.append("source", source);
       if (c && Object.keys(c).length) fd.append("confirmations", JSON.stringify(c));
+      if (Object.keys(fx).length) fd.append("fixes", JSON.stringify(fx));
       const r = await upload(CHECK_PATH, fd);
       let data = null;
       try { data = await r.json(); } catch { data = null; }
@@ -57,6 +69,7 @@ export default function MigrationCentre() {
       } else {
         setRes(data);
         setConf(c || {});
+        setFixes(fx);
         setLimit(PAGE);
       }
     } catch {
@@ -81,6 +94,7 @@ export default function MigrationCentre() {
       if (file) fd.append("file", file); else fd.append("text", text);
       fd.append("source", source);
       if (Object.keys(conf).length) fd.append("confirmations", JSON.stringify(conf));
+      if (Object.keys(fixes).length) fd.append("fixes", JSON.stringify(fixes));
       const r = await upload(COMMIT_PATH, fd);
       let data = null;
       try { data = await r.json(); } catch { data = null; }
@@ -88,13 +102,73 @@ export default function MigrationCentre() {
         setErr((data && data.detail) || "Saving failed (" + r.status + "). Nothing was added.");
       } else {
         setDone(data);
-        setRes(null); setFile(null); setText(""); setConf({});
+        setRes(null); setFile(null); setText(""); setConf({}); setFixes({});
       }
     } catch {
       setErr("The connection dropped. Open the Students list to see whether the learners were added before you try again.");
     }
     setAsk(false);
     setBusy(false);
+  }
+
+  function fixBase(r) {
+    return {
+      first_name: r.first_name || "",
+      last_name: r.last_name || "",
+      admission_number: r.provisional_admission ? "" : (r.admission_number || ""),
+      class_level: r.class_text || "",
+    };
+  }
+
+  function openFix(r) {
+    setDraft(fixBase(r));
+    setEditing(r.row);
+  }
+
+  function saveFix(r) {
+    const base = fixBase(r);
+    const ch = { ...(fixes[r.row] || {}) };
+    FIX_LABELS.forEach(([k]) => {
+      const v = (draft[k] || "").trim();
+      if (v !== (base[k] || "").trim()) ch[k] = v;
+    });
+    setEditing(null);
+    if (JSON.stringify(ch) === JSON.stringify(fixes[r.row] || {})) return;
+    run(conf, { ...fixes, [r.row]: ch });
+  }
+
+  function undoFix(r) {
+    const nf = { ...fixes };
+    delete nf[r.row];
+    run(conf, nf);
+  }
+
+  function renderFix(r) {
+    if (editing === r.row) {
+      return (
+        <div style={{ marginTop: 10 }}>
+          {FIX_LABELS.map(([k, label]) => (
+            <label key={k} style={{ display: "block", fontSize: 13, marginBottom: 8 }}>
+              {label}
+              <input value={draft[k] || ""} onChange={(e) => setDraft({ ...draft, [k]: e.target.value })} style={inp} />
+            </label>
+          ))}
+          <div style={{ display: "flex", gap: 8 }}>
+            <button style={{ ...btn, flex: 1 }} onClick={() => setEditing(null)}>Cancel</button>
+            <button style={{ ...btnMain, flex: 1 }} disabled={busy} onClick={() => saveFix(r)}>Save and re-check</button>
+          </div>
+        </div>
+      );
+    }
+    const mine = fixes[r.row];
+    if (r.status === "ready" && !mine) return null;
+    return (
+      <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+        {r.status !== "ready" && <button style={btn} disabled={busy} onClick={() => openFix(r)}>Fix</button>}
+        {mine && <button style={btn} disabled={busy} onClick={() => undoFix(r)}>Undo my fix</button>}
+        {mine && <span style={{ fontSize: 12, opacity: 0.8 }}>Corrected by you</span>}
+      </div>
+    );
   }
 
   const sum = res && res.summary ? res.summary : null;
@@ -114,13 +188,13 @@ export default function MigrationCentre() {
         <input
           type="file"
           accept=".csv,.xlsx,.tsv,.txt"
-          onChange={(e) => { setFile(e.target.files && e.target.files[0] ? e.target.files[0] : null); setRes(null); setConf({}); }}
+          onChange={(e) => { setFile(e.target.files && e.target.files[0] ? e.target.files[0] : null); setRes(null); setConf({}); setFixes({}); }}
           style={{ width: "100%", minHeight: 44 }}
         />
         <label style={{ display: "block", fontWeight: 600, margin: "12px 0 6px" }}>or paste the table here</label>
         <textarea
           value={text}
-          onChange={(e) => { setText(e.target.value); setRes(null); setConf({}); }}
+          onChange={(e) => { setText(e.target.value); setRes(null); setConf({}); setFixes({}); }}
           placeholder={"Admission No, First name, Surname, Class\n1001, Amina, Otieno, Grade 7 East"}
           rows={5}
           disabled={!!file}
@@ -129,11 +203,11 @@ export default function MigrationCentre() {
         {file && (
           <div style={{ marginTop: 6, fontSize: 13 }}>
             Using file: <b>{file.name}</b>{" "}
-            <button style={{ ...btn, minHeight: 36, padding: "0 10px" }} onClick={() => { setFile(null); setRes(null); setConf({}); }}>Remove</button>
+            <button style={{ ...btn, minHeight: 36, padding: "0 10px" }} onClick={() => { setFile(null); setRes(null); setConf({}); setFixes({}); }}>Remove</button>
           </div>
         )}
         <label style={{ display: "block", fontWeight: 600, margin: "12px 0 6px" }}>Where did this list come from?</label>
-        <select value={source} onChange={(e) => { setSource(e.target.value); setRes(null); setConf({}); }} style={{ ...btn, width: "100%" }}>
+        <select value={source} onChange={(e) => { setSource(e.target.value); setRes(null); setConf({}); setFixes({}); }} style={{ ...btn, width: "100%" }}>
           <option value="digital">A computer file (Excel, CSV)</option>
           <option value="paper">A handwritten or typed register</option>
         </select>
@@ -169,6 +243,12 @@ export default function MigrationCentre() {
                 <Chip n={sum.needs_confirmation} label="To confirm" color="#d97706" />
                 <Chip n={sum.blocked} label="Blocked" color="#dc2626" />
               </div>
+              {Object.keys(fixes).length > 0 && (
+                <div style={{ ...card, fontSize: 14 }}>
+                  You corrected {Object.keys(fixes).length} row(s) here. The file itself is unchanged.{" "}
+                  <button style={{ ...btn, minHeight: 36, padding: "0 10px" }} disabled={busy} onClick={() => run(conf, {})}>Undo all</button>
+                </div>
+              )}
               {sum.temporary_admission > 0 && (
                 <div style={{ ...card, fontSize: 14 }}>
                   {sum.temporary_admission} learner(s) have no admission number and will get a temporary one.
@@ -226,8 +306,9 @@ export default function MigrationCentre() {
                   <span style={{ color: t[0], fontWeight: 700, fontSize: 13 }}>{t[1]}</span>
                 </div>
                 <div style={{ fontSize: 13, opacity: 0.85 }}>
-                  Row {r.row} · Adm {r.admission_number || "none"}{r.provisional ? " (temporary)" : ""} · {r.class_label || "No class"}
+                  Row {r.row} · Adm {r.admission_number || "none"}{r.provisional_admission ? " (temporary)" : ""} · {r.class_label || "No class"}
                 </div>
+                {renderFix(r)}
                 {(r.issues || []).map((i, k) => {
                   const isConfirm = i.severity === "confirm";
                   const done = given.includes(i.code);
