@@ -13,6 +13,11 @@ import re
 from collections import defaultdict
 
 PROVISIONAL_PREFIX = "NO-ADM-"
+UNREADABLE = "[UNREADABLE]"
+CHECK_OPEN = "[CHECK:"
+_LABELS = {"first_name": "First name", "last_name": "Surname", "full_name": "Name", "other_names": "Other names",
+           "admission_number": "Admission number", "assessment_number": "Assessment number", "upi": "UPI",
+           "class_level": "Class", "stream": "Stream"}
 ID_FIELDS = ("admission_number", "assessment_number", "upi")
 
 ALIASES = {
@@ -173,13 +178,22 @@ def analyse_upload(matrix, structure, existing=(), source="digital", name_order=
 
     fx = {}
 
-    def get(row, canon):
+    def raw_value(row, canon):
         if canon in fx:
             return _cell(fx[canon])
         found = cols.get(canon)
         if not found or found[0][0] >= len(row):
             return ""
         return _cell(row[found[0][0]])
+
+    def get(row, canon):
+        v = raw_value(row, canon)
+        if UNREADABLE in v:
+            return ""
+        if v.startswith(CHECK_OPEN):
+            v = v[len(CHECK_OPEN):]
+            return (v[:-1] if v.endswith("]") else v).strip()
+        return v
 
     if not has_split and name_order not in ("first_last", "last_first"):
         sample = [get(r, "full_name") for _, r in body[:3]]
@@ -205,6 +219,13 @@ def analyse_upload(matrix, structure, existing=(), source="digital", name_order=
         for _f in ("first_name", "last_name"):
             if _f in fx:
                 r[_f] = _cell(fx[_f])
+        for _canon in cols:
+            _v = raw_value(raw, _canon)
+            _name = _LABELS.get(_canon, _canon.replace("_", " ").capitalize())
+            if UNREADABLE in _v:
+                r["issues"].append(_issue("unreadable_cell", "block", f"{_name} could not be read from the photo. Look at the page and type it.", _canon))
+            elif _v.startswith(CHECK_OPEN):
+                r["issues"].append(_issue("check_reading_" + _canon, "confirm", f'{_name} was hard to read. It was read as "{get(raw, _canon)}". Check it against the page.', _canon))
         r["class_text"] = get(raw, "class_level") or default_class
         r["stream_text"] = get(raw, "stream")
         rows.append(r)
