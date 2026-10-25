@@ -28,9 +28,21 @@ def school_branding(request):
         return Response({"detail": "School not found."}, status=404)
     if request.method == "GET":
         return Response({"name": school.name, "code": school.code, "location": school.location,
-                         "email": school.email, "phone": school.phone,
+                         "email": school.email, "phone": school.phone, "motto": school.motto, "principal_name": school.principal_name,
                          "logo_url": request.build_absolute_uri(school.logo.url) if school.logo else None})
+    fields = []
+    for key, limit in (("motto", 200), ("principal_name", 100)):
+        if key in request.data:
+            val = " ".join(str(request.data.get(key) or "").split())
+            if len(val) > limit:
+                label = key.replace("_", " ").capitalize()
+                return Response({"detail": f"{label} is too long (max {limit} characters)."}, status=400)
+            setattr(school, key, val)
+            fields.append(key)
     logo = request.FILES.get("logo")
+    if not logo and fields:
+        school.save(update_fields=fields)
+        return Response({"motto": school.motto, "principal_name": school.principal_name})
     if not logo:
         return Response({"detail": "Select a PNG, JPG, JPEG, or WEBP logo."}, status=400)
     suffix = Path(logo.name).suffix.lower()
@@ -39,5 +51,5 @@ def school_branding(request):
     if getattr(logo, "content_type", "") not in {"image/png", "image/jpeg", "image/webp"}:
         return Response({"detail": "Unsupported image type."}, status=400)
     school.logo = logo
-    school.save(update_fields=["logo"])
+    school.save(update_fields=["logo"] + fields)
     return Response({"logo_url": request.build_absolute_uri(school.logo.url)})
