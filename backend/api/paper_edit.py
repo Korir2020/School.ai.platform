@@ -36,20 +36,31 @@ def subject_paper_detail(request, pk):
         paper.delete()
         return Response(status=204)
 
-    if "weight" not in request.data:
-        return Response({"detail": "Only weight can be edited."}, status=400)
-    serializer = SubjectPaperSerializer(
-        paper, data={"weight": request.data["weight"]}, partial=True
-    )
+    data = {k: request.data[k] for k in ("weight", "max_marks") if k in request.data}
+    if not data:
+        return Response({"detail": "Only weight and max_marks can be edited."}, status=400)
+    serializer = SubjectPaperSerializer(paper, data=data, partial=True)
     if not serializer.is_valid():
         return Response(serializer.errors, status=400)
     if weights_locked(paper.subject):
         return Response(LOCKED_MSG, status=409)
+    new_weight = serializer.validated_data.get("weight", paper.weight)
     others = (
         SubjectPaper.objects.filter(subject=paper.subject).exclude(pk=paper.pk)
         .aggregate(t=Sum("weight"))["t"]
     ) or Decimal("0")
-    if others + serializer.validated_data["weight"] > 100:
+    if others + new_weight > 100:
         return Response({"weight": ["Paper weights for a subject cannot exceed 100."]}, status=400)
+    new_max = serializer.validated_data.get("max_marks")
+    if new_max is not None:
+        from django.db.models import Max
+        from schools.models import Performance
+        top = Performance.objects.filter(
+            subject=paper.subject, paper_number=paper.paper_number
+        ).aggregate(m=Max("marks"))["m"]
+        if top is not None and new_max < top:
+            return Response({"max_marks": [
+                "Marks up to " + format(top.normalize(), "f") + " already exist for this paper."
+            ]}, status=400)
     serializer.save()
     return Response(serializer.data)
