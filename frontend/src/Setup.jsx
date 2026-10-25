@@ -3,6 +3,7 @@ import { api, listAll as list, upload } from "./api";
 import { useToast } from "./toastctx";
 import { Button, Input, Select, Card, DataTable } from "./ui";
 import { Loading, ErrorState } from "./ui";
+import PaperSetup from "./PaperSetup";
 
 const paths = ["streams", "subjects", "class-levels", "curriculums"];
 
@@ -87,6 +88,7 @@ export default function Setup() {
             }
           }}>Add subject</Button>
       </Card>
+      <PaperSetup />
     </div>
   );
 }
