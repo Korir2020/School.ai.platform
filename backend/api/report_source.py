@@ -233,10 +233,21 @@ class DjangoDataSource(DataSource):
         # Only teacher-approved text is ever stored (see DjangoRemarkStore).
         exam = self._exam_row(school_id, exam_id)
         student = self._student_row(school_id, student_id)
-        return {
+        found = {
             r.field: r.text for r in ReportRemark.objects.filter(
                 school_id=exam.school_id, exam=exam, student=student)
         }
+        # No approved comment: fall back to a default from the overall
+        # average (published result). A teacher's approved text always wins.
+        from marian_reports.config import ReportConfig
+        from schools.models import ExamResult
+        res = ExamResult.objects.filter(exam=exam, student=student).first()
+        if res is not None:
+            text = ReportConfig().remark_for_pct(float(res.overall_average))
+            if text:
+                for key in ("class_teacher", "principal"):
+                    found.setdefault(key, text)
+        return found
 
     def get_fee_note(self, school_id, student_id):
         self._student_row(school_id, student_id)
