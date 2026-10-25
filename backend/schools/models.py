@@ -14,6 +14,8 @@ class School(models.Model):
     county = models.CharField(max_length=100, blank=True)
     sub_county = models.CharField(max_length=100, blank=True)
     logo = models.FileField(upload_to="school-logos/", null=True, blank=True)
+    motto = models.CharField(max_length=200, blank=True, default="")
+    principal_name = models.CharField(max_length=100, blank=True, default="")
     setup_completed_at = models.DateTimeField(null=True, blank=True)
     is_suspended = models.BooleanField(default=False)
     suspended_at = models.DateTimeField(null=True, blank=True)

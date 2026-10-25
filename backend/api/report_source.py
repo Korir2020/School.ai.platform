@@ -146,8 +146,8 @@ class DjangoDataSource(DataSource):
             logo = None
         return ReportSchool(
             id=str(school.pk), name=school.name, short_name=school.name,
-            address=school.location, phone=school.phone, motto="",
-            principal_name="", logo_path=logo,
+            address=school.location, phone=school.phone, motto=school.motto,
+            principal_name=school.principal_name, logo_path=logo,
         )
 
     def get_exam(self, school_id, exam_id):
