@@ -148,3 +148,7 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;ba
   .fees-page .mu-card{padding:12px 10px}
   .fees-page .mu-btn{min-height:42px}
 }
+
+/* Form controls: checkboxes stay normal size; textareas follow the app theme, not the system theme. */
+input[type="checkbox"],input[type="radio"]{display:inline-block;width:auto;max-width:none;margin:0 8px 0 0;padding:0;vertical-align:middle}
+textarea{background:var(--m-card);color:inherit;border:1px solid var(--line);border-radius:12px;font:inherit}
