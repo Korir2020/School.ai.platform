@@ -14,6 +14,7 @@ export default function Setup() {
   const [bn, setBn] = useState(""), [bc, setBc] = useState("");
   const [busy, setBusy] = useState(false);
   const [branding, setBranding] = useState(null), [logo, setLogo] = useState(null);
+  const [idt, setIdt] = useState({});
   const load = async () => {
     try {
       const get = (p) => list("/api/" + p + "/");
@@ -44,9 +45,21 @@ export default function Setup() {
     { label: "Subject", key: "name", sort: true },
     { label: "Code", key: "code", sort: true },
   ];
+  const saveIdentity = async () => {
+    setBusy(true);
+    const fd = new FormData();
+    Object.entries(idt).forEach(([k, v]) => fd.append(k, v));
+    const r = await upload("/api/school/branding/", fd);
+    setBusy(false);
+    if (r.ok) { setIdt({}); toast("Saved", "ok"); load(); }
+    else { const j = await r.json().catch(() => ({})); toast(j.detail || "Not saved", "err"); }
+  };
   return (
     <div>
       <Card title="School identity">
+        <Input id="su-motto" label="School motto" value={idt.motto ?? (branding && branding.motto) ?? ""} onChange={(e) => setIdt({ ...idt, motto: e.target.value })} />
+        <Input id="su-principal" label="Principal's name" value={idt.principal_name ?? (branding && branding.principal_name) ?? ""} onChange={(e) => setIdt({ ...idt, principal_name: e.target.value })} />
+        <p><Button kind="teal" busy={busy} disabled={busy || !Object.keys(idt).length} onClick={saveIdentity}>Save motto and principal</Button></p>
         <p className="sub">Upload a PNG, JPG, JPEG, or WEBP logo up to 2 MB. It will appear on report cards and fee receipts.</p>
         {branding && <div className="branding-preview">{branding.logo_url ? <img src={branding.logo_url} alt={`${branding.name} logo`} /> : <span>No logo uploaded</span>}<b>{branding.name}</b></div>}
         <Input id="su-logo" label="School logo" type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => setLogo(e.target.files[0] || null)} />

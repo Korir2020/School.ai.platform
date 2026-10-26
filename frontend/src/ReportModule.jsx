@@ -29,6 +29,16 @@ export default function ReportModule() {
   const [busyId, setBusyId] = useState("");
   const [bulk, setBulk] = useState("");
   const [bulkBusy, setBulkBusy] = useState(false);
+  const [brand, setBrand] = useState(null);
+  const [skip, setSkip] = useState(false);
+  useEffect(() => {
+    api("/api/school/branding/").then(async (r) => { if (r.ok) setBrand(await r.json()); }).catch(() => {});
+  }, []);
+  const warn = brand ? [
+    !brand.logo_url && "school logo",
+    !brand.motto && "school motto",
+    !brand.principal_name && "principal's name",
+  ].filter(Boolean) : [];
 
   useEffect(() => {
     api(P + "meta/").then(async (r) => {
@@ -137,6 +147,12 @@ export default function ReportModule() {
         )}
         <p><Button onClick={check} disabled={!exam || !cls}>Check readiness</Button></p>
       </Card>
+      {warn.length > 0 && !skip && (
+        <Card title="Before you print">
+          <p>Your report cards will look better with: <b>{warn.join(", ")}</b>. Add them under Setup, School identity. You can still print without them.</p>
+          <p><Button kind="ghost" size="sm" onClick={() => setSkip(true)}>Skip anyway</Button></p>
+        </Card>
+      )}
       {msg && <Alert>{msg}</Alert>}
       {sel && (
         <Card title={sel.population}>
@@ -144,7 +160,7 @@ export default function ReportModule() {
           {sel.excluded.length > 0 && <p>{sel.excluded.length} student(s) cannot be printed yet. The reason is shown beside each name.</p>}
         </Card>
       )}
-      {sel && ready.length > 0 && (
+      {sel && ready.length > 0 && (warn.length === 0 || skip) && (
           <Card title="Download all">
             <p>{ready.length} report(s) ready. They download one after another; keep this page open.</p>
             <p><Button busy={bulkBusy} onClick={downloadAll}>Download all ({ready.length})</Button></p>
