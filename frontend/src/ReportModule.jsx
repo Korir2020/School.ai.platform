@@ -87,7 +87,7 @@ export default function ReportModule() {
   if (bad) return <ErrorState text={bad} onRetry={() => { setBad(""); setTries(tries + 1); }} />;
   if (!meta) return <Loading />;
 
-  const students = meta.students.filter((s) => s.class_name === cls && (!stream || s.stream === stream));
+  const students = meta.students.filter((s) => (s.class ?? s.class_name) === cls && (!stream || s.stream === stream));
   const why = {};
   ((sel && sel.excluded) || []).forEach((x) => { why[x.student_id] = x.reason; });
   const ready = students.filter((s) => !why[s.id]);
