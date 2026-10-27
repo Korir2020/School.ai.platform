@@ -968,26 +968,3 @@ class ClassTeacher(models.Model):
         constraints = [
             models.UniqueConstraint(fields=["stream", "academic_year"], name="ct_unique_stream_year"),
         ]
-
-
-class NationalRecord(models.Model):
-    """What a learner received in a national assessment, typed in by the school
-    from the official result. Never calculated here and never mixed into school
-    exam marks, grades or ranks. A blank subject means the overall result."""
-    EXAM_CHOICES = [("kpsea", "KPSEA"), ("kjsea", "KJSEA"), ("kcse", "KCSE")]
-    school = models.ForeignKey("School", on_delete=models.CASCADE, related_name="national_records")
-    student = models.ForeignKey("Student", on_delete=models.CASCADE, related_name="national_records")
-    exam_type = models.CharField(max_length=10, choices=EXAM_CHOICES)
-    year = models.PositiveIntegerField()
-    subject_name = models.CharField(max_length=80, blank=True)
-    result = models.CharField(max_length=40)
-    note = models.CharField(max_length=200, blank=True)
-    entered_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=["student", "exam_type", "year", "subject_name"], name="nr_unique_learner_exam_year_subject"),
-        ]

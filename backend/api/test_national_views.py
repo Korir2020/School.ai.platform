@@ -10,10 +10,10 @@ from schools.models import (
 )
 
 CT = "/api/records/class-teachers/"
-NR = "/api/records/national/"
 
 
 class NationalViewsTests(TestCase):
+
     def setUp(self):
         U = get_user_model()
         self.school = School.objects.create(name="Nv School", code="nv-test")
@@ -42,12 +42,6 @@ class NationalViewsTests(TestCase):
         return self._c(user or self.admin).post(CT, {
             "stream_id": self.east.id, "year_id": self.year.id, "teacher_id": self.tp.id}, format="json")
 
-    def _save(self, **kw):
-        body = {"student_id": self.kid.id, "exam_type": "kjsea", "year": 2026,
-                "subject_name": "", "result": "TEST-RESULT"}
-        body.update(kw)
-        return self._c(self.admin).post(NR, body, format="json")
-
     def test_teacher_cannot_manage_class_teachers(self):
         self.assertEqual(self._c(self.tuser).get(CT).status_code, 403)
         self.assertEqual(self._assign(self.tuser).status_code, 403)
@@ -66,29 +60,6 @@ class NationalViewsTests(TestCase):
 
     def test_other_school_cannot_assign_this_teacher(self):
         self.assertEqual(self._assign(self.outsider).status_code, 404)
-
-    def test_save_and_list_national_record(self):
-        self.assertEqual(self._save().status_code, 200)
-        rows = self._c(self.admin).get(NR + "?student_id=%d" % self.kid.id).data["records"]
-        self.assertEqual(len(rows), 1)
-        self.assertEqual(rows[0]["result"], "TEST-RESULT")
-
-    def test_saving_again_updates_the_same_row(self):
-        self._save()
-        self._save(result="CHANGED")
-        rows = self._c(self.admin).get(NR).data["records"]
-        self.assertEqual(len(rows), 1)
-        self.assertEqual(rows[0]["result"], "CHANGED")
-
-    def test_unknown_exam_type_and_empty_result_are_refused(self):
-        self.assertEqual(self._save(exam_type="kcpe").status_code, 400)
-        self.assertEqual(self._save(result="  ").status_code, 400)
-        self.assertEqual(self._save(year="abc").status_code, 400)
-
-    def test_other_school_cannot_record_for_this_student(self):
-        r = self._c(self.outsider).post(NR, {
-            "student_id": self.kid.id, "exam_type": "kjsea", "year": 2026, "result": "X"}, format="json")
-        self.assertEqual(r.status_code, 404)
 
     def test_options_list_streams_teachers_and_years(self):
         r = self._c(self.admin).get(CT)
