@@ -11,18 +11,19 @@ export default function Fees({ admin = false }) {
   const toast = useToast();
   const [data, setData] = useState(null), [rows, setRows] = useState(null);
   const [years, setYears] = useState([]), [structures, setStructures] = useState([]), [students, setStudents] = useState([]), [busy, setBusy] = useState(false);
-  const [form, setForm] = useState({ name: "", amount: "", academic_year: "", due_date: "" });
+  const [form, setForm] = useState({ name: "", amount: "", academic_year: "", due_date: "", term: "", category: "", from_grade: "", to_grade: "" });
   const [invoice, setInvoice] = useState({ student: "", fee_structure: "", amount_due: "" });
   const [history, setHistory] = useState(null), [report, setReport] = useState([]);
   const [pay, setPay] = useState(null), [payment, setPayment] = useState({ amount: "", method: "mpesa", reference: "" });
   const [receiptId, setReceiptId] = useState(null);
+  const [terms, setTerms] = useState([]), [billed, setBilled] = useState(null);
   const load = async () => {
     const [s, i] = await Promise.all([api("/api/fees/summary/"), listAll("/api/fees/invoices/")]);
     if (!s.ok) { setData({ error: true }); return; }
     setData(await s.json()); setRows(i);
     if (admin) {
       const [y, f, st, rp] = await Promise.all([listAll("/api/academic-years/"), listAll("/api/fees/structures/"), listAll("/api/students/"), listAll("/api/fees/report/")]);
-      setYears(y); setStructures(f); setStudents(st);
+      setYears(y); listAll("/api/terms/").then(setTerms).catch(() => {}); setStructures(f); setStudents(st);
       setReport(rp);
     }
   };
@@ -31,7 +32,8 @@ export default function Fees({ admin = false }) {
     setBusy(true); const r = await api("/api/fees/structures/", "POST", form);
     const j = await r.json().catch(() => ({})); setBusy(false);
     toast(r.ok ? "Fee structure created" : j.detail || "Could not create fee structure", r.ok ? "ok" : "err");
-    if (r.ok) setForm({ name: "", amount: "", academic_year: "", due_date: "" });
+    if (r.ok) setBilled(j.students_billed ?? 0);
+    if (r.ok) setForm({ name: "", amount: "", academic_year: "", due_date: "", term: "", category: "", from_grade: "", to_grade: "" });
   };
   const createInvoice = async () => {
     setBusy(true); const r = await api("/api/fees/invoices/", "POST", invoice);
@@ -77,7 +79,12 @@ export default function Fees({ admin = false }) {
         <Input label="Amount (KES)" type="number" min="0" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} />
         <Select label="Academic year" value={form.academic_year} onChange={e => setForm({ ...form, academic_year: e.target.value })}><option value="">Select...</option>{years.map(y => <option key={y.id} value={y.id}>{y.name}</option>)}</Select>
         <Input label="Due date" type="date" value={form.due_date} onChange={e => setForm({ ...form, due_date: e.target.value })} />
+      <Select label="Term" value={form.term} onChange={e => setForm({ ...form, term: e.target.value })}><option value="">All terms</option>{terms.filter(t => String(t.academic_year) === String(form.academic_year)).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</Select>
+        <Select label="Category" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}><option value="">Everyone</option><option value="day">Day scholars</option><option value="boarder">Boarders</option></Select>
+        <Input label="From grade" type="number" min="1" placeholder="All" value={form.from_grade} onChange={e => setForm({ ...form, from_grade: e.target.value })} />
+        <Input label="To grade" type="number" min="1" placeholder="All" value={form.to_grade} onChange={e => setForm({ ...form, to_grade: e.target.value })} />
       </div><Button kind="teal" busy={busy} disabled={!form.name || !form.amount || !form.academic_year} onClick={createStructure}>Create structure</Button>
+      {billed !== null && <p>Billed {billed} learners</p>}
     </Card>}
     {admin && <Card title="Assign fee to student">
       <div className="fee-form"><Select label="Student" value={invoice.student} onChange={e => setInvoice({ ...invoice, student: e.target.value })}><option value="">Select...</option>{students.map(s => <option key={s.id} value={s.id}>{s.first_name} {s.last_name} · {s.admission_number}</option>)}</Select>
