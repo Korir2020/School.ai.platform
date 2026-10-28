@@ -88,3 +88,35 @@ def apply_structure(s):
             updated += 1
     StudentFee.objects.bulk_create(new)
     return {"students_billed": len(new), "students_updated": updated}
+
+
+def bill_student(student):
+    """Bill one learner for every matching fee item they are missing.
+    Only creates missing bills; never changes or removes an existing one."""
+    from schools.models import FeeStructure, StudentFee
+    created = 0
+    for s in FeeStructure.objects.filter(
+            school_id=student.school_id, is_active=True,
+            academic_year__is_active=True):
+        if StudentFee.objects.filter(student=student, fee_structure=s).exists():
+            continue
+        if matching_students(s).filter(id=student.id).exists():
+            StudentFee.objects.create(
+                student=student, fee_structure=s, amount_due=s.amount)
+            created += 1
+    return created
+
+
+def drop_other_category_bills(student):
+    """After a category change: remove bills for the other category that are
+    still unpaid and untouched. Anything with a payment is kept."""
+    from schools.models import StudentFee
+    qs = (StudentFee.objects
+          .filter(student=student, status="pending", amount_paid=0,
+                  fee_structure__academic_year__is_active=True,
+                  payments__isnull=True)
+          .exclude(fee_structure__category="")
+          .exclude(fee_structure__category=student.fee_category))
+    ids = list(qs.values_list("id", flat=True))
+    StudentFee.objects.filter(id__in=ids).delete()
+    return len(ids)

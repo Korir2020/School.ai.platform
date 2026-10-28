@@ -6,7 +6,8 @@ from django.utils import timezone
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
-from api.fee_billing import apply_structure, parse_scope, scope_data
+from api.fee_billing import (
+    apply_structure, bill_student, drop_other_category_bills, parse_scope, scope_data)
 
 from schools.models import (
     AcademicYear, FeePayment, FeeStructure, MarkAuditLog,
@@ -346,3 +347,33 @@ def fee_receipt(request, pk):
         "previous_balance": _money(previous) if verified else None,
         "balance_after": _money(after) if verified else None,
     })
+
+
+@api_view(["POST"])
+def student_categories(request):
+    """Set day/boarder for many learners at once, then fix their bills."""
+    from schools.models import Student
+    school_id, error = _fee_school(request)
+    if error:
+        return error
+    category = str(request.data.get("category", "")).strip().lower()
+    if category not in ("day", "boarder"):
+        return Response({"detail": "Category must be day or boarder."}, status=400)
+    try:
+        ids = [int(i) for i in (request.data.get("students") or [])]
+    except (TypeError, ValueError):
+        return Response({"detail": "Students must be a list of ids."}, status=400)
+    if not ids:
+        return Response({"detail": "Pick at least one learner."}, status=400)
+    qs = Student.objects.filter(id__in=ids)
+    if school_id is not None:
+        qs = qs.filter(school_id=school_id)
+    changed = removed = created = 0
+    for st in qs:
+        if st.fee_category != category:
+            st.fee_category = category
+            st.save(update_fields=["fee_category"])
+            removed += drop_other_category_bills(st)
+            changed += 1
+        created += bill_student(st)
+    return Response({"students_changed": changed, "bills_removed": removed, "bills_created": created})
