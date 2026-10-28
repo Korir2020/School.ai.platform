@@ -249,3 +249,54 @@ def fee_report(request):
                      "invoices": item["invoices"], "due": _money(due), "paid": _money(paid),
                      "balance": _money(max(due - paid, 0))})
     return Response(rows)
+
+
+@api_view(["GET"])
+def fee_receipt(request, pk):
+    """Read-only receipt data for one payment. Never changes money."""
+    school_id, error = _fee_school(request)
+    if error:
+        return error
+    qs = FeePayment.objects.select_related(
+        "student_fee__student__school", "student_fee__fee_structure__academic_year", "received_by")
+    if school_id is not None:
+        qs = qs.filter(student_fee__student__school_id=school_id)
+    payment = qs.filter(pk=pk).first()
+    if payment is None:
+        return Response({"detail": "Receipt not found."}, status=404)
+    fee = payment.student_fee
+    student = fee.student
+    school = student.school
+    earlier = sum(
+        (x.amount for x in FeePayment.objects.filter(student_fee=fee, id__lt=payment.id)),
+        Decimal("0"))
+    all_paid = sum((x.amount for x in FeePayment.objects.filter(student_fee=fee)), Decimal("0"))
+    verified = fee.status != "waived" and all_paid == fee.amount_paid
+    previous = fee.amount_due - earlier if verified else None
+    after = previous - payment.amount if verified else None
+    cashier = ""
+    if payment.received_by:
+        cashier = payment.received_by.get_full_name() or payment.received_by.username
+    return Response({
+        "receipt_number": f"RCPT-{school.code}-{payment.id:06d}",
+        "school": {
+            "name": school.name, "motto": school.motto, "location": school.location,
+            "county": school.county, "sub_county": school.sub_county,
+            "phone": school.phone, "email": school.email,
+            "logo": school.logo.url if school.logo else "", "currency": school.currency,
+        },
+        "student": {"name": str(student), "admission_number": student.admission_number},
+        "fee": {
+            "name": fee.fee_structure.name,
+            "academic_year": str(fee.fee_structure.academic_year),
+            "amount_due": _money(fee.amount_due), "status": fee.status,
+        },
+        "payment": {
+            "amount": _money(payment.amount), "method": payment.method,
+            "method_display": payment.get_method_display(), "reference": payment.reference,
+            "paid_at": payment.paid_at, "received_by": cashier, "notes": payment.notes,
+        },
+        "balances_verified": verified,
+        "previous_balance": _money(previous) if verified else None,
+        "balance_after": _money(after) if verified else None,
+    })

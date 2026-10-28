@@ -15,6 +15,8 @@ class School(models.Model):
     sub_county = models.CharField(max_length=100, blank=True)
     logo = models.FileField(upload_to="school-logos/", null=True, blank=True)
     motto = models.CharField(max_length=200, blank=True, default="")
+    # ISO 4217 code shown on fee receipts. KES keeps existing schools unchanged.
+    currency = models.CharField(max_length=3, default="KES")
     principal_name = models.CharField(max_length=100, blank=True, default="")
     setup_completed_at = models.DateTimeField(null=True, blank=True)
     is_suspended = models.BooleanField(default=False)
