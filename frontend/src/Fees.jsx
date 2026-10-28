@@ -17,6 +17,7 @@ export default function Fees({ admin = false }) {
   const [pay, setPay] = useState(null), [payment, setPayment] = useState({ amount: "", method: "mpesa", reference: "" });
   const ITEMS = ["Tuition", "Lunch", "Activity", "Transport"];
   const [receiptId, setReceiptId] = useState(null);
+  const [edit, setEdit] = useState(null);
   const [terms, setTerms] = useState([]), [billed, setBilled] = useState(null);
   const load = async () => {
     const [s, i] = await Promise.all([api("/api/fees/summary/"), listAll("/api/fees/invoices/")]);
@@ -35,6 +36,13 @@ export default function Fees({ admin = false }) {
     toast(r.ok ? "Fee structure created" : j.detail || "Could not create fee structure", r.ok ? "ok" : "err");
     if (r.ok) setBilled(j.students_billed ?? 0);
     if (r.ok) setForm({ name: "", amount: "", academic_year: "", due_date: "", term: "", category: "", from_grade: "", to_grade: "" });
+  };
+  const saveEdit = async () => {
+    setBusy(true);
+    const r = await api(`/api/fees/structures/${edit.id}/`, "PATCH", { amount: edit.amount, category: edit.category, from_grade: edit.from_grade, to_grade: edit.to_grade });
+    const j = await r.json().catch(() => ({})); setBusy(false);
+    toast(r.ok ? `Saved. ${j.students_billed} new learners billed, ${j.students_updated} updated` : j.detail || "Could not save fee item", r.ok ? "ok" : "err");
+    if (r.ok) { setEdit(null); load(); }
   };
   const createInvoice = async () => {
     setBusy(true); const r = await api("/api/fees/invoices/", "POST", invoice);
@@ -87,6 +95,19 @@ export default function Fees({ admin = false }) {
         <Input label="To grade" type="number" min="1" placeholder="All" value={form.to_grade} onChange={e => setForm({ ...form, to_grade: e.target.value })} />
       </div><Button kind="teal" busy={busy} disabled={!form.name || !form.amount || !form.academic_year} onClick={createStructure}>Create structure</Button>
       {billed !== null && <p>Billed {billed} learners</p>}
+    </Card>}
+    {admin && <Card title="Fee items">
+      {structures.length === 0 ? <p>No fee items yet.</p> : structures.map(f => <div key={f.id} className="fee-form">
+        <div><b>{f.name}</b> · {money(f.amount)}{f.term_name ? ` · ${f.term_name}` : ""}{f.category ? ` · ${f.category}` : " · everyone"} · grades {f.from_grade ?? "all"} to {f.to_grade ?? "all"}</div>
+        {edit && edit.id === f.id ? <>
+          <Input label="Amount (KES)" type="number" min="0" value={edit.amount} onChange={e => setEdit({ ...edit, amount: e.target.value })} />
+          <Select label="Category" value={edit.category} onChange={e => setEdit({ ...edit, category: e.target.value })}><option value="">Everyone</option><option value="day">Day scholars</option><option value="boarder">Boarders</option></Select>
+          <Input label="From grade" type="number" min="1" placeholder="All" value={edit.from_grade} onChange={e => setEdit({ ...edit, from_grade: e.target.value })} />
+          <Input label="To grade" type="number" min="1" placeholder="All" value={edit.to_grade} onChange={e => setEdit({ ...edit, to_grade: e.target.value })} />
+          <Button kind="teal" busy={busy} disabled={!edit.amount} onClick={saveEdit}>Save and re-bill</Button>
+          <Button kind="teal" onClick={() => setEdit(null)}>Cancel</Button>
+        </> : <Button kind="teal" onClick={() => setEdit({ id: f.id, amount: f.amount, category: f.category || "", from_grade: f.from_grade ?? "", to_grade: f.to_grade ?? "" })}>Edit</Button>}
+      </div>)}
     </Card>}
     {admin && <Card title="Assign fee to student">
       <div className="fee-form"><Select label="Student" value={invoice.student} onChange={e => setInvoice({ ...invoice, student: e.target.value })}><option value="">Select...</option>{students.map(s => <option key={s.id} value={s.id}>{s.first_name} {s.last_name} · {s.admission_number}</option>)}</Select>
