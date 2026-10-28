@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api, listAll } from "./api";
 import { useToast } from "./toastctx";
 import { Alert, Badge, Button, Card, DataTable, Input, Loading, Select } from "./ui";
+import Receipt from './Receipt';
 
 const money = (n) => `KES ${Number(n || 0).toLocaleString()}`;
 const statusKind = { pending: "warn", partial: "info", paid: "ok", waived: "teal" };
@@ -14,6 +15,7 @@ export default function Fees({ admin = false }) {
   const [invoice, setInvoice] = useState({ student: "", fee_structure: "", amount_due: "" });
   const [history, setHistory] = useState(null), [report, setReport] = useState([]);
   const [pay, setPay] = useState(null), [payment, setPayment] = useState({ amount: "", method: "mpesa", reference: "" });
+  const [receiptId, setReceiptId] = useState(null);
   const load = async () => {
     const [s, i] = await Promise.all([api("/api/fees/summary/"), listAll("/api/fees/invoices/")]);
     if (!s.ok) { setData({ error: true }); return; }
@@ -85,7 +87,7 @@ export default function Fees({ admin = false }) {
     </Card>}
     <Card title="Student fee balances"><DataTable cols={cols} rows={rows || []} search="Search student or fee" empty="No fee invoices yet" /></Card>
     {admin && <Card title="Fee report"><div className="mu-tablewrap"><table className="mu-table"><thead><tr><th>Fee</th><th>Invoices</th><th>Due</th><th>Paid</th><th>Balance</th></tr></thead><tbody>{report.map(x => <tr key={x.fee_structure}><td>{x.name}</td><td>{x.invoices}</td><td>{money(x.due)}</td><td>{money(x.paid)}</td><td><b>{money(x.balance)}</b></td></tr>)}</tbody></table></div></Card>}
-    {history && <div className="mu-overlay" onClick={() => setHistory(null)}><div className="mu-modal" onClick={e => e.stopPropagation()}><h3>Payment history</h3><p><b>{history.invoice.student_name}</b> · {history.invoice.fee_name}</p>{history.rows.length === 0 ? <p>No payments recorded.</p> : <div className="mu-tablewrap"><table className="mu-table"><thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Reference</th></tr></thead><tbody>{history.rows.map(x => <tr key={x.id}><td>{new Date(x.paid_at).toLocaleDateString()}</td><td>{money(x.amount)}</td><td>{x.method}</td><td>{x.reference || "—"}</td></tr>)}</tbody></table></div>}<div className="mu-modal-actions"><Button kind="secondary" onClick={() => setHistory(null)}>Close</Button><Button kind="teal" onClick={() => window.print()}>Print</Button></div></div></div>}
+    {receiptId && <Receipt paymentId={receiptId} onClose={() => setReceiptId(null)} />}{history && <div className="mu-overlay" onClick={() => setHistory(null)}><div className="mu-modal" onClick={e => e.stopPropagation()}><h3>Payment history</h3><p><b>{history.invoice.student_name}</b> · {history.invoice.fee_name}</p>{history.rows.length === 0 ? <p>No payments recorded.</p> : <div className="mu-tablewrap"><table className="mu-table"><thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Reference</th><th></th></tr></thead><tbody>{history.rows.map(x => <tr key={x.id}><td>{new Date(x.paid_at).toLocaleDateString()}</td><td>{money(x.amount)}</td><td>{x.method}</td><td>{x.reference || "—"}</td><td><Button size="sm" kind="ghost" onClick={() => setReceiptId(x.id)}>Receipt</Button></td></tr>)}</tbody></table></div>}<div className="mu-modal-actions"><Button kind="secondary" onClick={() => setHistory(null)}>Close</Button><Button kind="teal" onClick={() => window.print()}>Print</Button></div></div></div>}
     {pay && <div className="mu-overlay" onClick={() => setPay(null)}><div className="mu-modal" onClick={e => e.stopPropagation()}><h3>Record payment</h3><p><b>{pay.student_name}</b> · {pay.fee_name}<br />Balance: {money(pay.balance)}</p>
       <Input label="Amount (KES)" type="number" min="0.01" value={payment.amount} onChange={e => setPayment({ ...payment, amount: e.target.value })} />
       <Select label="Method" value={payment.method} onChange={e => setPayment({ ...payment, method: e.target.value })}><option value="mpesa">M-Pesa</option><option value="cash">Cash</option><option value="bank">Bank</option><option value="other">Other</option></Select>
