@@ -15,6 +15,7 @@ export default function Fees({ admin = false }) {
   const [invoice, setInvoice] = useState({ student: "", fee_structure: "", amount_due: "" });
   const [history, setHistory] = useState(null), [report, setReport] = useState([]);
   const [pay, setPay] = useState(null), [payment, setPayment] = useState({ amount: "", method: "mpesa", reference: "" });
+  const ITEMS = ["Tuition", "Lunch", "Activity", "Transport"];
   const [receiptId, setReceiptId] = useState(null);
   const [terms, setTerms] = useState([]), [billed, setBilled] = useState(null);
   const load = async () => {
@@ -75,7 +76,8 @@ export default function Fees({ admin = false }) {
       <div><small>Invoices</small><b>{data.invoices}</b><span>{data.overdue} overdue</span></div>
     </div>
     {admin && <Card title="Create fee structure">
-      <div className="fee-form"><Input label="Name" placeholder="Term 1 tuition" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
+      <div className="fee-form"><Select label="Fee item" value={ITEMS.includes(form.name) ? form.name : (form.name === "" ? "" : "__other")} onChange={e => setForm({ ...form, name: e.target.value === "__other" ? " " : e.target.value })}><option value="">Select...</option>{ITEMS.map(i => <option key={i} value={i}>{i}</option>)}<option value="__other">Other (type new)</option></Select>
+      {form.name !== "" && !ITEMS.includes(form.name) && <Input label="New fee item name" placeholder="e.g. Library" value={form.name.trim() === "" ? "" : form.name} onChange={e => setForm({ ...form, name: e.target.value || " " })} />}
         <Input label="Amount (KES)" type="number" min="0" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} />
         <Select label="Academic year" value={form.academic_year} onChange={e => setForm({ ...form, academic_year: e.target.value })}><option value="">Select...</option>{years.map(y => <option key={y.id} value={y.id}>{y.name}</option>)}</Select>
         <Input label="Due date" type="date" value={form.due_date} onChange={e => setForm({ ...form, due_date: e.target.value })} />
