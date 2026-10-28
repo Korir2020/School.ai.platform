@@ -6,6 +6,8 @@ from django.utils import timezone
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
+from api.fee_billing import apply_structure, parse_scope, scope_data
+
 from schools.models import (
     AcademicYear, FeePayment, FeeStructure, MarkAuditLog,
     SchoolAdminProfile, StaffProfile, Student, StudentFee,
@@ -29,7 +31,7 @@ def _money(value):
 
 
 def _structure_data(x):
-    return {"id": x.id, "name": x.name, "description": x.description,
+    return {**scope_data(x), "id": x.id, "name": x.name, "description": x.description,
             "amount": _money(x.amount), "due_date": x.due_date,
             "academic_year": x.academic_year_id, "is_active": x.is_active}
 
@@ -115,6 +117,9 @@ def fee_structures(request):
         return Response({"detail": "Academic year is not in your school."}, status=403)
     if not data.get("name", "").strip():
         return Response({"detail": "Fee name is required."}, status=400)
+    scope, scope_error = parse_scope(data, school_id or year.school_id, year)
+    if scope_error:
+        return Response({"detail": scope_error}, status=400)
     try:
         x = FeeStructure.objects.create(
             school_id=school_id or year.school_id, academic_year=year,
@@ -125,7 +130,12 @@ def fee_structures(request):
         return Response({"detail": str(exc)}, status=400)
     except Exception:
         return Response({"detail": "Could not save. Check the details and try again."}, status=400)
-    return Response(_structure_data(x), status=201)
+    for key, value in scope.items():
+        setattr(x, key, value)
+    x.save()
+    out = _structure_data(x)
+    out.update(apply_structure(x))
+    return Response(out, status=201)
 
 
 @api_view(["GET", "POST"])

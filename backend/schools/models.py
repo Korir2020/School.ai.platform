@@ -540,6 +540,8 @@ class FeeStructure(models.Model):
                              related_name="fee_structures")
     category = models.CharField(max_length=10, blank=True, default="",
                                 choices=[("day", "Day scholar"), ("boarder", "Boarder")])
+    from_grade = models.PositiveIntegerField(null=True, blank=True)
+    to_grade = models.PositiveIntegerField(null=True, blank=True)
     due_date = models.DateField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
