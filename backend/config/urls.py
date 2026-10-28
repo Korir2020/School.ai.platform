@@ -261,12 +261,13 @@ urlpatterns += [
 ]
 
 from api.fees import (
-    fee_summary, fee_structures, fee_invoices, fee_payment,
+    fee_summary, fee_structures, fee_structure_detail, fee_invoices, fee_payment,
     fee_payments, fee_waive, fee_report, fee_receipt,
 )
 urlpatterns += [
     path('api/fees/summary/', fee_summary),
     path('api/fees/structures/', fee_structures),
+    path('api/fees/structures/<int:pk>/', fee_structure_detail),
     path('api/fees/invoices/', fee_invoices),
     path('api/fees/payments/', fee_payment),
     path('api/fees/payment-history/', fee_payments),

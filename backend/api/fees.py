@@ -138,6 +138,42 @@ def fee_structures(request):
     return Response(out, status=201)
 
 
+@api_view(["PATCH", "PUT"])
+def fee_structure_detail(request, pk):
+    """Edit a fee item (amount, category, term, grades) and re-bill learners."""
+    school_id, error = _fee_school(request)
+    if error:
+        return error
+    x = FeeStructure.objects.filter(pk=pk).first()
+    if x is None or (school_id is not None and x.school_id != school_id):
+        return Response({"detail": "Fee item not found."}, status=404)
+    data = request.data
+    merged = {
+        "term": data.get("term", x.term_id),
+        "category": data.get("category", x.category),
+        "from_grade": data.get("from_grade", x.from_grade),
+        "to_grade": data.get("to_grade", x.to_grade),
+    }
+    scope, scope_error = parse_scope(merged, x.school_id, x.academic_year)
+    if scope_error:
+        return Response({"detail": scope_error}, status=400)
+    if "name" in data and str(data["name"]).strip():
+        x.name = str(data["name"]).strip()
+    if "amount" in data:
+        try:
+            x.amount = _amt(data["amount"])
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=400)
+    if "due_date" in data:
+        x.due_date = data["due_date"] or None
+    for key, value in scope.items():
+        setattr(x, key, value)
+    x.save()
+    out = _structure_data(x)
+    out.update(apply_structure(x))
+    return Response(out)
+
+
 @api_view(["GET", "POST"])
 def fee_invoices(request):
     school_id, error = _fee_school(request)
