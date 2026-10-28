@@ -36,6 +36,8 @@ class Student(models.Model):
     last_name = models.CharField(max_length=100)
     admission_number = models.CharField(max_length=50)
     assessment_number = models.CharField(max_length=50, blank=True, default="")
+    fee_category = models.CharField(max_length=10, default="day",
+                                    choices=[("day", "Day scholar"), ("boarder", "Boarder")])
     date_of_birth = models.DateField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -534,6 +536,10 @@ class FeeStructure(models.Model):
     description = models.TextField(blank=True)
     amount = models.DecimalField(max_digits=12, decimal_places=2,
                                  validators=[MinValueValidator(0)])
+    term = models.ForeignKey("Term", on_delete=models.SET_NULL, null=True, blank=True,
+                             related_name="fee_structures")
+    category = models.CharField(max_length=10, blank=True, default="",
+                                choices=[("day", "Day scholar"), ("boarder", "Boarder")])
     due_date = models.DateField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
