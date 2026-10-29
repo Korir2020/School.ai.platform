@@ -19,6 +19,7 @@ export default function Fees({ admin = false }) {
   const ITEMS = ["Tuition", "Lunch", "Activity", "Transport"];
   const [receiptId, setReceiptId] = useState(null);
   const [statementId, setStatementId] = useState(null);
+  const [arrearsOnly, setArrearsOnly] = useState(false);
   const [edit, setEdit] = useState(null);
   const [adj, setAdj] = useState(null);
   const [carryTerm, setCarryTerm] = useState("");
@@ -155,7 +156,7 @@ export default function Fees({ admin = false }) {
         <Input label="Amount due (KES)" type="number" min="0" value={invoice.amount_due} onChange={e => setInvoice({ ...invoice, amount_due: e.target.value })} />
       </div><Button kind="teal" busy={busy} disabled={!invoice.student || !invoice.fee_structure || !invoice.amount_due} onClick={createInvoice}>Assign fee</Button>
     </Card>}
-    <Card title="Student fee balances"><DataTable cols={cols} rows={rows || []} search="Search student or fee" empty="No fee invoices yet" /></Card>
+    <Card title="Student fee balances"><div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 8 }}><Button size="sm" kind={arrearsOnly ? "teal" : "secondary"} onClick={() => setArrearsOnly((v) => !v)}>{arrearsOnly ? "Show all balances" : "Arrears list"}</Button>{arrearsOnly && <span className="sub">Owing: {(rows || []).filter((x) => Number(x.balance) > 0 && x.status !== 'waived').length} | Total: {money((rows || []).filter((x) => Number(x.balance) > 0 && x.status !== 'waived').reduce((t, x) => t + Number(x.balance), 0))}</span>}</div><DataTable cols={cols} rows={arrearsOnly ? (rows || []).filter((x) => Number(x.balance) > 0 && x.status !== 'waived').sort((a, b) => Number(b.balance) - Number(a.balance)) : (rows || [])} search="Search student or fee" empty="No fee invoices yet" /></Card>
     {admin && <Card title="Fee report"><div className="mu-tablewrap"><table className="mu-table"><thead><tr><th>Fee</th><th>Invoices</th><th>Due</th><th>Paid</th><th>Balance</th></tr></thead><tbody>{report.map(x => <tr key={x.fee_structure}><td>{x.name}</td><td>{x.invoices}</td><td>{money(x.due)}</td><td>{money(x.paid)}</td><td><b>{money(x.balance)}</b></td></tr>)}</tbody></table></div></Card>}
     {adj && <div className="mu-overlay" onClick={() => setAdj(null)}><div className="mu-modal" onClick={e => e.stopPropagation()}>
       <h3>Adjust bill</h3>
