@@ -40,6 +40,22 @@ def _delimiter(content):
     return ","
 
 
+def _parse_text(content):
+    """Split pasted or uploaded text into rows, whatever the separator."""
+    lines = [ln for ln in content.splitlines() if ln.strip() and not re.fullmatch(r"[\s|:+\-=_]+", ln)]
+    sample = lines[:6]
+    best, top = None, 0
+    for d in ("\t", "|", ";", ","):
+        count = sum(ln.count(d) for ln in sample)
+        if count > top:
+            best, top = d, count
+    if best is None:
+        return [[c.strip() for c in re.split(r"\s{2,}", ln.strip())] for ln in lines]
+    if best == "|":
+        return [[c.strip() for c in ln.strip().strip("|").split("|")] for ln in lines]
+    return [[c.strip() for c in r] for r in csv.reader(lines, delimiter=best)]
+
+
 def _trim(rows):
     while rows and not any(rows[-1]):
         rows.pop()
@@ -135,7 +151,7 @@ def parse_table(upload=None, text=""):
     if not content.strip():
         raise UploadError("The file is empty.")
     try:
-        rows = [[_text(c) for c in r] for r in csv.reader(io.StringIO(content), delimiter=_delimiter(content))]
+        rows = [[_text(c) for c in r] for r in _parse_text(content)]
     except csv.Error:
         raise UploadError("Could not read this file as a table.")
     return _trim(rows)
