@@ -37,7 +37,7 @@ function receiptText(d) {
     `Fee amount: ${money(f.amount_due, cur)}`,
     d.balances_verified ? `Previous balance: ${money(d.previous_balance, cur)}` : null,
     d.balances_verified ? `Balance after: ${money(d.balance_after, cur)}` : null,
-    `Fee status: ${STATUS[f.status] || f.status}`, "",
+    d.status_at_payment ? `Status after payment: ${STATUS[d.status_at_payment] || d.status_at_payment}` : `Fee status now: ${STATUS[f.status] || f.status}`, "",
     "Thank you for your payment.", `Quote ${d.receipt_number} to verify this receipt with the school.`,
   ];
   return lines.filter((x) => x !== null).join("\n");
@@ -254,7 +254,7 @@ export default function Receipt({ paymentId, onClose }) {
           <Row k="Balance brought forward" v={money(d.fee.balance_brought_forward, d.school.currency)} />
                   {d.balances_verified && <Row k="Previous balance" v={money(d.previous_balance, d.school.currency)} />}
                   {d.balances_verified && <Row k="Balance after" v={money(d.balance_after, d.school.currency)} />}
-                  <Row k="Fee status" v={STATUS[d.fee.status] || d.fee.status} />
+                  <Row k={d.status_at_payment ? 'Status after payment' : 'Fee status now'} v={STATUS[d.status_at_payment || d.fee.status] || d.status_at_payment || d.fee.status} />
                 </dl>
                 <footer className="rcpt-foot">
                   <p>Thank you for your payment.</p>

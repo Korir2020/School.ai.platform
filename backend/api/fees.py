@@ -347,6 +347,7 @@ def fee_receipt(request, pk):
             "paid_at": payment.paid_at, "received_by": cashier, "notes": payment.notes,
         },
         "balances_verified": verified,
+        "status_at_payment": ("paid" if after <= 0 else "partial") if verified else None,
         "previous_balance": _money(previous) if verified else None,
         "balance_after": _money(after) if verified else None,
     })
