@@ -294,6 +294,7 @@ export default function MigrationCentre() {
         </button>
       )}
       {step === 3 && !canAdd && <div style={{ ...card, fontSize: 14 }}><b>Next:</b> fix the file or the marked learners, then press "2. Check the list" again.</div>}
+      <div className="mc-grid">
       <div style={card}>
         <label style={{ display: "block", fontWeight: 600, marginBottom: 6 }}>1. Choose a file (.xlsx, .csv or typed .pdf)</label>
         <input
@@ -356,6 +357,16 @@ export default function MigrationCentre() {
           {busy ? "Checking..." : "2. Check the list"}
         </button>
       </div>
+      <aside className="mc-help" style={{ ...card, marginBottom: 0 }}>
+        <b>How it works</b>
+        <ol style={{ paddingLeft: 18, margin: "8px 0 0", fontSize: 14 }}>
+          <li>Upload your file or paste the table.</li>
+          <li>Press Check the list. Answer the name-order question if it appears.</li>
+          <li>Fix any marked rows.</li>
+          <li>Add the ready learners. Nothing is saved until then.</li>
+        </ol>
+      </aside>
+    </div>
 
       {done && (
         <div role="status" style={{ ...card, borderColor: "#16a34a", background: "rgba(22,163,74,.1)" }}>
@@ -395,7 +406,7 @@ export default function MigrationCentre() {
             </div>
           ))}
 
-          {sum && (
+          {sum && sum.total != null && (
             <>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
                 <Chip n={sum.total} label="Learners" />
