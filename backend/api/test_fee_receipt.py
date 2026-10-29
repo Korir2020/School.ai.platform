@@ -57,6 +57,21 @@ class FeeReceiptTests(APITestCase):
         self.client.force_authenticate(user=user)
         return self.client.get(f"/api/fees/payments/{payment.id}/receipt/")
 
+    def test_status_at_payment_is_not_the_status_now(self):
+        first = self.pay(self.invoice, "4000")
+        second = self.pay(self.invoice, "6000")
+        r1 = self.get(self.admin, first).json()
+        r2 = self.get(self.admin, second).json()
+        self.assertEqual(r1["fee"]["status"], "paid")
+        self.assertEqual(r1["status_at_payment"], "partial")
+        self.assertEqual(r2["status_at_payment"], "paid")
+
+    def test_status_at_payment_hidden_when_balances_unverified(self):
+        p = self.pay(self.invoice, "100", record=False)
+        r = self.get(self.admin, p).json()
+        self.assertFalse(r["balances_verified"])
+        self.assertIsNone(r["status_at_payment"])
+
     def test_admin_and_bursar_read_own_receipt(self):
         p = self.pay(self.invoice, "4000.00", "MP1")
         for user in (self.admin, self.bursar):
