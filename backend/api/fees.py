@@ -263,8 +263,6 @@ def fee_waive(request, pk):
     school_id, error = _fee_school(request)
     if error:
         return error
-    if not request.user.is_superuser and not SchoolAdminProfile.objects.filter(user=request.user).exists():
-        return Response({"detail": "Only school admins can waive fees."}, status=403)
     try:
         with transaction.atomic():
             invoice = StudentFee.objects.select_for_update().select_related(
@@ -405,3 +403,190 @@ def carry_forward_arrears(request):
             students += 1
             moved += m
     return Response({"students_carried": students, "amount_carried": _money(moved)})
+
+
+def _decimal(value):
+    try:
+        d = Decimal(str(value).strip())
+        if not d.is_finite() or abs(d) > Decimal("999999999"):
+            return None
+        return d.quantize(Decimal("0.01"))
+    except Exception:
+        return None
+
+
+def _adjust_payload(invoice):
+    rows = [{
+        "id": a.id, "when": a.created_at.isoformat(),
+        "by": (a.made_by.get_full_name() or a.made_by.username) if a.made_by else "",
+        "from": _money(a.old_amount_due), "to": _money(a.new_amount_due),
+        "reason": a.reason,
+    } for a in invoice.adjustments.select_related("made_by").order_by("-id")]
+    return {
+        "invoice": {
+            "id": invoice.id, "student_name": str(invoice.student),
+            "fee_name": invoice.fee_structure.name,
+            "amount_due": _money(invoice.amount_due),
+            "amount_paid": _money(invoice.amount_paid),
+            "balance": _money(invoice.balance),
+            "balance_brought_forward": _money(invoice.balance_brought_forward),
+            "status": invoice.status,
+        },
+        "history": rows,
+    }
+
+
+@api_view(["GET", "POST"])
+def fee_adjust(request, pk):
+    """See or change one learner's bill. Every change needs a reason and is recorded."""
+    from schools.models import FeeAdjustment
+    school_id, error = _fee_school(request)
+    if error:
+        return error
+    with transaction.atomic():
+        invoice = (StudentFee.objects.select_for_update()
+                   .select_related("student", "fee_structure").filter(pk=pk).first())
+        if invoice is None or (school_id is not None and invoice.student.school_id != school_id):
+            return Response({"detail": "Invoice not found."}, status=404)
+        if request.method == "POST":
+            reason = str(request.data.get("reason", "")).strip()[:200]
+            if len(reason) < 3:
+                return Response({"detail": "Please give a short reason for the change."}, status=400)
+            if invoice.status == "waived":
+                return Response({"detail": "A waived bill cannot be adjusted."}, status=400)
+            mode = request.data.get("mode", "set")
+            if mode not in ("set", "change"):
+                return Response({"detail": "Choose set or change."}, status=400)
+            value = _decimal(request.data.get("value"))
+            if value is None:
+                return Response({"detail": "Enter a valid amount."}, status=400)
+            new_due = value if mode == "set" else invoice.amount_due + value
+            if new_due < 0:
+                return Response({"detail": "Amount due cannot be negative."}, status=400)
+            if new_due < invoice.amount_paid:
+                return Response({"detail": f"Amount due cannot be less than the KES {_money(invoice.amount_paid)} already paid."}, status=400)
+            if new_due == invoice.amount_due:
+                return Response({"detail": "That is already the amount due."}, status=400)
+            old = invoice.amount_due
+            invoice.amount_due = new_due
+            if invoice.amount_paid >= new_due:
+                invoice.status = "paid"
+            elif invoice.amount_paid > 0:
+                invoice.status = "partial"
+            else:
+                invoice.status = "pending"
+            invoice.manually_adjusted = True
+            invoice.save(update_fields=["amount_due", "status", "manually_adjusted", "updated_at"])
+            FeeAdjustment.objects.create(
+                student_fee=invoice, old_amount_due=old, new_amount_due=new_due,
+                reason=reason, made_by=request.user)
+            _audit(request, invoice, "fee_adjusted",
+                   {"from": _money(old), "to": _money(new_due), "reason": reason})
+        return Response(_adjust_payload(invoice))
+
+
+@api_view(["GET"])
+def fee_statement(request, pk):
+    """Balance statement for one learner. Works at any time, paid up or not."""
+    from schools.models import FeeAdjustment, Student
+    school_id, error = _fee_school(request)
+    if error:
+        return error
+    student = Student.objects.select_related("school").filter(pk=pk).first()
+    if student is None or (school_id is not None and student.school_id != school_id):
+        return Response({"detail": "Learner not found."}, status=404)
+    school = student.school
+    fees = (StudentFee.objects.filter(student=student)
+            .select_related("fee_structure__academic_year", "fee_structure__term")
+            .order_by("fee_structure__academic_year__start_date",
+                      "fee_structure__term__start_date", "id"))
+    bills, billed, paid, balance = [], Decimal("0"), Decimal("0"), Decimal("0")
+    for f in fees:
+        counted = f.status != "waived"
+        owed = f.balance if counted else Decimal("0")
+        if counted:
+            billed += f.amount_due
+            paid += f.amount_paid
+            balance += owed
+        fs = f.fee_structure
+        bills.append({
+            "fee": fs.name, "term": fs.term.name if fs.term_id else "",
+            "year": str(fs.academic_year),
+            "amount_due": _money(f.amount_due),
+            "balance_brought_forward": _money(f.balance_brought_forward),
+            "carried_out": _money(f.carried_out),
+            "paid": _money(f.amount_paid), "balance": _money(owed),
+            "status": f.status,
+        })
+    payments = []
+    for p in (FeePayment.objects.filter(student_fee__student=student)
+              .select_related("student_fee__fee_structure").order_by("-id")):
+        when = getattr(p, "paid_at", None) or getattr(p, "created_at", None)
+        payments.append({
+            "receipt_number": f"RCPT-{school.code}-{p.id:06d}",
+            "date": when.isoformat() if when else "",
+            "fee": p.student_fee.fee_structure.name,
+            "amount": _money(p.amount), "method": p.method,
+            "reference": p.reference,
+        })
+    changes = [{
+        "when": a.created_at.isoformat(), "fee": a.student_fee.fee_structure.name,
+        "from": _money(a.old_amount_due), "to": _money(a.new_amount_due),
+        "reason": a.reason,
+    } for a in FeeAdjustment.objects.filter(student_fee__student=student)
+        .select_related("student_fee__fee_structure")]
+    return Response({
+        "as_of": timezone.localdate().isoformat(),
+        "school": {
+            "name": school.name, "motto": school.motto, "location": school.location,
+            "county": school.county, "sub_county": school.sub_county,
+            "phone": school.phone, "email": school.email,
+            "logo": school.logo.url if school.logo else "",
+            "currency": school.currency,
+        },
+        "student": {
+            "name": str(student), "admission_number": student.admission_number,
+            "category": student.fee_category,
+        },
+        "bills": bills, "payments": payments, "adjustments": changes,
+        "totals": {"billed": _money(billed), "paid": _money(paid), "balance": _money(balance)},
+    })
+
+
+@api_view(["GET"])
+def fee_years(request):
+    from api.serializers import AcademicYearSerializer
+    from schools.models import AcademicYear
+    school_id, error = _fee_school(request)
+    if error:
+        return error
+    qs = AcademicYear.objects.all()
+    if school_id is not None:
+        qs = qs.filter(school_id=school_id)
+    return Response(AcademicYearSerializer(qs.order_by("-start_date"), many=True).data)
+
+
+@api_view(["GET"])
+def fee_terms(request):
+    from api.serializers import TermSerializer
+    from schools.models import Term
+    school_id, error = _fee_school(request)
+    if error:
+        return error
+    qs = Term.objects.all()
+    if school_id is not None:
+        qs = qs.filter(academic_year__school_id=school_id)
+    return Response(TermSerializer(qs.order_by("start_date"), many=True).data)
+
+
+@api_view(["GET"])
+def fee_students(request):
+    from api.serializers import StudentSerializer
+    from schools.models import Student
+    school_id, error = _fee_school(request)
+    if error:
+        return error
+    qs = Student.objects.all()
+    if school_id is not None:
+        qs = qs.filter(school_id=school_id)
+    return Response(StudentSerializer(qs.order_by("last_name", "first_name"), many=True).data)

@@ -82,7 +82,8 @@ def apply_structure(s):
             new.append(StudentFee(student_id=sid, fee_structure=s,
                                   amount_due=s.amount))
         elif (f.amount_paid == 0 and f.status == "pending"
-              and f.amount_due != s.amount + f.balance_brought_forward):
+              and not f.manually_adjusted
+                and f.amount_due != s.amount + f.balance_brought_forward):
             f.amount_due = s.amount + f.balance_brought_forward
             f.save(update_fields=["amount_due", "updated_at"])
             updated += 1
@@ -117,7 +118,7 @@ def drop_other_category_bills(student):
     still unpaid and untouched. Anything with a payment is kept."""
     from schools.models import StudentFee
     qs = (StudentFee.objects
-          .filter(student=student, status="pending", amount_paid=0,
+          .filter(student=student, status="pending", amount_paid=0, manually_adjusted=False,
                   fee_structure__academic_year__is_active=True,
                   payments__isnull=True)
           .exclude(fee_structure__category="")

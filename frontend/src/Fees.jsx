@@ -18,6 +18,7 @@ export default function Fees({ admin = false }) {
   const ITEMS = ["Tuition", "Lunch", "Activity", "Transport"];
   const [receiptId, setReceiptId] = useState(null);
   const [edit, setEdit] = useState(null);
+  const [adj, setAdj] = useState(null);
   const [carryTerm, setCarryTerm] = useState("");
   const [picked, setPicked] = useState([]), [pickCat, setPickCat] = useState("boarder");
   const [terms, setTerms] = useState([]), [billed, setBilled] = useState(null);
@@ -26,8 +27,8 @@ export default function Fees({ admin = false }) {
     if (!s.ok) { setData({ error: true }); return; }
     setData(await s.json()); setRows(i);
     if (admin) {
-      const [y, f, st, rp] = await Promise.all([listAll("/api/academic-years/"), listAll("/api/fees/structures/"), listAll("/api/students/"), listAll("/api/fees/report/")]);
-      setYears(y); listAll("/api/terms/").then(setTerms).catch(() => {}); setStructures(f); setStudents(st);
+      const [y, f, st, rp] = await Promise.all([listAll("/api/fees/years/"), listAll("/api/fees/structures/"), listAll("/api/fees/students/"), listAll("/api/fees/report/")]);
+      setYears(y); listAll("/api/fees/terms/").then(setTerms).catch(() => {}); setStructures(f); setStudents(st);
       setReport(rp);
     }
   };
@@ -60,6 +61,18 @@ export default function Fees({ admin = false }) {
     toast(r.ok ? `Carried forward for ${j.students_carried} learners` : j.detail || "Could not carry forward", r.ok ? "ok" : "err");
     if (r.ok) load();
   };
+  const openAdjust = async (x) => {
+    const r = await api(`/api/fees/invoices/${x.id}/adjust/`);
+    if (!r.ok) { toast("Could not load this bill", "err"); return; }
+    setAdj({ ...(await r.json()), mode: "set", value: "", reason: "" });
+  };
+  const saveAdjust = async () => {
+    setBusy(true);
+    const r = await api(`/api/fees/invoices/${adj.invoice.id}/adjust/`, "POST", { mode: adj.mode, value: adj.value, reason: adj.reason });
+    const j = await r.json().catch(() => ({})); setBusy(false);
+    if (!r.ok) { toast(j.detail || "Could not adjust this bill", "err"); return; }
+    toast("Bill adjusted", "ok"); setAdj({ ...j, mode: "set", value: "", reason: "" }); load();
+  };
   const createInvoice = async () => {
     setBusy(true); const r = await api("/api/fees/invoices/", "POST", invoice);
     const j = await r.json().catch(() => ({})); setBusy(false);
@@ -91,7 +104,7 @@ export default function Fees({ admin = false }) {
     { label: "Due", render: (x) => money(x.amount_due) },
     { label: "Balance", render: (x) => <b>{money(x.balance)}</b> },
     { label: "Status", render: (x) => <Badge kind={statusKind[x.status] || "info"}>{x.status}</Badge> },
-    { label: "Action", render: (x) => <><Button size="sm" kind="ghost" onClick={() => openHistory(x)}>History</Button>{Number(x.balance) > 0 && <Button size="sm" kind="teal" onClick={() => { setPay(x); setPayment({ amount: x.balance, method: "mpesa", reference: "" }); }}>Payment</Button>}{admin && x.status !== "paid" && x.status !== "waived" && <Button size="sm" kind="danger" onClick={() => waive(x)}>Waive</Button>}</> },
+    { label: "Action", render: (x) => <><Button size="sm" kind="ghost" onClick={() => openHistory(x)}>History</Button>{admin && x.status !== "waived" && <Button size="sm" kind="ghost" onClick={() => openAdjust(x)}>Adjust</Button>}{Number(x.balance) > 0 && <Button size="sm" kind="teal" onClick={() => { setPay(x); setPayment({ amount: x.balance, method: "mpesa", reference: "" }); }}>Payment</Button>}{admin && x.status !== "paid" && x.status !== "waived" && <Button size="sm" kind="danger" onClick={() => waive(x)}>Waive</Button>}</> },
   ];
   return <div className="fees-page">
     <div className="fees-kpis">
@@ -142,6 +155,17 @@ export default function Fees({ admin = false }) {
     </Card>}
     <Card title="Student fee balances"><DataTable cols={cols} rows={rows || []} search="Search student or fee" empty="No fee invoices yet" /></Card>
     {admin && <Card title="Fee report"><div className="mu-tablewrap"><table className="mu-table"><thead><tr><th>Fee</th><th>Invoices</th><th>Due</th><th>Paid</th><th>Balance</th></tr></thead><tbody>{report.map(x => <tr key={x.fee_structure}><td>{x.name}</td><td>{x.invoices}</td><td>{money(x.due)}</td><td>{money(x.paid)}</td><td><b>{money(x.balance)}</b></td></tr>)}</tbody></table></div></Card>}
+    {adj && <div className="mu-overlay" onClick={() => setAdj(null)}><div className="mu-modal" onClick={e => e.stopPropagation()}>
+      <h3>Adjust bill</h3>
+      <p><b>{adj.invoice.student_name}</b> · {adj.invoice.fee_name}</p>
+      <p>Due {money(adj.invoice.amount_due)} · Paid {money(adj.invoice.amount_paid)} · Balance {money(adj.invoice.balance)}</p>
+      <Select label="How do you want to change it?" value={adj.mode} onChange={e => setAdj({ ...adj, mode: e.target.value })}><option value="set">Set a new amount due</option><option value="change">Add or subtract an amount</option></Select>
+      <Input label={adj.mode === "set" ? "New amount due (KES)" : "Change (KES, use minus to reduce)"} type="number" value={adj.value} onChange={e => setAdj({ ...adj, value: e.target.value })} />
+      <Input label="Reason (required)" placeholder="e.g. Bursary discount" value={adj.reason} onChange={e => setAdj({ ...adj, reason: e.target.value })} />
+      <h4>Changes so far</h4>
+      {adj.history.length === 0 ? <p>No manual changes yet.</p> : <div className="mu-tablewrap"><table className="mu-table"><thead><tr><th>Date</th><th>Change</th><th>By</th><th>Reason</th></tr></thead><tbody>{adj.history.map(h => <tr key={h.id}><td>{new Date(h.when).toLocaleDateString()}</td><td>{money(h.from)} → {money(h.to)}</td><td>{h.by}</td><td>{h.reason}</td></tr>)}</tbody></table></div>}
+      <div className="mu-modal-actions"><Button kind="secondary" onClick={() => setAdj(null)}>Close</Button><Button kind="teal" busy={busy} disabled={!adj.value || adj.reason.trim().length < 3} onClick={saveAdjust}>Save change</Button></div>
+    </div></div>}
     {receiptId && <Receipt paymentId={receiptId} onClose={() => setReceiptId(null)} />}{history && <div className="mu-overlay" onClick={() => setHistory(null)}><div className="mu-modal" onClick={e => e.stopPropagation()}><h3>Payment history</h3><p><b>{history.invoice.student_name}</b> · {history.invoice.fee_name}</p>{history.rows.length === 0 ? <p>No payments recorded.</p> : <div className="mu-tablewrap"><table className="mu-table"><thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Reference</th><th></th></tr></thead><tbody>{history.rows.map(x => <tr key={x.id}><td>{new Date(x.paid_at).toLocaleDateString()}</td><td>{money(x.amount)}</td><td>{x.method}</td><td>{x.reference || "—"}</td><td><Button size="sm" kind="ghost" onClick={() => setReceiptId(x.id)}>Receipt</Button></td></tr>)}</tbody></table></div>}<div className="mu-modal-actions"><Button kind="secondary" onClick={() => setHistory(null)}>Close</Button><Button kind="teal" onClick={() => window.print()}>Print</Button></div></div></div>}
     {pay && <div className="mu-overlay" onClick={() => setPay(null)}><div className="mu-modal" onClick={e => e.stopPropagation()}><h3>Record payment</h3><p><b>{pay.student_name}</b> · {pay.fee_name}<br />Balance: {money(pay.balance)}</p>
       <Input label="Amount (KES)" type="number" min="0.01" value={payment.amount} onChange={e => setPayment({ ...payment, amount: e.target.value })} />

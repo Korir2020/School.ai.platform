@@ -74,11 +74,15 @@ class FeeApiTests(APITestCase):
         self.assertEqual(report.status_code, 200)
         self.assertEqual(report.json()[0]["balance"], "10000.00")
 
-    def test_only_admin_can_waive(self):
+    def test_bursar_can_waive(self):
         self.client.force_authenticate(self.bursar)
-        blocked = self.client.post(
-            f"/api/fees/invoices/{self.invoice.id}/waive/", {}, format="json")
-        self.assertEqual(blocked.status_code, 403)
+        result = self.client.post(
+            f"/api/fees/invoices/{self.invoice.id}/waive/",
+            {"reason": "Bursary"}, format="json")
+        self.assertEqual(result.status_code, 200)
+        self.assertEqual(result.json()["status"], "waived")
+
+    def test_admin_can_waive(self):
         self.client.force_authenticate(self.admin)
         result = self.client.post(
             f"/api/fees/invoices/{self.invoice.id}/waive/",
