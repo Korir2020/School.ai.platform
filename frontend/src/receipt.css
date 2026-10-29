@@ -66,3 +66,8 @@ body.rcpt-open>*:not(.rcpt-portal){display:none!important}
 @keyframes rcpt-stamp{from{transform:rotate(-12deg) scale(1.9);opacity:0}to{transform:rotate(-12deg) scale(1);opacity:1}}
 @keyframes rcpt-tear{from{transform:translateY(0) rotate(0);opacity:1}to{transform:translateY(140px) rotate(6deg);opacity:0}}
 @media (prefers-reduced-motion:reduce){.rcpt-stamp,.rcpt-tear{animation:none}}
+
+.rcpt-wcustom .rcpt-paper{width:min(100%,calc(var(--rcpt-mm)*3.8px))}
+.rcpt-mm{display:flex;align-items:center;gap:8px;font-size:.85rem;margin-top:8px}
+.rcpt-mm input{width:72px;min-height:36px;padding:4px 8px}
+@media print{.rcpt-wcustom .rcpt-paper{width:calc(var(--rcpt-mm)*1mm - 4mm)!important;font-size:11px;padding:2mm 1mm}}
