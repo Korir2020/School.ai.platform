@@ -57,9 +57,11 @@ export default function MigrationCentre() {
     return () => { alive = false; };
   }, []);
   const [done, setDone] = useState(null);
+  const [nameOrder, setNameOrder] = useState("");
 
-  async function run(c, f, t) {
+  async function run(c, f, t, o) {
     const fx = f || fixes;
+    const order = o === undefined ? nameOrder : o;
     const body = t === undefined ? text : t;
     if (!file && !body.trim()) { setErr("Choose a file or paste the table first."); return; }
     setDone(null);
@@ -72,6 +74,7 @@ export default function MigrationCentre() {
       fd.append("source", source);
       if (c && Object.keys(c).length) fd.append("confirmations", JSON.stringify(c));
       if (Object.keys(fx).length) fd.append("fixes", JSON.stringify(fx));
+      if (order) fd.append("name_order", order);
       const r = await upload(CHECK_PATH, fd);
       let data = null;
       try { data = await r.json(); } catch { data = null; }
@@ -107,6 +110,7 @@ export default function MigrationCentre() {
       fd.append("source", source);
       if (Object.keys(conf).length) fd.append("confirmations", JSON.stringify(conf));
       if (Object.keys(fixes).length) fd.append("fixes", JSON.stringify(fixes));
+      if (nameOrder) fd.append("name_order", nameOrder);
       const r = await upload(COMMIT_PATH, fd);
       let data = null;
       try { data = await r.json(); } catch { data = null; }
@@ -213,11 +217,11 @@ export default function MigrationCentre() {
 
   function removePage(i) {
     setPages((p) => p.filter((_, k) => k !== i));
-    setRes(null); setConf({}); setFixes({});
+    setRes(null); setNameOrder(""); setConf({}); setFixes({});
   }
 
   async function readPages() {
-    setReading(true); setErr(""); setRes(null); setConf({}); setFixes({});
+    setReading(true); setErr(""); setRes(null); setNameOrder(""); setConf({}); setFixes({});
     const list = pages.map((p) => ({ ...p }));
     const upd = () => setPages(list.map((p) => ({ ...p })));
     let headers = list[0] && list[0].status === "done" ? list[0].headers : null;
@@ -259,6 +263,11 @@ export default function MigrationCentre() {
   const shown = (only ? rows.filter((r) => r.status !== "ready") : rows).slice(0, limit);
   const total = only ? rows.filter((r) => r.status !== "ready").length : rows.length;
 
+  const canAdd = !!sum && sum.ready > 0 && !(res.file_issues || []).some((i) => i.severity === "block");
+  const goAdd = () => {
+    setAsk(true);
+    setTimeout(() => { const el = document.getElementById("add-confirm"); if (el) el.scrollIntoView({ block: "center" }); }, 60);
+  };
   const step = done ? 5 : ask ? 4 : sum && (sum.blocked > 0 || sum.needs_confirmation > 0 || (res.file_issues || []).length > 0) ? 3 : sum ? 2 : 1;
 
   return (
@@ -276,18 +285,25 @@ export default function MigrationCentre() {
         ))}
       </div>
 
+      {step === 1 && <div style={{ ...card, fontSize: 14 }}><b>Next:</b> choose your file or paste the list, then press "2. Check the list".</div>}
+      {(step === 2 || step === 3) && canAdd && (
+        <button style={{ ...btnMain, width: "100%", marginBottom: 10 }} disabled={busy} onClick={goAdd}>
+          Next: add {sum.ready} ready learner(s)
+        </button>
+      )}
+      {step === 3 && !canAdd && <div style={{ ...card, fontSize: 14 }}><b>Next:</b> fix the file or the marked learners, then press "2. Check the list" again.</div>}
       <div style={card}>
         <label style={{ display: "block", fontWeight: 600, marginBottom: 6 }}>1. Choose a file (.xlsx, .csv or typed .pdf)</label>
         <input
           type="file"
           accept=".csv,.xlsx,.pdf,.tsv,.txt"
-          onChange={(e) => { setFile(e.target.files && e.target.files[0] ? e.target.files[0] : null); setRes(null); setConf({}); setFixes({}); }}
+          onChange={(e) => { setFile(e.target.files && e.target.files[0] ? e.target.files[0] : null); setRes(null); setNameOrder(""); setConf({}); setFixes({}); }}
           style={{ width: "100%", minHeight: 44 }}
         />
         <label style={{ display: "block", fontWeight: 600, margin: "12px 0 6px" }}>or paste the table here</label>
         <textarea
           value={text}
-          onChange={(e) => { setText(e.target.value); setRes(null); setConf({}); setFixes({}); }}
+          onChange={(e) => { setText(e.target.value); setRes(null); setNameOrder(""); setConf({}); setFixes({}); }}
           placeholder={"Admission No, First name, Surname, Class\n1001, Amina, Otieno, Grade 7 East"}
           rows={5}
           disabled={!!file}
@@ -296,11 +312,11 @@ export default function MigrationCentre() {
         {file && (
           <div style={{ marginTop: 6, fontSize: 13 }}>
             Using file: <b>{file.name}</b>{" "}
-            <button style={{ ...btn, minHeight: 36, padding: "0 10px" }} onClick={() => { setFile(null); setRes(null); setConf({}); setFixes({}); }}>Remove</button>
+            <button style={{ ...btn, minHeight: 36, padding: "0 10px" }} onClick={() => { setFile(null); setRes(null); setNameOrder(""); setConf({}); setFixes({}); }}>Remove</button>
           </div>
         )}
         <label style={{ display: "block", fontWeight: 600, margin: "12px 0 6px" }}>Where did this list come from?</label>
-        <select value={source} onChange={(e) => { setSource(e.target.value); setRes(null); setConf({}); setFixes({}); }} style={{ ...btn, width: "100%" }}>
+        <select value={source} onChange={(e) => { setSource(e.target.value); setRes(null); setNameOrder(""); setConf({}); setFixes({}); }} style={{ ...btn, width: "100%" }}>
           <option value="digital">A computer file (Excel, CSV)</option>
           <option value="paper">A handwritten or typed register</option>
         </select>
@@ -353,7 +369,24 @@ export default function MigrationCentre() {
 
       {res && (
         <>
-          {(res.file_issues || []).map((i, k) => (
+          {(res.needs_input || []).filter((n) => n.code === "name_order").map((n) => (
+          <div key="name_order" style={{ border: "2px solid #b45309", borderRadius: 8, padding: 12, margin: "10px 0" }}>
+            <div style={{ fontWeight: 700, marginBottom: 6 }}>Which name comes first?</div>
+            <div style={{ marginBottom: 8 }}>{n.message}</div>
+            {(n.sample || []).length > 0 && (
+              <div style={{ marginBottom: 8 }}>For example: {n.sample.slice(0, 3).join(" | ")}</div>
+            )}
+            <button style={{ ...btn, minHeight: 44, marginRight: 8 }} disabled={busy}
+              onClick={() => { setNameOrder("first_last"); run(conf, fixes, undefined, "first_last"); }}>
+              First name first
+            </button>
+            <button style={{ ...btn, minHeight: 44 }} disabled={busy}
+              onClick={() => { setNameOrder("last_first"); run(conf, fixes, undefined, "last_first"); }}>
+              Surname first
+            </button>
+          </div>
+        ))}
+        {(res.file_issues || []).map((i, k) => (
             <div key={k} role="alert" style={{ ...card, borderColor: SEV[i.severity] || "#6b7280", background: i.severity === "block" ? "rgba(220,38,38,.1)" : "rgba(128,128,128,.08)" }}>
               <b style={{ color: SEV[i.severity] || "inherit" }}>{i.severity === "block" ? "Fix the file: " : "Note: "}</b>
               {i.message}
@@ -399,7 +432,7 @@ export default function MigrationCentre() {
 
           {sum && sum.ready > 0 && !(res.file_issues || []).some((i) => i.severity === "block") && (
             ask ? (
-              <div style={{ ...card, borderColor: "#2563eb" }}>
+              <div id="add-confirm" style={{ ...card, borderColor: "#2563eb" }}>
                 <b>Add {sum.ready} learner(s) now?</b>
                 <div style={{ fontSize: 14, margin: "6px 0 10px" }}>
                   {sum.needs_confirmation + sum.blocked > 0 ? (sum.needs_confirmation + sum.blocked) + " will be left out (blocked, or not yet accepted). " : ""}
