@@ -577,6 +577,7 @@ class StudentFee(models.Model):
     carried_out = models.DecimalField(
         max_digits=12, decimal_places=2, default=0,
         validators=[MinValueValidator(0)])
+    manually_adjusted = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -984,3 +985,19 @@ class ClassTeacher(models.Model):
         constraints = [
             models.UniqueConstraint(fields=["stream", "academic_year"], name="ct_unique_stream_year"),
         ]
+
+
+class FeeAdjustment(models.Model):
+    """One manual change to a learner's bill, kept for the record."""
+    student_fee = models.ForeignKey(
+        "StudentFee", on_delete=models.CASCADE, related_name="adjustments")
+    old_amount_due = models.DecimalField(max_digits=12, decimal_places=2)
+    new_amount_due = models.DecimalField(max_digits=12, decimal_places=2)
+    reason = models.CharField(max_length=200)
+    made_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True,
+        on_delete=models.SET_NULL, related_name="+")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-id"]
