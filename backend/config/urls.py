@@ -285,6 +285,7 @@ urlpatterns += [
 
 from api.parent_portal import parent_accounts, parent_children, parent_fees
 from api.documents import bulk_report_cards, fee_receipts
+from api.receipt_verify import receipt_verify
 from api.branding import school_branding
 from api.academic_reports import advanced_report
 from api.student_center import student_center
@@ -299,6 +300,7 @@ urlpatterns += [
     path('api/parent/children/<int:student_id>/fees/', parent_fees),
     path('api/documents/report-cards/', bulk_report_cards),
     path('api/documents/fee-receipts/', fee_receipts),
+    path('api/fees/receipt-verify/<str:token>/', receipt_verify),
     path('api/school/branding/', school_branding),
     path('api/analytics/advanced/<int:term_id>/', advanced_report),
     path('api/students/<int:pk>/center/', student_center),
