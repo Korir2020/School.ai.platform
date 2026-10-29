@@ -133,7 +133,12 @@ def match_class(text, stream_text, levels):
     if level is None:
         close = difflib.get_close_matches(t, [_k(l["name"]) for l in levels], n=3, cutoff=0.5)
         names = [l["name"] for l in levels if _k(l["name"]) in close]
-        hint = f" Closest in this school: {', '.join(names)}." if names else ""
+        if names:
+            hint = f" Closest in this school: {', '.join(names)}."
+        elif levels:
+            hint = f" Classes in this school: {', '.join(l['name'] for l in levels)}."
+        else:
+            hint = " This school has no classes yet. Add them in Setup."
         return None, None, notices, ("class_not_found", f"Class '{text}' does not exist in this school.{hint}")
     if rest and st and rest != st:
         return None, None, notices, ("class_conflict", f"'{text}' and stream '{stream_text}' do not agree.")
