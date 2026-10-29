@@ -305,6 +305,7 @@ def fee_report(request):
 @api_view(["GET"])
 def fee_receipt(request, pk):
     """Read-only receipt data for one payment. Never changes money."""
+    from api.receipt_verify import verify_fields
     school_id, error = _fee_school(request)
     if error:
         return error
@@ -353,6 +354,7 @@ def fee_receipt(request, pk):
         "status_at_payment": ("paid" if after <= 0 else "partial") if verified else None,
         "previous_balance": _money(previous) if verified else None,
         "balance_after": _money(after) if verified else None,
+        **verify_fields(request, payment),
     })
 
 

@@ -2,7 +2,9 @@ from datetime import date
 from decimal import Decimal
 
 from django.contrib.auth.models import User
-from rest_framework.test import APITestCase
+from urllib.parse import urlparse
+
+from rest_framework.test import APIClient, APITestCase
 
 from schools.models import (
     AcademicYear, FeePayment, FeeStructure, School, SchoolAdminProfile,
@@ -71,6 +73,32 @@ class FeeReceiptTests(APITestCase):
         r = self.get(self.admin, p).json()
         self.assertFalse(r["balances_verified"])
         self.assertIsNone(r["status_at_payment"])
+
+    def test_receipt_returns_verify_url_and_qr(self):
+        p = self.pay(self.invoice, "100")
+        r = self.get(self.admin, p).json()
+        self.assertIn("/api/fees/receipt-verify/", r["verify_url"])
+        self.assertIn("<svg", r["qr_svg"])
+
+    def test_public_verify_page_shows_receipt_but_not_learner(self):
+        p = self.pay(self.invoice, "100")
+        r = self.get(self.admin, p).json()
+        page = APIClient().get(urlparse(r["verify_url"]).path)
+        self.assertEqual(page.status_code, 200)
+        text = page.content.decode()
+        self.assertIn(r["receipt_number"], text)
+        self.assertIn("Fee School", text)
+        self.assertIn("100.00", text)
+        self.assertNotIn("A Student", text)
+
+    def test_forged_or_tampered_token_is_not_valid(self):
+        p = self.pay(self.invoice, "100")
+        r = self.get(self.admin, p).json()
+        good = urlparse(r["verify_url"]).path
+        for path in (good.rstrip("/") + "x/", "/api/fees/receipt-verify/not-a-token/"):
+            page = APIClient().get(path)
+            self.assertEqual(page.status_code, 404)
+            self.assertIn("Not valid", page.content.decode())
 
     def test_admin_and_bursar_read_own_receipt(self):
         p = self.pay(self.invoice, "4000.00", "MP1")

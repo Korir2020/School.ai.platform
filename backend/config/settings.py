@@ -251,6 +251,11 @@ REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"].update({
     "school_reg_status": "1000/min" if "test" in sys.argv else "30/min",
 })
 
+# Public receipt check (QR)
+REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"].update({
+    "receipt_verify": "1000/min" if "test" in sys.argv else "60/min",
+})
+
 # Recovery hardening: links expire after 1 hour; one email per account per minute.
 PASSWORD_RESET_TIMEOUT = 3600
 PASSWORD_RESET_COOLDOWN_SECONDS = 0 if "test" in sys.argv else 60
