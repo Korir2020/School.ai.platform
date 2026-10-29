@@ -26,12 +26,12 @@ const FIX_LABELS = [
   ["assessment_number", "Assessment number (Grade 10 to 12 only)"],
 ];
 
-function Chip({ n, label, color }) {
+function Tab({ n, label, color, active, onClick }) {
   return (
-    <div style={{ ...card, flex: "1 1 90px", marginBottom: 0, textAlign: "center", borderColor: color || "rgba(128,128,128,.4)" }}>
-      <div style={{ fontSize: 22, fontWeight: 700, color }}>{n}</div>
-      <div style={{ fontSize: 12, opacity: 0.8 }}>{label}</div>
-    </div>
+    <button type="button" role="tab" aria-selected={active} onClick={onClick} style={{ ...btn, flex: "1 1 90px", minHeight: 56, padding: "6px 8px", textAlign: "center", borderColor: color || "rgba(128,128,128,.4)", fontWeight: active ? 700 : 400, background: active ? "rgba(37,99,235,.12)" : "transparent" }}>
+      <div style={{ fontSize: 20, fontWeight: 700, color }}>{n}</div>
+      <div style={{ fontSize: 12 }}>{label}</div>
+    </button>
   );
 }
 
@@ -43,7 +43,8 @@ export default function MigrationCentre() {
   const [conf, setConf] = useState({});
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
-  const [only, setOnly] = useState(true);
+  const [tab, setTab] = useState("all");
+  const [drag, setDrag] = useState(false);
   const [limit, setLimit] = useState(PAGE);
   const [ask, setAsk] = useState(false);
   const [fixes, setFixes] = useState({});
@@ -204,6 +205,18 @@ export default function MigrationCentre() {
     } catch { return null; }
   }
 
+  function takeFile(f) {
+    if (!f) return;
+    setErr("");
+    if (/^image\//.test(f.type) || /\.(jpe?g|png|webp|heic)$/i.test(f.name)) {
+      if (photoOn !== true) { setErr("Photo reading is not available yet. For now, use an Excel, CSV or typed PDF file, or paste the table."); return; }
+      setSource("paper");
+      addPage({ target: { files: [f], value: "" } });
+      return;
+    }
+    setFile(f); setRes(null); setNameOrder(""); setConf({}); setFixes({});
+  }
+
   async function addPage(e) {
     const f = e.target.files && e.target.files[0];
     e.target.value = "";
@@ -261,8 +274,8 @@ export default function MigrationCentre() {
 
   const sum = res && res.summary ? res.summary : null;
   const rows = res && res.rows ? res.rows : [];
-  const shown = (only ? rows.filter((r) => r.status !== "ready") : rows).slice(0, limit);
-  const total = only ? rows.filter((r) => r.status !== "ready").length : rows.length;
+  const shown = rows.filter((r) => tab === "all" || r.status === tab).slice(0, limit);
+  const total = tab === "all" ? rows.length : rows.filter((r) => r.status === tab).length;
 
   const canAdd = !!sum && sum.ready > 0 && !(res.file_issues || []).some((i) => i.severity === "block");
   const goAdd = () => {
@@ -297,12 +310,17 @@ export default function MigrationCentre() {
       <div className="mc-grid">
       <div style={card}>
         <label style={{ display: "block", fontWeight: 600, marginBottom: 6 }}>1. Choose a file (.xlsx, .csv or typed .pdf)</label>
-        <input
-          type="file"
-          accept=".csv,.xlsx,.pdf,.tsv,.txt"
-          onChange={(e) => { setFile(e.target.files && e.target.files[0] ? e.target.files[0] : null); setRes(null); setNameOrder(""); setConf({}); setFixes({}); }}
-          style={{ width: "100%", minHeight: 44 }}
-        />
+        <label
+          className={"mc-drop" + (drag ? " is-over" : "")}
+          onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
+          onDragLeave={() => setDrag(false)}
+          onDrop={(e) => { e.preventDefault(); setDrag(false); takeFile(e.dataTransfer.files && e.dataTransfer.files[0]); }}
+        >
+          <div style={{ fontWeight: 700 }}>Drag and drop your file here</div>
+          <div style={{ fontSize: 13, opacity: 0.85, margin: "4px 0 10px" }}>Excel, CSV, TSV, TXT or typed PDF</div>
+          <span style={{ ...btnMain, display: "inline-block", padding: "10px 16px", borderRadius: 10 }}>Choose File</span>
+          <input type="file" accept=".csv,.xlsx,.pdf,.tsv,.txt,image/*" style={{ display: "none" }} onChange={(e) => { takeFile(e.target.files && e.target.files[0]); e.target.value = ""; }} />
+        </label>
         <label style={{ display: "block", fontWeight: 600, margin: "12px 0 6px" }}>or paste the table here</label>
         <textarea
           value={text}
@@ -408,12 +426,12 @@ export default function MigrationCentre() {
 
           {sum && sum.total != null && (
             <>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
-                <Chip n={sum.total} label="Learners" />
-                <Chip n={sum.ready} label="Ready" color="#16a34a" />
-                <Chip n={sum.needs_confirmation} label="To confirm" color="#d97706" />
-                <Chip n={sum.blocked} label="Blocked" color="#dc2626" />
-              </div>
+              <div role="tablist" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+          <Tab n={sum.total} label="All" active={tab === "all"} onClick={() => { setTab("all"); setLimit(PAGE); }} />
+          <Tab n={sum.ready} label="Ready" color="#16a34a" active={tab === "ready"} onClick={() => { setTab("ready"); setLimit(PAGE); }} />
+          <Tab n={sum.needs_confirmation} label="To confirm" color="#d97706" active={tab === "needs_confirmation"} onClick={() => { setTab("needs_confirmation"); setLimit(PAGE); }} />
+          <Tab n={sum.blocked} label="Blocked" color="#dc2626" active={tab === "blocked"} onClick={() => { setTab("blocked"); setLimit(PAGE); }} />
+        </div>
               {Object.keys(fixes).length > 0 && (
                 <div style={{ ...card, fontSize: 14 }}>
                   You corrected {Object.keys(fixes).length} row(s) here. The file itself is unchanged.{" "}
@@ -431,10 +449,7 @@ export default function MigrationCentre() {
                   {Object.entries(sum.by_class).map(([k, v]) => k + " (" + v + ")").join(", ")}
                 </div>
               )}
-              <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-                <button style={{ ...btn, flex: 1, fontWeight: only ? 700 : 400 }} onClick={() => { setOnly(true); setLimit(PAGE); }}>Problems only</button>
-                <button style={{ ...btn, flex: 1, fontWeight: only ? 400 : 700 }} onClick={() => { setOnly(false); setLimit(PAGE); }}>All learners</button>
-              </div>
+              
               {sum.blocked > 0 && (
                 <div style={{ ...card, borderColor: "#dc2626", fontSize: 14 }}>
                   Blocked learners can't be added until you fix them in your file. Correct the file, choose it again, and check again.
@@ -463,8 +478,8 @@ export default function MigrationCentre() {
             )
           )}
 
-          {total === 0 && rows.length > 0 && only && (
-            <div style={{ ...card, borderColor: "#16a34a" }}>No problems found. Every learner is ready.</div>
+          {total === 0 && rows.length > 0 && tab !== "all" && (
+            <div style={{ ...card, borderColor: "#16a34a" }}>No learners in this tab.</div>
           )}
 
           {shown.map((r) => {
