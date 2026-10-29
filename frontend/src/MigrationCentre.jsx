@@ -75,7 +75,7 @@ export default function MigrationCentre() {
       if (c && Object.keys(c).length) fd.append("confirmations", JSON.stringify(c));
       if (Object.keys(fx).length) fd.append("fixes", JSON.stringify(fx));
       if (order) fd.append("name_order", order);
-      const r = await upload(CHECK_PATH, fd);
+      const r = await upload(CHECK_PATH, fd, 60000);
       let data = null;
       try { data = await r.json(); } catch { data = null; }
       if (!r.ok) {
@@ -87,8 +87,8 @@ export default function MigrationCentre() {
         setFixes(fx);
         setLimit(PAGE);
       }
-    } catch {
-      setErr("Could not reach the server. Check your connection and try again.");
+    } catch (e) {
+      setErr(e && e.name === "TimeoutError" ? "The server took too long to answer. It may be waking up. Wait a minute, then press Check again." : "Could not reach the server. Check your connection and try again.");
     }
     setBusy(false);
   }

@@ -65,8 +65,8 @@ export async function api(path, method = "GET", body) {
   return r;
 }
 
-export async function upload(path, formData) {
-  const run = () => fetch(`${BASE}${path}`, { method: "POST", headers: { Authorization: `Bearer ${access}` }, body: formData, credentials: "include" });
+export async function upload(path, formData, timeoutMs) {
+  const run = () => fetch(`${BASE}${path}`, { method: "POST", headers: { Authorization: `Bearer ${access}` }, body: formData, credentials: "include", signal: timeoutMs ? AbortSignal.timeout(timeoutMs) : undefined });
   if (!access) await refresh();
   let r = await run();
   if (r.status === 401 && (await refresh())) r = await run();
