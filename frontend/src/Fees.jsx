@@ -18,6 +18,7 @@ export default function Fees({ admin = false }) {
   const ITEMS = ["Tuition", "Lunch", "Activity", "Transport"];
   const [receiptId, setReceiptId] = useState(null);
   const [edit, setEdit] = useState(null);
+  const [carryTerm, setCarryTerm] = useState("");
   const [picked, setPicked] = useState([]), [pickCat, setPickCat] = useState("boarder");
   const [terms, setTerms] = useState([]), [billed, setBilled] = useState(null);
   const load = async () => {
@@ -51,6 +52,13 @@ export default function Fees({ admin = false }) {
     const j = await r.json().catch(() => ({})); setBusy(false);
     toast(r.ok ? `${j.students_changed} learners changed, ${j.bills_removed} bills removed, ${j.bills_created} bills created` : j.detail || "Could not save category", r.ok ? "ok" : "err");
     if (r.ok) { setPicked([]); load(); }
+  };
+  const carryArrears = async () => {
+    setBusy(true);
+    const r = await api("/api/fees/carry-forward/", "POST", { term: carryTerm });
+    const j = await r.json().catch(() => ({})); setBusy(false);
+    toast(r.ok ? `Carried forward for ${j.students_carried} learners` : j.detail || "Could not carry forward", r.ok ? "ok" : "err");
+    if (r.ok) load();
   };
   const createInvoice = async () => {
     setBusy(true); const r = await api("/api/fees/invoices/", "POST", invoice);
@@ -108,6 +116,10 @@ export default function Fees({ admin = false }) {
       <Select label="Set selected learners to" value={pickCat} onChange={e => setPickCat(e.target.value)}><option value="day">Day scholar</option><option value="boarder">Boarder</option></Select>
       <Button kind="teal" busy={busy} disabled={picked.length === 0} onClick={saveCategories}>Apply to {picked.length} selected</Button>
       <div style={{ maxHeight: 320, overflowY: "auto" }}>{students.map(s => <label key={s.id} style={{ display: "block", padding: "6px 0" }}><input type="checkbox" checked={picked.includes(s.id)} onChange={e => setPicked(e.target.checked ? [...picked, s.id] : picked.filter(x => x !== s.id))} /> {s.first_name} {s.last_name} · {s.admission_number} · {s.fee_category === "boarder" ? "Boarder" : "Day"}</label>)}</div>
+    </Card>}
+    {admin && <Card title="Carry forward arrears">
+      <Select label="Into term" value={carryTerm} onChange={e => setCarryTerm(e.target.value)}><option value="">Select...</option>{terms.map(t => <option key={t.id} value={t.id}>{t.name} ({(years.find(y => y.id === t.academic_year) || {}).name || ""})</option>)}</Select>
+      <Button kind="teal" busy={busy} disabled={!carryTerm} onClick={carryArrears}>Carry forward unpaid balances</Button>
     </Card>}
     {admin && <Card title="Fee items">
       {structures.length === 0 ? <p>No fee items yet.</p> : structures.map(f => <div key={f.id} className="fee-form">

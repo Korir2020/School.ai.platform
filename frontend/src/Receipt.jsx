@@ -188,6 +188,8 @@ export default function Receipt({ paymentId, onClose }) {
                 <div className="rcpt-total"><span>AMOUNT PAID</span><b>{money(d.payment.amount, d.school.currency)}</b></div>
                 <dl className="rcpt-rows">
                   <Row k="Fee amount" v={money(d.fee.amount_due, d.school.currency)} />
+          <Row k="Category" v={d.fee.category === "boarder" ? "Boarder" : d.fee.category === "day" ? "Day scholar" : ""} />
+          <Row k="Balance brought forward" v={money(d.fee.balance_brought_forward, d.school.currency)} />
                   {d.balances_verified && <Row k="Previous balance" v={money(d.previous_balance, d.school.currency)} />}
                   {d.balances_verified && <Row k="Balance after" v={money(d.balance_after, d.school.currency)} />}
                   <Row k="Fee status" v={STATUS[d.fee.status] || d.fee.status} />
