@@ -63,6 +63,25 @@ class MigrationRulesTests(SimpleTestCase):
         self.assertEqual([r["admission_number"] for r in out["rows"]], ["A1", "A2", "A3", "A10"])
         self.assertEqual([r["class_label"] for r in out["rows"]], ["Grade 9 East", "Grade 9 East", "Grade 10 East", "Grade 10 West"])
 
+    def test_class_not_found_names_the_closest_classes(self):
+        r = run([["A1", "Jane", "Otieno", "Grade 8", "East", ""]])["rows"][0]
+        msg = [i["message"] for i in r["issues"] if i["code"] == "class_not_found"][0]
+        self.assertIn("Closest in this school", msg)
+
+    def test_class_not_found_lists_all_classes_when_none_is_close(self):
+        r = run([["A1", "Jane", "Otieno", "Form 4", "", ""]])["rows"][0]
+        self.assertEqual(r["status"], "blocked")
+        msg = [i["message"] for i in r["issues"] if i["code"] == "class_not_found"][0]
+        self.assertIn("Classes in this school", msg)
+        self.assertIn("Grade 9", msg)
+        self.assertIn("Grade 11", msg)
+
+    def test_class_not_found_when_school_has_no_classes(self):
+        out = analyse_upload([HEAD, ["A1", "Jane", "Otieno", "Form 4", "", ""]], [])
+        r = out["rows"][0]
+        msg = [i["message"] for i in r["issues"] if i["code"] == "class_not_found"][0]
+        self.assertIn("no classes yet", msg)
+
     def test_unknown_class_is_blocked_and_never_guessed(self):
         out = run([["A1", "Jane", "Otieno", "Grade 8", "East", ""]])
         r = out["rows"][0]
