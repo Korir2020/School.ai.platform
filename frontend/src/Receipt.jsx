@@ -76,6 +76,7 @@ export default function Receipt({ paymentId, onClose }) {
   });
   const [note, setNote] = useState("");
   const [tries, setTries] = useState(0);
+  const [saving, setSaving] = useState(false);
   const timers = useRef([]);
   const running = useRef(false);
   const auto = useRef(false);
@@ -151,6 +152,28 @@ export default function Receipt({ paymentId, onClose }) {
   const openDialog = (msg) => {
     setNote(msg);
     timers.current.push(setTimeout(() => window.print(), 60));
+  };
+
+  const download = async () => {
+    if (saving) return;
+    setSaving(true);
+    setNote("");
+    try {
+      const r = await api("/api/documents/fee-receipts/", "POST", { payment_ids: [paymentId], format: "combined" });
+      if (!r.ok) { setNote("Could not create the PDF. Please try again."); return; }
+      const blob = await r.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `receipt-${state.data.receipt_number}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setNote("PDF created. Check your downloads.");
+    } catch {
+      setNote("Could not create the PDF. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const copy = async () => {
@@ -245,7 +268,7 @@ export default function Receipt({ paymentId, onClose }) {
                   <Button kind="teal" onClick={() => openDialog("Print dialog opened. Check your printer to confirm it printed.")}>Open print dialog</Button>
                   <Button kind="secondary" onClick={run}>Print again</Button>
             <Button kind="secondary" onClick={tear}>Tear receipt</Button>
-                  <Button kind="secondary" onClick={() => openDialog("Print dialog opened. Choose Save as PDF as the destination.")}>Save as PDF</Button>
+                  <Button kind='secondary' busy={saving} disabled={saving} onClick={download}>Download PDF</Button>
                 </>
               )}
               <Button kind="secondary" onClick={copy}>Copy details</Button>
