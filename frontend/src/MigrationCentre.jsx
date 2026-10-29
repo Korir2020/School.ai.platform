@@ -26,6 +26,23 @@ const FIX_LABELS = [
   ["assessment_number", "Assessment number (Grade 10 to 12 only)"],
 ];
 
+const SETUP = { label: "Open Setup in a new tab", hash: "#Setup" };
+const STUDENTS = { label: "Open Students in a new tab", hash: "#Students" };
+function helpFor(code) {
+  const c = code || "";
+  if (c === "class_not_found") return { tip: "Add this class in Setup, then press Check the list again. Or use Fix on the row to pick another class.", link: SETUP };
+  if (c === "stream_not_found") return { tip: "Add this stream in Setup, or use Fix on the row to choose an existing one.", link: SETUP };
+  if (c === "class_missing") return { tip: "Use Fix on the row to give the learner a class, or add a class column to your file." };
+  if (c === "class_ambiguous") return { tip: "Write the full class name, for example Grade 7 East, using Fix on the row." };
+  if (c === "class_conflict") return { tip: "The class and stream do not agree. Correct one of them with Fix on the row." };
+  if (c === "name_missing" || c === "name_too_long") return { tip: "Use Fix on the row to correct the name." };
+  if (c === "admission_too_long") return { tip: "Use Fix on the row to shorten the admission number." };
+  if (c === "assessment_missing") return { tip: "Use Fix on the row to add the assessment number." };
+  if (c.indexOf("duplicate_") === 0) return { tip: "Two rows in your file share this value. Use Fix on one row, or remove one from the file and check again." };
+  if (/_exists$/.test(c)) return { tip: "This learner is already in Marian. Look them up under Students, then remove the row from your file.", link: STUDENTS };
+  return null;
+}
+
 function Tab({ n, label, color, active, onClick }) {
   return (
     <button type="button" role="tab" aria-selected={active} onClick={onClick} style={{ ...btn, flex: "1 1 90px", minHeight: 56, padding: "6px 8px", textAlign: "center", borderColor: color || "rgba(128,128,128,.4)", fontWeight: active ? 700 : 400, background: active ? "rgba(37,99,235,.12)" : "transparent" }}>
@@ -276,6 +293,20 @@ export default function MigrationCentre() {
   const rows = res && res.rows ? res.rows : [];
   const shown = rows.filter((r) => tab === "all" || r.status === tab).slice(0, limit);
   const total = tab === "all" ? rows.length : rows.filter((r) => r.status === tab).length;
+  const blockedGroups = (() => {
+    const m = {};
+    rows.filter((r) => r.status === "blocked").forEach((r) => {
+      const seen = {};
+      (r.issues || []).filter((i) => i.severity === "block").forEach((i) => {
+        const k = (i.code || "") + "|" + i.message;
+        if (seen[k]) return;
+        seen[k] = true;
+        if (!m[k]) m[k] = { key: k, code: i.code, message: i.message, n: 0 };
+        m[k].n += 1;
+      });
+    });
+    return Object.values(m).map((g) => ({ ...g, help: helpFor(g.code) })).sort((a, b) => b.n - a.n);
+  })();
 
   const canAdd = !!sum && sum.ready > 0 && !(res.file_issues || []).some((i) => i.severity === "block");
   const goAdd = () => {
@@ -432,6 +463,21 @@ export default function MigrationCentre() {
           <Tab n={sum.needs_confirmation} label="To confirm" color="#d97706" active={tab === "needs_confirmation"} onClick={() => { setTab("needs_confirmation"); setLimit(PAGE); }} />
           <Tab n={sum.blocked} label="Blocked" color="#dc2626" active={tab === "blocked"} onClick={() => { setTab("blocked"); setLimit(PAGE); }} />
         </div>
+        {blockedGroups.length > 0 && (
+          <div style={{ ...card, borderColor: "#dc2626" }}>
+            <b>Why learners are blocked</b>
+            {blockedGroups.slice(0, 5).map((g) => (
+              <div key={g.key} style={{ marginTop: 8, fontSize: 14 }}>
+                <b>{g.n} learner(s):</b> {g.message}
+                {g.help && <div style={{ opacity: 0.85 }}>What to do: {g.help.tip}</div>}
+                {g.help && g.help.link && (
+                  <a href={g.help.link.hash} target="_blank" rel="noopener noreferrer" style={{ ...btn, display: "inline-block", marginTop: 6, minHeight: 36, lineHeight: "36px", padding: "0 12px", textDecoration: "none" }}>{g.help.link.label}</a>
+                )}
+              </div>
+            ))}
+            {blockedGroups.length > 5 && <div style={{ marginTop: 8, fontSize: 13 }}>and {blockedGroups.length - 5} more reason(s). Open the Blocked tab to see them.</div>}
+          </div>
+        )}
               {Object.keys(fixes).length > 0 && (
                 <div style={{ ...card, fontSize: 14 }}>
                   You corrected {Object.keys(fixes).length} row(s) here. The file itself is unchanged.{" "}
@@ -504,7 +550,10 @@ export default function MigrationCentre() {
                         {i.severity === "block" ? "Problem: " : isConfirm ? "Check: " : "Note: "}
                       </span>
                       {i.message}
-                      {isConfirm && (
+              {i.severity === "block" && helpFor(i.code) && (
+                <div style={{ opacity: 0.85, marginTop: 4 }}>What to do: {helpFor(i.code).tip}</div>
+              )}
+              {isConfirm && (
                         <div>
                           <button style={{ ...btn, marginTop: 6, background: done ? "rgba(22,163,74,.15)" : "transparent" }} disabled={busy} onClick={() => accept(r.row, i.code)}>
                             {done ? "Accepted. Tap to undo" : "This is correct, accept"}
