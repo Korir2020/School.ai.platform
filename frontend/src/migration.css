@@ -7,3 +7,6 @@
 .mc-step.is-done{background:rgba(22,163,74,.15);border-color:rgba(22,163,74,.5)}
 .mc-step.is-done .mc-dot{background:#16a34a;color:#fff}
 @media (max-width:560px){.mc-step:not(.is-current) .mc-label{display:none}.mc-step{padding:8px 4px}.mc-step.is-current{flex:3}}
+.mc-grid{display:grid;grid-template-columns:1fr;gap:12px;align-items:start}
+.mc-help{display:none}
+@media (min-width:900px){.mc-grid{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}.mc-help{display:block}}
