@@ -18,6 +18,7 @@ export default function Fees({ admin = false }) {
   const [pay, setPay] = useState(null), [payment, setPayment] = useState({ amount: "", method: "mpesa", reference: "" });
   const ITEMS = ["Tuition", "Lunch", "Activity", "Transport"];
   const [receiptId, setReceiptId] = useState(null);
+  const [paidId, setPaidId] = useState(null);
   const [statementId, setStatementId] = useState(null);
   const [arrearsOnly, setArrearsOnly] = useState(false);
   const [edit, setEdit] = useState(null);
@@ -86,7 +87,7 @@ export default function Fees({ admin = false }) {
     setBusy(true); const r = await api("/api/fees/payments/", "POST", { ...payment, student_fee: pay.id });
     const j = await r.json().catch(() => ({})); setBusy(false);
     toast(r.ok ? "Payment recorded" : j.detail || "Could not record payment", r.ok ? "ok" : "err");
-    if (r.ok) { setPay(null); load(); }
+    if (r.ok) { setPay(null); load(); if (j && j.payment_id) setPaidId(j.payment_id); }
   };
   const openHistory = async (x) => {
     const r = await api(`/api/fees/payment-history/?student_fee=${x.id}`);
@@ -169,7 +170,8 @@ export default function Fees({ admin = false }) {
       {adj.history.length === 0 ? <p>No manual changes yet.</p> : <div className="mu-tablewrap"><table className="mu-table"><thead><tr><th>Date</th><th>Change</th><th>By</th><th>Reason</th></tr></thead><tbody>{adj.history.map(h => <tr key={h.id}><td>{new Date(h.when).toLocaleDateString()}</td><td>{money(h.from)} → {money(h.to)}</td><td>{h.by}</td><td>{h.reason}</td></tr>)}</tbody></table></div>}
       <div className="mu-modal-actions"><Button kind="secondary" onClick={() => setAdj(null)}>Close</Button><Button kind="teal" busy={busy} disabled={!adj.value || adj.reason.trim().length < 3} onClick={saveAdjust}>Save change</Button></div>
     </div></div>}
-    {receiptId && <Receipt paymentId={receiptId} onClose={() => setReceiptId(null)} />}{statementId && <Statement studentId={statementId} onClose={() => setStatementId(null)} />}{history && <div className="mu-overlay" onClick={() => setHistory(null)}><div className="mu-modal" onClick={e => e.stopPropagation()}><h3>Payment history</h3><p><b>{history.invoice.student_name}</b> · {history.invoice.fee_name}</p>{history.rows.length === 0 ? <p>No payments recorded.</p> : <div className="mu-tablewrap"><table className="mu-table"><thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Reference</th><th></th></tr></thead><tbody>{history.rows.map(x => <tr key={x.id}><td>{new Date(x.paid_at).toLocaleDateString()}</td><td>{money(x.amount)}</td><td>{x.method}</td><td>{x.reference || "—"}</td><td><Button size="sm" kind="ghost" onClick={() => setReceiptId(x.id)}>Receipt</Button></td></tr>)}</tbody></table></div>}<div className="mu-modal-actions"><Button kind="secondary" onClick={() => setHistory(null)}>Close</Button><Button kind="teal" onClick={() => window.print()}>Print</Button></div></div></div>}
+    {paidId && <div className="mu-overlay" onClick={() => setPaidId(null)}><div className="mu-modal" onClick={e => e.stopPropagation()}><h3>Payment recorded</h3><p>Print a receipt for this payment?</p><div className="mu-modal-actions"><Button kind="secondary" onClick={() => setPaidId(null)}>Not now</Button><Button kind="teal" onClick={() => { setReceiptId(paidId); setPaidId(null); }}>Print receipt</Button></div></div></div>}
+      {receiptId && <Receipt paymentId={receiptId} onClose={() => setReceiptId(null)} />}{statementId && <Statement studentId={statementId} onClose={() => setStatementId(null)} />}{history && <div className="mu-overlay" onClick={() => setHistory(null)}><div className="mu-modal" onClick={e => e.stopPropagation()}><h3>Payment history</h3><p><b>{history.invoice.student_name}</b> · {history.invoice.fee_name}</p>{history.rows.length === 0 ? <p>No payments recorded.</p> : <div className="mu-tablewrap"><table className="mu-table"><thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Reference</th><th></th></tr></thead><tbody>{history.rows.map(x => <tr key={x.id}><td>{new Date(x.paid_at).toLocaleDateString()}</td><td>{money(x.amount)}</td><td>{x.method}</td><td>{x.reference || "—"}</td><td><Button size="sm" kind="ghost" onClick={() => setReceiptId(x.id)}>Receipt</Button></td></tr>)}</tbody></table></div>}<div className="mu-modal-actions"><Button kind="secondary" onClick={() => setHistory(null)}>Close</Button><Button kind="teal" onClick={() => window.print()}>Print</Button></div></div></div>}
     {pay && <div className="mu-overlay" onClick={() => setPay(null)}><div className="mu-modal" onClick={e => e.stopPropagation()}><h3>Record payment</h3><p><b>{pay.student_name}</b> · {pay.fee_name}<br />Balance: {money(pay.balance)}</p>
       <Input label="Amount (KES)" type="number" min="0.01" value={payment.amount} onChange={e => setPayment({ ...payment, amount: e.target.value })} />
       <Select label="Method" value={payment.method} onChange={e => setPayment({ ...payment, method: e.target.value })}><option value="mpesa">M-Pesa</option><option value="cash">Cash</option><option value="bank">Bank</option><option value="other">Other</option></Select>

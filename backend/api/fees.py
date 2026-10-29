@@ -242,7 +242,9 @@ def fee_payment(request):
             _audit(request, invoice, "fee_payment", {"amount": _money(amount), "payment_id": payment.id})
     except (StudentFee.DoesNotExist, ValueError, TypeError):
         return Response({"detail": "Invoice not found."}, status=404)
-    return Response(_invoice_data(invoice), status=201)
+    data = _invoice_data(invoice)
+    data['payment_id'] = payment.id
+    return Response(data, status=201)
 
 
 @api_view(["GET"])
