@@ -318,10 +318,21 @@ export default function MigrationCentre() {
 
   return (
     <div className="mc-page">
-      <h2 style={{ marginTop: 0 }}>Migration Centre</h2>
-      <p style={{ opacity: 0.85, marginTop: 0 }}>
-        Add many learners at once. Upload an Excel, CSV or typed PDF file, or paste the table. Nothing is added until you confirm at the end.
-      </p>
+      <header className="mc-banner">
+        <div className="mc-banner-photo" aria-hidden="true" style={{ backgroundImage: "url(/school-banner.jpg)" }} />
+        <div className="mc-banner-icon" aria-hidden="true">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <ellipse cx="12" cy="5" rx="9" ry="3" />
+            <path d="M3 5v14a9 3 0 0 0 18 0V5" />
+            <path d="M3 12a9 3 0 0 0 18 0" />
+          </svg>
+        </div>
+        <div className="mc-banner-text">
+          <h2 style={{ margin: 0 }}>Migration Centre</h2>
+          <p style={{ margin: "4px 0 0" }}>Add many learners at once from your existing list. Nothing is added until you confirm at the end.</p>
+          <p style={{ margin: "4px 0 0", fontSize: 13, opacity: 0.85 }}>Supported: Excel, CSV or typed PDF, or paste the table.</p>
+        </div>
+      </header>
 
       <div role="list" aria-label="Progress" className="mc-steps">
         {["Upload", "Check", "Fix", "Add", "Done"].map((name, i) => (
