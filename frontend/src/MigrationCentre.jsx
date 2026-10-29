@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, upload } from "./api";
+import "./migration.css";
 
 const CHECK_PATH = "/api/students/migration/check/";
 const COMMIT_PATH = CHECK_PATH.replace("/check/", "/commit/");
@@ -271,16 +272,17 @@ export default function MigrationCentre() {
   const step = done ? 5 : ask ? 4 : sum && (sum.blocked > 0 || sum.needs_confirmation > 0 || (res.file_issues || []).length > 0) ? 3 : sum ? 2 : 1;
 
   return (
-    <div style={{ maxWidth: 760, margin: "0 auto", padding: 12 }}>
+    <div className="mc-page">
       <h2 style={{ marginTop: 0 }}>Migration Centre</h2>
       <p style={{ opacity: 0.85, marginTop: 0 }}>
         Add many learners at once. Upload an Excel, CSV or typed PDF file, or paste the table. Nothing is added until you confirm at the end.
       </p>
 
-      <div role="list" aria-label="Progress" style={{ display: "flex", gap: 4, margin: "10px 0", fontSize: 12 }}>
-        {["Paste", "Check", "Fix", "Add", "Done"].map((name, i) => (
-          <div key={name} role="listitem" aria-current={step === i + 1 ? "step" : undefined} style={{ flex: 1, textAlign: "center", padding: "6px 2px", borderRadius: 8, border: "1px solid #6b7280", fontWeight: step === i + 1 ? 700 : 400, background: step === i + 1 ? "#2563eb" : step > i + 1 ? "rgba(22,163,74,.15)" : "transparent", color: step === i + 1 ? "#fff" : "inherit" }}>
-            {step > i + 1 ? "\u2713 " : ""}{name}
+      <div role="list" aria-label="Progress" className="mc-steps">
+        {["Upload", "Check", "Fix", "Add", "Done"].map((name, i) => (
+          <div key={name} role="listitem" aria-current={step === i + 1 ? "step" : undefined} className={"mc-step" + (step === i + 1 ? " is-current" : step > i + 1 ? " is-done" : "")}>
+            <span className="mc-dot">{step > i + 1 ? "\u2713" : i + 1}</span>
+            <span className="mc-label">{name}</span>
           </div>
         ))}
       </div>
