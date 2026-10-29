@@ -12,3 +12,5 @@
 @media (min-width:900px){.mc-grid{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}.mc-help{display:block}}
 .mc-drop{display:block;text-align:center;border:2px dashed rgba(128,128,128,.6);border-radius:12px;padding:20px 12px;cursor:pointer;margin-bottom:8px}
 .mc-drop.is-over{border-color:#2563eb;background:rgba(37,99,235,.1)}
+.mc-help{display:block;order:-1}
+@media (min-width:900px){.mc-help{order:0}}
