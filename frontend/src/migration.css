@@ -14,3 +14,8 @@
 .mc-drop.is-over{border-color:#2563eb;background:rgba(37,99,235,.1)}
 .mc-help{display:block;order:-1}
 @media (min-width:900px){.mc-help{order:0}}
+.mc-banner{position:relative;overflow:hidden;display:flex;align-items:center;gap:14px;padding:16px;margin-bottom:12px;border:1px solid rgba(128,128,128,.35);border-radius:16px}
+.mc-banner-photo{position:absolute;top:0;right:0;bottom:0;width:100%;background-size:cover;background-position:center 40%;opacity:.18;pointer-events:none}
+.mc-banner-icon,.mc-banner-text{position:relative}
+.mc-banner-icon{flex:none;width:56px;height:56px;border-radius:14px;background:#2563eb;display:flex;align-items:center;justify-content:center}
+@media (min-width:700px){.mc-banner{min-height:130px}.mc-banner-photo{width:55%;opacity:1;-webkit-mask-image:linear-gradient(to right,transparent,#000 70%);mask-image:linear-gradient(to right,transparent,#000 70%)}.mc-banner-text{max-width:55%}}
