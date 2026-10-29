@@ -6,6 +6,7 @@ const CHECK_PATH = "/api/students/migration/check/";
 const COMMIT_PATH = CHECK_PATH.replace("/check/", "/commit/");
 const PHOTO_PATH = CHECK_PATH.replace("/check/", "/read-photo/");
 const PAGE = 100;
+const WIDE = typeof window !== "undefined" && !!window.matchMedia && window.matchMedia("(min-width: 900px)").matches;
 const LINE = "1px solid rgba(128,128,128,.4)";
 const TONE = {
   ready: ["#16a34a", "Ready"],
@@ -412,14 +413,22 @@ export default function MigrationCentre() {
           {busy ? "Checking..." : "2. Check the list"}
         </button>
       </div>
-      <aside className="mc-help" style={{ ...card, marginBottom: 0 }}>
-        <b>How it works</b>
-        <ol style={{ paddingLeft: 18, margin: "8px 0 0", fontSize: 14 }}>
-          <li>Upload your file or paste the table.</li>
-          <li>Press Check the list. Answer the name-order question if it appears.</li>
-          <li>Fix any marked rows.</li>
-          <li>Add the ready learners. Nothing is saved until then.</li>
-        </ol>
+      <aside className="mc-help">
+        <details open={WIDE} style={{ ...card, marginBottom: 0 }}>
+          <summary style={{ fontWeight: 700, cursor: "pointer", minHeight: 28 }}>How it works</summary>
+          <div style={{ fontSize: 14, marginTop: 8 }}>
+            <div style={{ ...card, borderColor: "#2563eb", marginBottom: 8 }}>
+              <b>Before you start:</b> add your classes in Setup. Learners can only be added to classes that already exist.
+              <a href={SETUP.hash} target="_blank" rel="noopener noreferrer" style={{ ...btn, display: "inline-block", marginTop: 6, minHeight: 36, lineHeight: "36px", padding: "0 12px", textDecoration: "none" }}>{SETUP.label}</a>
+            </div>
+            <ol style={{ paddingLeft: 18, margin: 0 }}>
+              <li style={{ marginBottom: 6 }}><b>Upload or paste.</b> Drop an Excel, CSV or typed PDF file, or paste your table. The first row must name the columns, for example Name, Admission number, Class. The order does not matter.</li>
+              <li style={{ marginBottom: 6 }}><b>Press Check the list.</b> If it asks which name comes first, tap your choice.</li>
+              <li style={{ marginBottom: 6 }}><b>Fix what is blocked.</b> The red box explains each problem and what to do. Use Fix on a row, or open Setup to add a missing class, then press Check the list again.</li>
+              <li><b>Add the ready learners.</b> You confirm first and nothing is saved before that. Blocked learners are left out until you fix them.</li>
+            </ol>
+          </div>
+        </details>
       </aside>
     </div>
 
