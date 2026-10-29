@@ -68,17 +68,25 @@ const Row = ({ k, v }) => (v ? <div className="rcpt-row"><dt>{k}</dt><dd>{v}</dd
 export default function Receipt({ paymentId, onClose }) {
   const [state, setState] = useState({ loading: true });
   const [phase, setPhase] = useState("idle");
-  const [width, setWidth] = useState("80");
+  const [width, setWidth] = useState(() => {
+    try {
+      const v = localStorage.getItem("rcpt-width");
+      return ["58", "80", "a4"].includes(v) ? v : "80";
+    } catch { return "80"; }
+  });
   const [note, setNote] = useState("");
   const [tries, setTries] = useState(0);
   const timers = useRef([]);
   const running = useRef(false);
+  const auto = useRef(false);
+  const runRef = useRef(null);
   const closeRef = useRef(onClose);
 
   useEffect(() => { closeRef.current = onClose; });
 
   useEffect(() => {
     let alive = true;
+    auto.current = false;
     setState({ loading: true });
     (async () => {
       try {
@@ -123,6 +131,23 @@ export default function Receipt({ paymentId, onClose }) {
     timers.current.push(setTimeout(() => { setPhase("ready"); running.current = false; }, 2600));
   };
 
+  const tear = () => {
+    if (phase !== "ready") return;
+    timers.current.forEach(clearTimeout);
+    timers.current = [];
+    setNote("");
+    setPhase("tearing");
+    timers.current.push(setTimeout(() => setPhase("torn"), 800));
+  };
+
+  useEffect(() => { runRef.current = run; });
+
+  useEffect(() => {
+    if (!state.data || auto.current) return;
+    auto.current = true;
+    timers.current.push(setTimeout(() => { if (runRef.current) runRef.current(); }, 200));
+  }, [state.data]);
+
   const openDialog = (msg) => {
     setNote(msg);
     timers.current.push(setTimeout(() => window.print(), 60));
@@ -135,10 +160,12 @@ export default function Receipt({ paymentId, onClose }) {
 
   const d = state.data;
   const working = phase === "printing" || phase === "cut";
-  const paperCls = `rcpt-paper ${phase === "idle" ? "rcpt-paper-idle" : phase === "printing" ? "rcpt-feeding" : phase === "cut" ? "rcpt-cut" : ""}`;
+  const paperCls = `rcpt-paper ${phase === "idle" || phase === "torn" ? "rcpt-paper-idle" : phase === "printing" ? "rcpt-feeding" : phase === "cut" ? "rcpt-cut" : phase === "tearing" ? "rcpt-tear" : ""}`;
   const statusText = phase === "idle" ? "Ready. Press Print receipt."
     : phase === "printing" ? "Printing..."
     : phase === "cut" ? "Cutting..."
+    : phase === "tearing" ? "Tearing..."
+    : phase === "torn" ? "Receipt cut and torn. Ready to print a fresh copy anytime."
     : note || "Receipt ready.";
   const logo = d && d.school.logo ? (d.school.logo.startsWith("/") ? BASE + d.school.logo : d.school.logo) : "";
 
@@ -161,7 +188,7 @@ export default function Receipt({ paymentId, onClose }) {
           <>
             <div className={`rcpt-printer ${working ? "rcpt-on" : ""}`} aria-hidden="true"><i className="rcpt-led" /><span className="rcpt-mouth" /></div>
             <div className={`rcpt-slot ${phase === "idle" ? "rcpt-slot-idle" : ""}`}>
-              {phase === "idle" && <p className="rcpt-empty rcpt-noprint">No receipt printed yet.</p>}
+              {(phase === "idle" || phase === "torn") && <p className="rcpt-empty rcpt-noprint">{phase === "torn" ? "Receipt cut and torn." : "No receipt printed yet."}</p>}
               <article className={paperCls} aria-label={`Receipt ${d.receipt_number}`}>
                 <header className="rcpt-head">
                   {logo && <img className="rcpt-logo" src={logo} alt="" onError={(e) => { e.currentTarget.style.display = "none"; }} />}
@@ -174,6 +201,7 @@ export default function Receipt({ paymentId, onClose }) {
                 </header>
                 <h4 className="rcpt-title">RECEIPT</h4>
                 <p className="rcpt-no">{d.receipt_number}</p>
+          <div className={`rcpt-stamp ${phase === "idle" || phase === "printing" ? "rcpt-stamp-wait" : ""}`} aria-hidden="true"><b>PAYMENT RECEIVED</b><small>{when(d.payment.paid_at)}</small></div>
                 <dl className="rcpt-rows">
                   <Row k="Student" v={d.student.name} />
                   <Row k="Admission no" v={d.student.admission_number} />
@@ -206,16 +234,17 @@ export default function Receipt({ paymentId, onClose }) {
             )}
             <div className="rcpt-widths rcpt-noprint" role="group" aria-label="Paper width">
               {WIDTHS.map((w) => (
-                <button key={w.key} type="button" className={`rcpt-chip ${width === w.key ? "on" : ""}`} aria-pressed={width === w.key} onClick={() => setWidth(w.key)}>{w.label}</button>
+                <button key={w.key} type="button" className={`rcpt-chip ${width === w.key ? "on" : ""}`} aria-pressed={width === w.key} onClick={() => { setWidth(w.key); try { localStorage.setItem("rcpt-width", w.key); } catch { /* storage unavailable */ } }}>{w.label}</button>
               ))}
             </div>
             <div className="rcpt-actions rcpt-noprint">
-              {phase === "idle" && <Button kind="teal" onClick={run}>Print receipt</Button>}
+              {(phase === "idle" || phase === "torn") && <Button kind="teal" onClick={run}>Print receipt</Button>}
               {working && <Button kind="teal" busy disabled>Printing...</Button>}
               {phase === "ready" && (
                 <>
                   <Button kind="teal" onClick={() => openDialog("Print dialog opened. Check your printer to confirm it printed.")}>Open print dialog</Button>
                   <Button kind="secondary" onClick={run}>Print again</Button>
+            <Button kind="secondary" onClick={tear}>Tear receipt</Button>
                   <Button kind="secondary" onClick={() => openDialog("Print dialog opened. Choose Save as PDF as the destination.")}>Save as PDF</Button>
                 </>
               )}
