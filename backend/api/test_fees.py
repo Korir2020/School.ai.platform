@@ -55,6 +55,19 @@ class FeeApiTests(APITestCase):
         self.assertEqual(result.json()["status"], "partial")
         self.assertEqual(result.json()["balance"], "7500.00")
 
+    def test_particulars_appear_on_the_receipt(self):
+        self.client.force_authenticate(self.bursar)
+        r = self._pay(notes="  Term 1 tuition and uniform  ")
+        self.assertEqual(r.status_code, 201)
+        receipt = self.client.get(f"/api/fees/payments/{r.json()['payment_id']}/receipt/")
+        self.assertEqual(receipt.status_code, 200)
+        self.assertEqual(receipt.json()["payment"]["notes"], "Term 1 tuition and uniform")
+
+    def test_particulars_limit_is_300_characters(self):
+        self.client.force_authenticate(self.bursar)
+        self.assertEqual(self._pay(notes="x" * 300).status_code, 201)
+        self.assertEqual(self._pay(notes="x" * 301).status_code, 400)
+
     def test_payment_response_includes_payment_id(self):
         self.client.force_authenticate(self.bursar)
         first = self._pay()

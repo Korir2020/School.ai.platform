@@ -217,6 +217,9 @@ def fee_payment(request):
     if amount_error:
         return Response({"detail": amount_error}, status=400)
     reference = str(request.data.get("reference", "") or "").strip()[:80]
+    notes = str(request.data.get("notes", "") or "").strip()
+    if len(notes) > 300:
+        return Response({"detail": "Particulars must be 300 characters or fewer."}, status=400)
     try:
         with transaction.atomic():
             invoice = StudentFee.objects.select_for_update().select_related(
@@ -234,7 +237,7 @@ def fee_payment(request):
                 return Response({"detail": "A payment with this reference is already recorded."}, status=409)
             payment = FeePayment.objects.create(
                 student_fee=invoice, amount=amount, method=request.data.get("method", "cash"),
-                reference=reference, notes=request.data.get("notes", ""),
+                reference=reference, notes=notes,
                 received_by=request.user)
             invoice.amount_paid += amount
             invoice.status = "paid" if invoice.amount_paid >= invoice.amount_due else "partial"
