@@ -259,12 +259,22 @@ export default function MigrationCentre() {
   const shown = (only ? rows.filter((r) => r.status !== "ready") : rows).slice(0, limit);
   const total = only ? rows.filter((r) => r.status !== "ready").length : rows.length;
 
+  const step = done ? 5 : ask ? 4 : sum && (sum.blocked > 0 || sum.needs_confirmation > 0 || (res.file_issues || []).length > 0) ? 3 : sum ? 2 : 1;
+
   return (
     <div style={{ maxWidth: 760, margin: "0 auto", padding: 12 }}>
       <h2 style={{ marginTop: 0 }}>Migration Centre</h2>
       <p style={{ opacity: 0.85, marginTop: 0 }}>
         Add many learners at once. Upload an Excel, CSV or typed PDF file, or paste the table. Nothing is added until you confirm at the end.
       </p>
+
+      <div role="list" aria-label="Progress" style={{ display: "flex", gap: 4, margin: "10px 0", fontSize: 12 }}>
+        {["Paste", "Check", "Fix", "Add", "Done"].map((name, i) => (
+          <div key={name} role="listitem" aria-current={step === i + 1 ? "step" : undefined} style={{ flex: 1, textAlign: "center", padding: "6px 2px", borderRadius: 8, border: "1px solid #6b7280", fontWeight: step === i + 1 ? 700 : 400, background: step === i + 1 ? "#2563eb" : step > i + 1 ? "rgba(22,163,74,.15)" : "transparent", color: step === i + 1 ? "#fff" : "inherit" }}>
+            {step > i + 1 ? "\u2713 " : ""}{name}
+          </div>
+        ))}
+      </div>
 
       <div style={card}>
         <label style={{ display: "block", fontWeight: 600, marginBottom: 6 }}>1. Choose a file (.xlsx, .csv or typed .pdf)</label>
@@ -332,6 +342,8 @@ export default function MigrationCentre() {
       {done && (
         <div role="status" style={{ ...card, borderColor: "#16a34a", background: "rgba(22,163,74,.1)" }}>
           <b>Done.</b> {done.created} learner(s) added{done.skipped ? ", " + done.skipped + " left out" : ""}. Find them under Students. To add the left-out ones, fix your file and check it again.
+        <a href="#Students" style={{ ...btnMain, display: "block", textAlign: "center", textDecoration: "none", marginTop: 8, boxSizing: "border-box" }}>Open the Students list</a>
+      
         </div>
       )}
 
