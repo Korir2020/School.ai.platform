@@ -33,6 +33,7 @@ function receiptText(d) {
     `Date: ${when(p.paid_at)}`, `Method: ${p.method_display}`,
     p.reference ? `Reference: ${p.reference}` : null,
     p.received_by ? `Received by: ${p.received_by}` : null, "",
+    p.notes ? `Particulars: ${p.notes}` : null,
     `AMOUNT PAID: ${money(p.amount, cur)}`,
     `Fee amount: ${money(f.amount_due, cur)}`,
     d.balances_verified ? `Previous balance: ${money(d.previous_balance, cur)}` : null,
@@ -234,33 +235,35 @@ export default function Receipt({ paymentId, onClose }) {
                   {(d.school.phone || d.school.email) && <small>{[d.school.phone, d.school.email].filter(Boolean).join(" | ")}</small>}
                 </header>
                 <h4 className="rcpt-title">RECEIPT</h4>
-                <p className="rcpt-no">{d.receipt_number}</p>
-          <div className={`rcpt-stamp ${phase === "idle" || phase === "printing" ? "rcpt-stamp-wait" : ""}`} aria-hidden="true"><b>PAYMENT RECEIVED</b><small>{when(d.payment.paid_at)}</small></div>
-                <dl className="rcpt-rows">
-                  <Row k="Student" v={d.student.name} />
-                  <Row k="Admission no" v={d.student.admission_number} />
-                  <Row k="Fee" v={d.fee.name} />
-                  <Row k="Academic year" v={d.fee.academic_year} />
-                  <Row k="Date" v={when(d.payment.paid_at)} />
-                  <Row k="Method" v={d.payment.method_display} />
-                  <Row k="Reference" v={d.payment.reference} />
-                  <Row k="Received by" v={d.payment.received_by} />
-                  <Row k="Notes" v={d.payment.notes} />
-                </dl>
-                <div className="rcpt-total"><span>AMOUNT PAID</span><b>{money(d.payment.amount, d.school.currency)}</b></div>
-                <dl className="rcpt-rows">
-                  <Row k="Fee amount" v={money(d.fee.amount_due, d.school.currency)} />
-          <Row k="Category" v={d.fee.category === "boarder" ? "Boarder" : d.fee.category === "day" ? "Day scholar" : ""} />
-          <Row k="Balance brought forward" v={money(d.fee.balance_brought_forward, d.school.currency)} />
-                  {d.balances_verified && <Row k="Previous balance" v={money(d.previous_balance, d.school.currency)} />}
-                  {d.balances_verified && <Row k="Balance after" v={money(d.balance_after, d.school.currency)} />}
-                  <Row k={d.status_at_payment ? 'Status after payment' : 'Fee status now'} v={STATUS[d.status_at_payment || d.fee.status] || d.status_at_payment || d.fee.status} />
-                </dl>
-                <footer className="rcpt-foot">
-                  <p>Thank you for your payment.</p>
-                  <small>Quote {d.receipt_number} to verify this receipt with the school.</small>
-                </footer>
-              </article>
+          <p className="rcpt-no">{d.receipt_number}</p>
+          <div className={` rcpt-stamp ${phase === "idle" || phase === 'printing' ? 'rcpt-stamp-wait' : ""}`} aria-hidden="true"><b>{d.status_at_payment === "paid" ? "PAID IN FULL" : "PAYMENT RECEIVED"}</b><small>{when(d.payment.paid_at)}</small></div>
+          <dl className="rcpt-rows rcpt-meta">
+            <Row k="Student" v={d.student.name} />
+            <Row k="Admission no" v={d.student.admission_number} />
+            <Row k="Fee" v={d.fee.name} />
+            <Row k="Academic year" v={d.fee.academic_year} />
+            <Row k="Date" v={when(d.payment.paid_at)} />
+            <Row k="Category" v={d.fee.category === "boarder" ? "Boarder" : d.fee.category === "day" ? "Day scholar" : ""} />
+          </dl>
+          <div className="rcpt-part">
+            <div className="rcpt-part-h"><span>Particulars</span><span>Amount</span></div>
+            <div className="rcpt-part-r"><span>{d.payment.notes || d.fee.name}</span><b>{money(d.payment.amount, d.school.currency)}</b></div>
+          </div>
+          <div className="rcpt-total"><span>TOTAL PAID</span><b>{money(d.payment.amount, d.school.currency)}</b></div>
+          <dl className="rcpt-rows">
+            <Row k="Fee amount" v={money(d.fee.amount_due, d.school.currency)} />
+            <Row k="Balance brought forward" v={money(d.fee.balance_brought_forward, d.school.currency)} />
+            {d.balances_verified && <Row k="Previous balance" v={money(d.previous_balance, d.school.currency)} />}
+            {d.balances_verified && <Row k="Balance after" v={money(d.balance_after, d.school.currency)} />}
+            <Row k={d.status_at_payment ? 'Status after payment' : 'Fee status now'} v={STATUS[d.status_at_payment || d.fee.status] || d.status_at_payment || d.fee.status} />
+            <Row k="Paid by" v={[d.payment.method_display, d.payment.reference].filter(Boolean).join(" · ")} />
+          </dl>
+          <div className="rcpt-sign"><span>Received by: {d.payment.received_by || "........"}</span><span className="rcpt-sigline">Signature</span></div>
+          <footer className="rcpt-foot">
+            <p>Thank you for your payment.</p>
+            <small>Quote {d.receipt_number} to verify this receipt with the school.</small>
+          </footer>
+        </article>
             </div>
             <p className="rcpt-status rcpt-noprint" role="status" aria-live="polite">{statusText}</p>
             {!d.balances_verified && d.fee.status !== "waived" && (
