@@ -9,6 +9,7 @@ const WIDTHS = [
   { key: "58", label: "58 mm" },
   { key: "80", label: "80 mm" },
   { key: "a4", label: "A4" },
+  { key: "custom", label: "Custom" },
 ];
 const PAGE = {
   "58": "size:58mm auto;margin:2mm",
@@ -71,12 +72,22 @@ export default function Receipt({ paymentId, onClose }) {
   const [width, setWidth] = useState(() => {
     try {
       const v = localStorage.getItem("rcpt-width");
-      return ["58", "80", "a4"].includes(v) ? v : "80";
+      return ["58", "80", "a4", "custom"].includes(v) ? v : "80";
     } catch { return "80"; }
   });
   const [note, setNote] = useState("");
   const [tries, setTries] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [mmText, setMmText] = useState(() => {
+    try { return localStorage.getItem("rcpt-custom-mm") || "72"; } catch { return "72"; }
+  });
+  const mm = Math.min(120, Math.max(40, Number(mmText) || 72));
+  const pageRule = width === "custom" ? `size:${mm}mm auto;margin:2mm` : PAGE[width];
+  const changeMm = (e) => {
+    const v = e.target.value.replace(/\D/g, "").slice(0, 3);
+    setMmText(v);
+    try { localStorage.setItem("rcpt-custom-mm", String(Math.min(120, Math.max(40, Number(v) || 72)))); } catch { /* storage unavailable */ }
+  };
   const timers = useRef([]);
   const running = useRef(false);
   const auto = useRef(false);
@@ -193,8 +204,8 @@ export default function Receipt({ paymentId, onClose }) {
   const logo = d && d.school.logo ? (d.school.logo.startsWith("/") ? BASE + d.school.logo : d.school.logo) : "";
 
   return createPortal(
-    <div className={`rcpt-portal rcpt-w${width}`} onClick={onClose}>
-      <style>{`@media print{@page{${PAGE[width]}}}`}</style>
+    <div className={`rcpt-portal rcpt-w${width}`} style={{ "--rcpt-mm": mm }} onClick={onClose}>
+      <style>{`@media print{@page{${pageRule}}}`}</style>
       <div className="rcpt-dialog" role="dialog" aria-modal="true" aria-label="Fee receipt" onClick={(e) => e.stopPropagation()}>
         <div className="rcpt-top rcpt-noprint">
           <h3>Fee receipt</h3>
@@ -259,6 +270,11 @@ export default function Receipt({ paymentId, onClose }) {
               {WIDTHS.map((w) => (
                 <button key={w.key} type="button" className={`rcpt-chip ${width === w.key ? "on" : ""}`} aria-pressed={width === w.key} onClick={() => { setWidth(w.key); try { localStorage.setItem("rcpt-width", w.key); } catch { /* storage unavailable */ } }}>{w.label}</button>
               ))}
+{width === "custom" && (
+        <label className="rcpt-mm">Roll width (mm)
+          <input type="number" inputMode="numeric" min="40" max="120" value={mmText} onChange={changeMm} />
+        </label>
+      )}
             </div>
             <div className="rcpt-actions rcpt-noprint">
               {(phase === "idle" || phase === "torn") && <Button kind="teal" onClick={run}>Print receipt</Button>}
