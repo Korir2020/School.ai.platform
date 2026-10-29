@@ -347,7 +347,13 @@ export default function MigrationCentre() {
           onDragLeave={() => setDrag(false)}
           onDrop={(e) => { e.preventDefault(); setDrag(false); takeFile(e.dataTransfer.files && e.dataTransfer.files[0]); }}
         >
+          <svg className="mc-cloud" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ display: "block", margin: "0 auto 8px" }}>
+            <path d="M12 13v8" />
+            <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" />
+            <path d="m8 17 4-4 4 4" />
+          </svg>
           <div style={{ fontWeight: 700 }}>Drag and drop your file here</div>
+          <div style={{ fontSize: 13, color: "#2563eb", marginTop: 2 }}>or click to browse</div>
           <div style={{ fontSize: 13, opacity: 0.85, margin: "4px 0 10px" }}>Excel, CSV, TSV, TXT or typed PDF</div>
           <span style={{ ...btnMain, display: "inline-block", padding: "10px 16px", borderRadius: 10 }}>Choose File</span>
           <input type="file" accept=".csv,.xlsx,.pdf,.tsv,.txt,image/*" style={{ display: "none" }} onChange={(e) => { takeFile(e.target.files && e.target.files[0]); e.target.value = ""; }} />
