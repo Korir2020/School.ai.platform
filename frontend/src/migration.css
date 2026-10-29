@@ -1,0 +1,9 @@
+.mc-page{max-width:1040px;margin:0 auto;padding:12px}
+.mc-steps{display:flex;gap:6px;margin:12px 0}
+.mc-step{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:8px 6px;border-radius:10px;border:1px solid rgba(128,128,128,.4);font-size:13px;min-width:0}
+.mc-dot{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:rgba(128,128,128,.25);font-size:12px;font-weight:700;flex:none}
+.mc-step.is-current{background:#2563eb;border-color:#2563eb;color:#fff;font-weight:700}
+.mc-step.is-current .mc-dot{background:#fff;color:#2563eb}
+.mc-step.is-done{background:rgba(22,163,74,.15);border-color:rgba(22,163,74,.5)}
+.mc-step.is-done .mc-dot{background:#16a34a;color:#fff}
+@media (max-width:560px){.mc-step:not(.is-current) .mc-label{display:none}.mc-step{padding:8px 4px}.mc-step.is-current{flex:3}}
