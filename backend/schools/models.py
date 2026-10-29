@@ -36,6 +36,8 @@ class Student(models.Model):
     last_name = models.CharField(max_length=100)
     admission_number = models.CharField(max_length=50)
     assessment_number = models.CharField(max_length=50, blank=True, default="")
+    fee_category = models.CharField(max_length=10, default="day",
+                                    choices=[("day", "Day scholar"), ("boarder", "Boarder")])
     date_of_birth = models.DateField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -534,6 +536,12 @@ class FeeStructure(models.Model):
     description = models.TextField(blank=True)
     amount = models.DecimalField(max_digits=12, decimal_places=2,
                                  validators=[MinValueValidator(0)])
+    term = models.ForeignKey("Term", on_delete=models.SET_NULL, null=True, blank=True,
+                             related_name="fee_structures")
+    category = models.CharField(max_length=10, blank=True, default="",
+                                choices=[("day", "Day scholar"), ("boarder", "Boarder")])
+    from_grade = models.PositiveIntegerField(null=True, blank=True)
+    to_grade = models.PositiveIntegerField(null=True, blank=True)
     due_date = models.DateField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -563,6 +571,12 @@ class StudentFee(models.Model):
     status = models.CharField(max_length=10, choices=STATUS_CHOICES,
                               default="pending")
     notes = models.TextField(blank=True)
+    balance_brought_forward = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0,
+        validators=[MinValueValidator(0)])
+    carried_out = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0,
+        validators=[MinValueValidator(0)])
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

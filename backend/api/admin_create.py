@@ -123,11 +123,22 @@ def subject_collection(request):
 def enrollment_collection(request):
     if request.method == "GET":
         return _list(request, Enrollment, EnrollmentSerializer, "student__school_id")
-    return _create(
+    resp = _create(
         request, EnrollmentSerializer,
         [_sid("student"), _sid("academic_year"), _sid("stream")],
         check=_enrollment_check,
     )
+    if resp.status_code == 201:
+        try:
+            from api.fee_billing import bill_student
+            from schools.models import Student
+            student = Student.objects.filter(pk=resp.data.get("student")).first()
+            if student:
+                bill_student(student)
+        except Exception:
+            import logging
+            logging.getLogger(__name__).exception("Auto-billing after enrollment failed")
+    return resp
 
 
 @api_view(["GET", "POST"])

@@ -97,8 +97,23 @@ def _enrollment_check(obj, v):
 
 @api_view(["GET", "PATCH"])
 def student_detail(request, pk):
-    return _detail(request, pk, Student, StudentSerializer, "school_id",
-                   {"first_name", "last_name", "admission_number", "date_of_birth"})
+    from rest_framework.response import Response
+    old = None
+    if request.method == "PATCH" and "fee_category" in request.data:
+        value = str(request.data.get("fee_category") or "").strip().lower()
+        if value not in ("day", "boarder"):
+            return Response({"detail": "Category must be day or boarder."}, status=400)
+        old = Student.objects.filter(pk=pk).values_list("fee_category", flat=True).first()
+    resp = _detail(request, pk, Student, StudentSerializer, "school_id",
+                   {"first_name", "last_name", "admission_number", "date_of_birth", "fee_category"})
+    if old is not None and resp.status_code == 200:
+        from api.fee_billing import bill_student, drop_other_category_bills
+        st = Student.objects.filter(pk=pk).first()
+        if st:
+            if st.fee_category != old:
+                drop_other_category_bills(st)
+            bill_student(st)
+    return resp
 
 
 @api_view(["GET", "PATCH"])

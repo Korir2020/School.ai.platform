@@ -6,6 +6,10 @@ from django.utils import timezone
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
+from api.fee_billing import (
+    apply_structure, bill_student, carry_forward, drop_other_category_bills,
+    parse_scope, previous_term, scope_data)
+
 from schools.models import (
     AcademicYear, FeePayment, FeeStructure, MarkAuditLog,
     SchoolAdminProfile, StaffProfile, Student, StudentFee,
@@ -29,7 +33,7 @@ def _money(value):
 
 
 def _structure_data(x):
-    return {"id": x.id, "name": x.name, "description": x.description,
+    return {**scope_data(x), "id": x.id, "name": x.name, "description": x.description,
             "amount": _money(x.amount), "due_date": x.due_date,
             "academic_year": x.academic_year_id, "is_active": x.is_active}
 
@@ -115,6 +119,9 @@ def fee_structures(request):
         return Response({"detail": "Academic year is not in your school."}, status=403)
     if not data.get("name", "").strip():
         return Response({"detail": "Fee name is required."}, status=400)
+    scope, scope_error = parse_scope(data, school_id or year.school_id, year)
+    if scope_error:
+        return Response({"detail": scope_error}, status=400)
     try:
         x = FeeStructure.objects.create(
             school_id=school_id or year.school_id, academic_year=year,
@@ -125,7 +132,48 @@ def fee_structures(request):
         return Response({"detail": str(exc)}, status=400)
     except Exception:
         return Response({"detail": "Could not save. Check the details and try again."}, status=400)
-    return Response(_structure_data(x), status=201)
+    for key, value in scope.items():
+        setattr(x, key, value)
+    x.save()
+    out = _structure_data(x)
+    out.update(apply_structure(x))
+    return Response(out, status=201)
+
+
+@api_view(["PATCH", "PUT"])
+def fee_structure_detail(request, pk):
+    """Edit a fee item (amount, category, term, grades) and re-bill learners."""
+    school_id, error = _fee_school(request)
+    if error:
+        return error
+    x = FeeStructure.objects.filter(pk=pk).first()
+    if x is None or (school_id is not None and x.school_id != school_id):
+        return Response({"detail": "Fee item not found."}, status=404)
+    data = request.data
+    merged = {
+        "term": data.get("term", x.term_id),
+        "category": data.get("category", x.category),
+        "from_grade": data.get("from_grade", x.from_grade),
+        "to_grade": data.get("to_grade", x.to_grade),
+    }
+    scope, scope_error = parse_scope(merged, x.school_id, x.academic_year)
+    if scope_error:
+        return Response({"detail": scope_error}, status=400)
+    if "name" in data and str(data["name"]).strip():
+        x.name = str(data["name"]).strip()
+    if "amount" in data:
+        try:
+            x.amount = _amt(data["amount"])
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=400)
+    if "due_date" in data:
+        x.due_date = data["due_date"] or None
+    for key, value in scope.items():
+        setattr(x, key, value)
+    x.save()
+    out = _structure_data(x)
+    out.update(apply_structure(x))
+    return Response(out)
 
 
 @api_view(["GET", "POST"])
@@ -290,6 +338,8 @@ def fee_receipt(request, pk):
             "name": fee.fee_structure.name,
             "academic_year": str(fee.fee_structure.academic_year),
             "amount_due": _money(fee.amount_due), "status": fee.status,
+            "balance_brought_forward": _money(fee.balance_brought_forward),
+            "category": student.fee_category,
         },
         "payment": {
             "amount": _money(payment.amount), "method": payment.method,
@@ -300,3 +350,58 @@ def fee_receipt(request, pk):
         "previous_balance": _money(previous) if verified else None,
         "balance_after": _money(after) if verified else None,
     })
+
+
+@api_view(["POST"])
+def student_categories(request):
+    """Set day/boarder for many learners at once, then fix their bills."""
+    from schools.models import Student
+    school_id, error = _fee_school(request)
+    if error:
+        return error
+    category = str(request.data.get("category", "")).strip().lower()
+    if category not in ("day", "boarder"):
+        return Response({"detail": "Category must be day or boarder."}, status=400)
+    try:
+        ids = [int(i) for i in (request.data.get("students") or [])]
+    except (TypeError, ValueError):
+        return Response({"detail": "Students must be a list of ids."}, status=400)
+    if not ids:
+        return Response({"detail": "Pick at least one learner."}, status=400)
+    qs = Student.objects.filter(id__in=ids)
+    if school_id is not None:
+        qs = qs.filter(school_id=school_id)
+    changed = removed = created = 0
+    for st in qs:
+        if st.fee_category != category:
+            st.fee_category = category
+            st.save(update_fields=["fee_category"])
+            removed += drop_other_category_bills(st)
+            changed += 1
+        created += bill_student(st)
+    return Response({"students_changed": changed, "bills_removed": removed, "bills_created": created})
+
+
+@api_view(["POST"])
+def carry_forward_arrears(request):
+    """Carry unpaid balances of the previous term into the chosen term."""
+    from schools.models import Student, Term
+    school_id, error = _fee_school(request)
+    if error:
+        return error
+    term = Term.objects.select_related("academic_year").filter(
+        pk=request.data.get("term") or 0).first()
+    if term is None or (school_id is not None and term.academic_year.school_id != school_id):
+        return Response({"detail": "Term not found."}, status=404)
+    prev = previous_term(term)
+    if prev is None:
+        return Response({"detail": "There is no earlier term to carry from."}, status=400)
+    if prev.end_date >= timezone.localdate():
+        return Response({"detail": "The previous term has not ended yet."}, status=400)
+    students, moved = 0, Decimal("0")
+    for st in Student.objects.filter(fees__fee_structure__term=term).distinct():
+        m = carry_forward(st, term)
+        if m:
+            students += 1
+            moved += m
+    return Response({"students_carried": students, "amount_carried": _money(moved)})
