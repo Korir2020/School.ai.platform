@@ -7,7 +7,8 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
 from api.fee_billing import (
-    apply_structure, bill_student, drop_other_category_bills, parse_scope, scope_data)
+    apply_structure, bill_student, carry_forward, drop_other_category_bills,
+    parse_scope, previous_term, scope_data)
 
 from schools.models import (
     AcademicYear, FeePayment, FeeStructure, MarkAuditLog,
@@ -337,6 +338,8 @@ def fee_receipt(request, pk):
             "name": fee.fee_structure.name,
             "academic_year": str(fee.fee_structure.academic_year),
             "amount_due": _money(fee.amount_due), "status": fee.status,
+            "balance_brought_forward": _money(fee.balance_brought_forward),
+            "category": student.fee_category,
         },
         "payment": {
             "amount": _money(payment.amount), "method": payment.method,
@@ -377,3 +380,28 @@ def student_categories(request):
             changed += 1
         created += bill_student(st)
     return Response({"students_changed": changed, "bills_removed": removed, "bills_created": created})
+
+
+@api_view(["POST"])
+def carry_forward_arrears(request):
+    """Carry unpaid balances of the previous term into the chosen term."""
+    from schools.models import Student, Term
+    school_id, error = _fee_school(request)
+    if error:
+        return error
+    term = Term.objects.select_related("academic_year").filter(
+        pk=request.data.get("term") or 0).first()
+    if term is None or (school_id is not None and term.academic_year.school_id != school_id):
+        return Response({"detail": "Term not found."}, status=404)
+    prev = previous_term(term)
+    if prev is None:
+        return Response({"detail": "There is no earlier term to carry from."}, status=400)
+    if prev.end_date >= timezone.localdate():
+        return Response({"detail": "The previous term has not ended yet."}, status=400)
+    students, moved = 0, Decimal("0")
+    for st in Student.objects.filter(fees__fee_structure__term=term).distinct():
+        m = carry_forward(st, term)
+        if m:
+            students += 1
+            moved += m
+    return Response({"students_carried": students, "amount_carried": _money(moved)})

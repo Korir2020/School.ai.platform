@@ -82,11 +82,14 @@ def apply_structure(s):
             new.append(StudentFee(student_id=sid, fee_structure=s,
                                   amount_due=s.amount))
         elif (f.amount_paid == 0 and f.status == "pending"
-              and f.amount_due != s.amount):
-            f.amount_due = s.amount
+              and f.amount_due != s.amount + f.balance_brought_forward):
+            f.amount_due = s.amount + f.balance_brought_forward
             f.save(update_fields=["amount_due", "updated_at"])
             updated += 1
     StudentFee.objects.bulk_create(new)
+    if s.term_id:
+        for st in matching_students(s):
+            carry_forward(st, s.term)
     return {"students_billed": len(new), "students_updated": updated}
 
 
@@ -104,6 +107,8 @@ def bill_student(student):
             StudentFee.objects.create(
                 student=student, fee_structure=s, amount_due=s.amount)
             created += 1
+            if s.term_id:
+                carry_forward(student, s.term)
     return created
 
 
@@ -120,3 +125,51 @@ def drop_other_category_bills(student):
     ids = list(qs.values_list("id", flat=True))
     StudentFee.objects.filter(id__in=ids).delete()
     return len(ids)
+
+
+def previous_term(term):
+    from schools.models import Term
+    if term is None or term.start_date is None:
+        return None
+    return (Term.objects
+            .filter(academic_year__school_id=term.academic_year.school_id,
+                    end_date__lt=term.start_date)
+            .order_by("-end_date").first())
+
+
+def carry_forward(student, term):
+    """Move what a learner still owes from the previous term onto their first
+    unpaid bill of `term`. Only runs once the previous term has ended.
+    Safe to run again: carried bills end up fully paid, so nothing moves twice."""
+    from decimal import Decimal
+    from django.db import transaction
+    from django.utils import timezone
+    from schools.models import StudentFee
+    prev = previous_term(term)
+    if prev is None or prev.end_date >= timezone.localdate():
+        return Decimal("0")
+    moved = Decimal("0")
+    with transaction.atomic():
+        target = (StudentFee.objects.select_for_update()
+                  .filter(student=student, fee_structure__term=term,
+                          status__in=["pending", "partial"])
+                  .order_by("id").first())
+        if target is None:
+            return Decimal("0")
+        olds = (StudentFee.objects.select_for_update()
+                .filter(student=student, fee_structure__term=prev,
+                        status__in=["pending", "partial"]))
+        for f in olds:
+            owed = f.amount_due - f.amount_paid
+            if owed <= 0:
+                continue
+            f.amount_due = f.amount_paid
+            f.carried_out += owed
+            f.status = "paid"
+            f.save(update_fields=["amount_due", "carried_out", "status", "updated_at"])
+            moved += owed
+        if moved:
+            target.amount_due += moved
+            target.balance_brought_forward += moved
+            target.save(update_fields=["amount_due", "balance_brought_forward", "updated_at"])
+    return moved

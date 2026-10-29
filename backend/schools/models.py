@@ -571,6 +571,12 @@ class StudentFee(models.Model):
     status = models.CharField(max_length=10, choices=STATUS_CHOICES,
                               default="pending")
     notes = models.TextField(blank=True)
+    balance_brought_forward = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0,
+        validators=[MinValueValidator(0)])
+    carried_out = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0,
+        validators=[MinValueValidator(0)])
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
