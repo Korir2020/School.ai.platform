@@ -53,7 +53,7 @@ export default function Students({ d }) {
   };
   if (bad) return <ErrorState text="Could not load students." onRetry={load} />;
   if (!x) return <Loading />;
-  if (profile) return <StudentCenter studentId={profile} termId={d.active_term && d.active_term.id} onBack={() => setProfile(null)} />;
+  if (profile) return <StudentCenter canReceipt studentId={profile} termId={d.active_term && d.active_term.id} onBack={() => setProfile(null)} />;
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   const downloadCsv = async () => { const r = await api("/api/students/import/"); if (!r.ok) return; const b = await r.blob(); const u = URL.createObjectURL(b); const a = document.createElement("a"); a.href = u; a.download = "students.csv"; a.click(); URL.revokeObjectURL(u); };
   const inspectCsv = async (commit = false) => { if (!csv) return; setCsvBusy(true); const fd = new FormData(); fd.append("file", csv); fd.append("commit", String(commit)); const r = await upload("/api/students/import/", fd); const j = await r.json().catch(() => ({})); setCsvBusy(false); if (!r.ok) return toast(j.detail || "Could not process CSV", "err"); setPreview(j); if (j.committed) { toast(`${j.created} students imported`, "ok"); setCsv(null); load(); } };
