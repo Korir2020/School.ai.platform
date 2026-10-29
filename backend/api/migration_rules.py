@@ -112,6 +112,25 @@ def match_class(text, stream_text, levels):
             elif len(nums) > 1:
                 return None, None, notices, ("class_ambiguous", f"'{text}' matches more than one class in this school.")
     if level is None:
+        import re as _re
+        m = _re.match(r"^(form|frm|f|grade|gr|g|class|std|standard|year|yr|y|level|s)?\s*0*(\d{1,2})\s*[-_/.]?\s*(.*)$", t)
+        if m:
+            pref, num, tail = m.groups()
+            nums = []
+            for l in levels:
+                tail_num = _re.search(r"(\d+)\s*$", l["name"])
+                if tail_num and int(tail_num.group(1)) == int(num):
+                    nums.append(l)
+            if pref and len(nums) > 1:
+                same = [l for l in nums if _k(l["name"]).startswith(pref[0])]
+                if same:
+                    nums = same
+            if len(nums) == 1:
+                level, rest = nums[0], tail.strip()
+                notices.append(_issue("class_short_read", "notice", f"Read '{text}' as {level['name']}" + (f" stream {rest.upper()}" if rest else "") + ".", "class_level"))
+            elif len(nums) > 1:
+                return None, None, notices, ("class_ambiguous", f"'{text}' matches more than one class in this school: " + ", ".join(l["name"] for l in nums) + ". Write the full class name.")
+    if level is None:
         close = difflib.get_close_matches(t, [_k(l["name"]) for l in levels], n=3, cutoff=0.5)
         names = [l["name"] for l in levels if _k(l["name"]) in close]
         hint = f" Closest in this school: {', '.join(names)}." if names else ""
