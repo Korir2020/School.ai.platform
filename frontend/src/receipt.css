@@ -55,4 +55,14 @@ body.rcpt-open>*:not(.rcpt-portal){display:none!important}
 .rcpt-w58 .rcpt-paper{width:54mm!important;font-size:10px;padding:2mm 1mm}
 .rcpt-w80 .rcpt-paper{width:74mm!important;font-size:11px;padding:2mm 1mm}
 .rcpt-wa4 .rcpt-paper{width:100%!important;max-width:180mm!important;font-size:13px}
+.rcpt-stamp{animation:none!important;opacity:1!important;transform:rotate(-12deg)!important}
 }
+
+.rcpt-stamp{position:absolute;right:6px;top:64px;transform:rotate(-12deg);border:2px solid #111;border-radius:6px;padding:2px 7px;text-align:center;font-size:.75em;font-weight:700;line-height:1.2;letter-spacing:.04em;background:rgba(255,255,255,.7);animation:rcpt-stamp .3s ease-out both}
+.rcpt-stamp b{display:block}
+.rcpt-stamp small{display:block;font-weight:400;font-size:.85em}
+.rcpt-stamp-wait{animation:none;opacity:0}
+.rcpt-tear{animation:rcpt-tear .8s ease-in both}
+@keyframes rcpt-stamp{from{transform:rotate(-12deg) scale(1.9);opacity:0}to{transform:rotate(-12deg) scale(1);opacity:1}}
+@keyframes rcpt-tear{from{transform:translateY(0) rotate(0);opacity:1}to{transform:translateY(140px) rotate(6deg);opacity:0}}
+@media (prefers-reduced-motion:reduce){.rcpt-stamp,.rcpt-tear{animation:none}}
