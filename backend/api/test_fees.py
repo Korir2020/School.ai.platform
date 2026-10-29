@@ -55,6 +55,17 @@ class FeeApiTests(APITestCase):
         self.assertEqual(result.json()["status"], "partial")
         self.assertEqual(result.json()["balance"], "7500.00")
 
+    def test_payment_response_includes_payment_id(self):
+        self.client.force_authenticate(self.bursar)
+        first = self._pay()
+        self.assertEqual(first.status_code, 201)
+        second = self._pay()
+        self.assertEqual(second.status_code, 201)
+        first_id = first.json()["payment_id"]
+        second_id = second.json()["payment_id"]
+        self.assertIsInstance(first_id, int)
+        self.assertNotEqual(first_id, second_id)
+
     def test_teacher_and_anonymous_are_blocked(self):
         self.assertEqual(self.client.get("/api/fees/summary/").status_code, 401)
         self.client.force_authenticate(self.teacher)
