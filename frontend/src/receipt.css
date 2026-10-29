@@ -71,3 +71,16 @@ body.rcpt-open>*:not(.rcpt-portal){display:none!important}
 .rcpt-mm{display:flex;align-items:center;gap:8px;font-size:.85rem;margin-top:8px}
 .rcpt-mm input{width:72px;min-height:36px;padding:4px 8px}
 @media print{.rcpt-wcustom .rcpt-paper{width:calc(var(--rcpt-mm)*1mm - 4mm)!important;font-size:11px;padding:2mm 1mm}}
+
+.rcpt-meta{border-top:0;padding-top:2px}
+.rcpt-part{margin:6px 0 0;border-top:1px solid #111;border-bottom:1px solid #111}
+.rcpt-part-h,.rcpt-part-r{display:flex;justify-content:space-between;gap:10px;padding:3px 0}
+.rcpt-part-h{font-size:.85em;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px dashed #999}
+.rcpt-part-r span{overflow-wrap:anywhere;text-align:left}
+.rcpt-part-r b{white-space:nowrap}
+.rcpt-sign{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;margin:18px 0 8px;font-size:.9em}
+.rcpt-sigline{min-width:40%;padding-top:2px;border-top:1px solid #111;text-align:center;color:#444}
+.rcpt-wa4 .rcpt-head{border-bottom:2px solid #111;padding-bottom:10px}
+.rcpt-wa4 .rcpt-meta{display:grid;grid-template-columns:1fr 1fr;column-gap:28px}
+.rcpt-wa4 .rcpt-part{margin-top:12px}
+.rcpt-wa4 .rcpt-sign{margin-top:36px}
