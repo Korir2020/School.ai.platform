@@ -176,6 +176,7 @@ export default function Fees({ admin = false }) {
       <Input label="Amount (KES)" type="number" min="0.01" value={payment.amount} onChange={e => setPayment({ ...payment, amount: e.target.value })} />
       <Select label="Method" value={payment.method} onChange={e => setPayment({ ...payment, method: e.target.value })}><option value="mpesa">M-Pesa</option><option value="cash">Cash</option><option value="bank">Bank</option><option value="other">Other</option></Select>
       <Input label="Reference" placeholder="e.g. M-Pesa receipt" value={payment.reference} onChange={e => setPayment({ ...payment, reference: e.target.value })} />
+      <Input label="Particulars" placeholder="e.g. Term 2 tuition, uniform" value={payment.notes || ""} onChange={e => setPayment({ ...payment, notes: e.target.value })} />
       <div className="mu-modal-actions"><Button kind="secondary" onClick={() => setPay(null)}>Cancel</Button><Button kind="teal" busy={busy} onClick={recordPayment}>Save payment</Button></div>
     </div></div>}
   </div>;
