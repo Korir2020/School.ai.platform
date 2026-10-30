@@ -48,6 +48,17 @@ function FeePanel({ d, go }) {
           <div><small>Overdue</small><b>{money(f.overdue_amount)}</b></div>
         </div>
       </div>
+      {Array.isArray(f.recent_payments) && f.recent_payments.length > 0 && (
+        <div className="d2-rp">
+          <h4>Recent payments</h4>
+          {f.recent_payments.slice(0, 5).map((p, i) => (
+            <div key={p.reference || i} className="d2-rp-row">
+              <span>{p.student}<small>{p.method}{p.paid_at ? ", " + new Date(p.paid_at).toLocaleDateString() : ""}</small></span>
+              <b>{money(p.amount)}</b>
+            </div>
+          ))}
+        </div>
+      )}
     </article>
   );
 }
