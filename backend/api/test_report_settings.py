@@ -103,3 +103,28 @@ class SettingsCase(TestCase):
         for body in ({"bands": "abc", "pass_pct": 50}, {}, {**NEW, "decimals": "x"}):
             r = self.call("put", "grading-config/", self.admin, body)
             self.assertEqual((r.status_code, r.data["error"]), (400, "invalid_grading"), body)
+
+
+class GradingScaleReadCase(TestCase):
+    def setUp(self):
+        tv.ApiCase.setUp(self)
+        self.base = tv.B
+
+    def call(self, method, path, user=None, data=None):
+        c = APIClient()
+        if user:
+            c.force_authenticate(user)
+        if method == "get":
+            return c.get(self.base + path, data or {})
+        return getattr(c, method)(self.base + path, data or {}, format="json")
+
+    def test_teacher_reads_own_school_scale_read_only(self):
+        self.assertEqual(self.call("put", "grading-config/", self.admin, NEW).status_code, 200)
+        r = self.call("get", "grading-scale/", self.t3)
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(r.data["configured"])
+        self.assertEqual(len(r.data["bands"]), 3)
+        self.assertEqual(self.call("put", "grading-scale/", self.t3, NEW).status_code, 405)
+        self.assertEqual(self.call("get", "grading-scale/", self.gua).status_code, 403)
+        self.assertEqual(self.call("get", "grading-scale/", None).status_code, 401)
+        self.assertNotEqual(self.call("get", "grading-scale/", self.admin2).data["bands"], r.data["bands"])
