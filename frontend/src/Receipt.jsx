@@ -261,6 +261,7 @@ export default function Receipt({ paymentId, onClose }) {
           <div className="rcpt-sign"><span>Received by: {d.payment.received_by || "........"}</span><span className="rcpt-sigline">Signature</span></div>
           <footer className="rcpt-foot">
             <p>Thank you for your payment.</p>
+            {d.qr_svg && <img className="rcpt-qr" alt="Scan to verify this receipt" src={"data:image/svg+xml;utf8," + encodeURIComponent(d.qr_svg)} />}
             <small>Quote {d.receipt_number} to verify this receipt with the school.</small>
           </footer>
         </article>

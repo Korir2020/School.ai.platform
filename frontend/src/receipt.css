@@ -84,3 +84,5 @@ body.rcpt-open>*:not(.rcpt-portal){display:none!important}
 .rcpt-wa4 .rcpt-meta{display:grid;grid-template-columns:1fr 1fr;column-gap:28px}
 .rcpt-wa4 .rcpt-part{margin-top:12px}
 .rcpt-wa4 .rcpt-sign{margin-top:36px}
+
+.rcpt-qr{display:block;width:96px;height:96px;margin:6px auto}
