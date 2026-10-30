@@ -15,7 +15,8 @@ export default function SchoolRegistration({ onBack, onSignIn }) {
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.type === "checkbox" ? e.target.checked : e.target.value });
   const submit = async () => {
     setError(""); setBusy(true);
-    const r = await fetch("/api/school-registration/", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
+    const r = await fetch("/api/school-registration/", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) }).catch(() => null);
+    if (!r) { setBusy(false); return setError("Could not reach the server. Please try again."); }
     const j = await r.json().catch(() => ({})); setBusy(false);
     if (!r.ok) { if (j.errors) { const ks = Object.keys(j.errors); setStep(ks.some((k) => ACCT.includes(k)) ? 0 : ks.every((k) => k === "authorized") ? 2 : 1); } return setError(j.errors ? Object.values(j.errors).join(" ") : (j.detail || "Could not submit registration.")); }
     setRegistration(j);

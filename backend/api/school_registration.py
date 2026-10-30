@@ -8,6 +8,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
+import logging
 from django.core.mail import send_mail
 from django.db import IntegrityError, transaction
 from django.utils import timezone
@@ -191,6 +192,9 @@ def school_register(request):
         return Response(bad, status=400)
     except RuntimeError:
         return Response({"detail": "School registration email delivery is not configured."}, status=503)
+    except Exception:
+        logging.getLogger("marian.registration").exception("School registration failed")
+        return Response({"detail": "We could not complete registration right now. Please try again in a few minutes."}, status=503)
     return Response(applicant_view(reg), status=201)
 
 
