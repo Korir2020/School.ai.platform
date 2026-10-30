@@ -145,7 +145,7 @@ export default function Marks({ d }) {
         <p>Absent? Tap Absent to enter 1. Missed every exam? Leave the row empty.</p>
         {nNew > 0 && <p>Unsaved marks are kept on this device until you press
           Save marks.</p>}
-        {nBad > 0 && <Alert kind="err">Marks must be numbers from 1 to 100.</Alert>}
+        {nBad > 0 && <Alert kind="err">Marks must be numbers from 1 to {maxFor}.</Alert>}
         <Button kind="teal" busy={busy} onClick={save}
           disabled={nNew === 0 || nBad > 0}>
           Save marks{nNew ? " (" + nNew + ")" : ""}</Button>
@@ -159,11 +159,18 @@ export default function Marks({ d }) {
 
 function MarkInput(props) {
   const v = props.value;
-  const bad = v !== "" && v != null && !(Number(v) >= 1 && Number(v) <= 100);
+  const nextCell = (ev) => {
+    if (ev.key !== "Enter") return;
+    ev.preventDefault();
+    const all = Array.from(document.querySelectorAll('input[aria-label^="Marks for"]'));
+    const nxt = all[all.indexOf(ev.target) + 1];
+    if (nxt) { nxt.focus(); nxt.select(); }
+  };
+  const bad = v !== "" && v != null && !(Number(v) >= 1 && Number(v) <= (Number(props.max) || 100));
   return (
     <span>
-      <input {...props} aria-invalid={bad || undefined} />
-      {bad && <small style={{ display: "block", color: "#B91C1C" }}>Use 1 to 100</small>}
+      <input enterKeyHint="next" onKeyDown={nextCell} {...props} aria-invalid={bad || undefined} />
+      {bad && <small style={{ display: "block", color: "#B91C1C" }}>Use 1 to {Number(props.max) || 100}</small>}
     </span>
   );
 }
