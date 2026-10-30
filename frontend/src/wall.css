@@ -43,3 +43,6 @@ body:has(.mk.wall){background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w
 .mk.wall .mk-steps b,.mk.wall .mk-steps strong{color:#f0c36a}
 .mk.wall .mk-chips li{background:#fffdf6;color:#0f2747}
 .mk.wall .mk-sub,.mk.wall .mk-note,.mk.wall .mk-cap{color:#aab6c8}
+
+/* Wireflow look: grain + teal/blue glow on the landing wall */
+body:has(.mk.wall){background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.07'/%3E%3C/svg%3E"),radial-gradient(60% 70% at 12% 0%,rgba(15,139,141,.30),transparent 70%),radial-gradient(50% 70% at 100% 10%,rgba(59,130,246,.20),transparent 70%),#07142B;background-size:160px 160px,100% 100%,100% 100%,auto;background-repeat:repeat,no-repeat,no-repeat,no-repeat;background-attachment:fixed}
