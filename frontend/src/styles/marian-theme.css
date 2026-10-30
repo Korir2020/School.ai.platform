@@ -49,3 +49,15 @@ body:has(.recovery-page)::before{display:none}
 html:root{--bg-app:var(--m-bg)}
 html:root{--paper:var(--m-bg)}
 .glow,.intro::before{display:none}
+/* Dark mode: grain + glow */
+:root[data-theme="dark"] body:has(.shell){background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.07'/%3E%3C/svg%3E"),radial-gradient(60% 100% at 12% 0%,rgba(15,139,141,.30),transparent 70%),radial-gradient(50% 100% at 100% 10%,rgba(59,130,246,.20),transparent 70%);background-size:160px 160px,100% 480px,100% 480px;background-repeat:repeat,no-repeat,no-repeat}
+@media (prefers-color-scheme: dark){
+:root:not([data-theme="light"]) body:has(.shell){background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.07'/%3E%3C/svg%3E"),radial-gradient(60% 100% at 12% 0%,rgba(15,139,141,.30),transparent 70%),radial-gradient(50% 100% at 100% 10%,rgba(59,130,246,.20),transparent 70%);background-size:160px 160px,100% 480px,100% 480px;background-repeat:repeat,no-repeat,no-repeat}
+}
+/* Dark mode: glass cards */
+:root[data-theme="dark"] .shell main>div:not(.plain){background:color-mix(in srgb,var(--m-card) 78%,transparent);border:1px solid rgba(255,255,255,.08);border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.28)}
+:root[data-theme="dark"] .shell header{background:color-mix(in srgb,var(--m-card) 82%,transparent);backdrop-filter:blur(10px)}
+@media (prefers-color-scheme: dark){
+:root:not([data-theme="light"]) .shell main>div:not(.plain){background:color-mix(in srgb,var(--m-card) 78%,transparent);border:1px solid rgba(255,255,255,.08);border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.28)}
+:root:not([data-theme="light"]) .shell header{background:color-mix(in srgb,var(--m-card) 82%,transparent);backdrop-filter:blur(10px)}
+}
