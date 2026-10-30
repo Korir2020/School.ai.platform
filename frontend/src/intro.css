@@ -26,3 +26,7 @@
 .intro{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.07'/%3E%3C/svg%3E");background-size:160px 160px}
 .intro::before{background:radial-gradient(40% 35% at 20% 18%,rgba(15,139,141,.45),transparent 70%),radial-gradient(35% 30% at 82% 30%,rgba(59,130,246,.35),transparent 70%),radial-gradient(40% 35% at 78% 85%,rgba(15,139,141,.30),transparent 70%)}
 .ic{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+
+/* Stronger wireflow look */
+.intro{background-color:#05070D;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.28'/%3E%3C/svg%3E");background-size:200px 200px}
+.ic{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:22px}
