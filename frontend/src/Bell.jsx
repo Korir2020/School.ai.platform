@@ -39,7 +39,7 @@ export default function Bell({ go }) {
   return (<>
     <button type="button" className="mu-bell" aria-label={label}
       onClick={() => { setOpen(true); load(); }}>
-      <Ic n="Bell" />{d.unread > 0 && <i>{d.unread}</i>}</button>
+      <Ic n="Bell" />{d.unread > 0 && <i key={d.unread}>{d.unread}</i>}</button>
     {open && <Modal title="Notifications" onClose={() => setOpen(false)}
       actions={<>
         {d.unread > 0 && <Button kind="secondary"
