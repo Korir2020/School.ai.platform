@@ -74,3 +74,10 @@
 .mu-app .mu-user b{color:#fff}
 .mu-app .mu-user .mu-btn{border-radius:999px;background:transparent;border:1px solid rgba(255,255,255,.28);color:#fff}
 .mu-app .mu-user .mu-btn:hover{background:rgba(255,255,255,.1)}
+
+/* Recent payments in the fee panel */
+.dash2 .d2-rp{margin-top:14px;border-top:1px solid rgba(128,128,128,.25);padding-top:10px}
+.dash2 .d2-rp h4{margin:0 0 6px;font-size:.8rem;color:var(--d2-mut)}
+.dash2 .d2-rp-row{display:flex;justify-content:space-between;gap:10px;padding:6px 0;font-size:.9rem}
+.dash2 .d2-rp-row small{display:block;color:var(--d2-mut);font-size:.72rem}
+.dash2 .d2-rp-row b{font-variant-numeric:tabular-nums;white-space:nowrap}
