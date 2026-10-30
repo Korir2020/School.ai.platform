@@ -510,3 +510,21 @@ def report_audit(request):
     except AuditAccessDenied:
         raise PermissionDenied("admin only")
     return Response({"entries": jsonable(rows)})
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+@guard
+def report_grading_scale(request):
+    """Read-only view of the school's saved scale for admins and teachers."""
+    from api.report_access import SchoolAdminProfile, TeacherProfile
+    prof = (SchoolAdminProfile.objects.filter(user=request.user).first()
+            or TeacherProfile.objects.filter(user=request.user).first())
+    if prof is None:
+        raise PermissionDenied("not allowed")
+    s = DjangoConfigStore(str(prof.school_id)).load_scheme()
+    if s is None:
+        return Response({"configured": False})
+    d = scheme_json(s)
+    d.pop("options", None)
+    return Response(d)
