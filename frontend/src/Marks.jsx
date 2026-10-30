@@ -28,6 +28,8 @@ export default function Marks({ d }) {
     } catch { setBad(true); }
   };
   useEffect(() => { load(); }, []);
+  const [scale, setScale] = useState(null);
+  useEffect(() => { api("/api/report-module/grading-scale/").then((r) => (r.ok ? r.json() : null)).then((j) => setScale(j && j.configured ? j : null)).catch(() => setScale(null)); }, []);
   const dk = d.active_term ? "mk:" + d.active_term.id + ":" + sel + ":" + kind
     + ":" + paper : "";
   const skip = useRef(false);
@@ -103,12 +105,19 @@ export default function Marks({ d }) {
   const table = rows.map((e) => { const o = old(e.student);
     return { id: e.id, student: e.student, name: nameOf(e.student), o,
       status: o ? o.status : "not entered" }; });
+  const levelOf = (v) => {
+    if (!scale || v === "" || badVal(v)) return "";
+    const pct = Number(v) * 100 / maxFor;
+    const b = scale.bands.find((x) => (pct >= Number(x[1]) && pct < Number(x[2])) || (Number(x[2]) === 100 && pct === 100));
+    return b ? b[0] : "";
+  };
   const cols = [
     { label: "Student", key: "name", sort: true },
     { label: "Marks (out of " + maxFor + ")", render: (r) => (r.o ? r.o.marks :
       <MarkInput type="number" min="1" max={maxFor} value={vals[r.student] ?? ""}
         aria-label={"Marks for " + r.name}
         onChange={(ev) => setVals({ ...vals, [r.student]: ev.target.value })} />) },
+    ...(scale ? [{ label: "Level", render: (r) => levelOf(vals[r.student] ?? (r.o ? r.o.marks : "")) }] : []),
     { label: "Status", key: "status", sort: true, render: (r) => (r.o
       ? <Badge kind={kinds[r.o.status] || "info"}>{r.o.status}</Badge>
       : "Not entered") },
@@ -146,6 +155,7 @@ export default function Marks({ d }) {
         {nNew > 0 && <p>Unsaved marks are kept on this device until you press
           Save marks.</p>}
         {nBad > 0 && <Alert kind="err">Marks must be numbers from 1 to {maxFor}.</Alert>}
+    {scale && <p>Levels set by your school, not official.</p>}
         <Button kind="teal" busy={busy} onClick={save}
           disabled={nNew === 0 || nBad > 0}>
           Save marks{nNew ? " (" + nNew + ")" : ""}</Button>
