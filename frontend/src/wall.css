@@ -60,3 +60,13 @@ body:has(.mk.wall){background-color:#03140E;background-image:url("data:image/svg
 
 /* support-clear: leave room under the footer so the support button never covers text */
 .mk.wall>footer{padding-bottom:84px}
+
+/* Landing content: dark glass icon cards, theme button, links */
+.mk.wall .mk-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:16px;box-shadow:none;transform:none}
+.mk.wall .mk-card:nth-child(even){transform:none}
+.mk.wall .mk-card::before{display:none}
+.mk.wall .mk-card h3{color:#fff!important}
+.mk.wall .mk-card p{color:#a9bbb2!important}
+.mk.wall .mk-ico{display:grid;place-items:center;width:34px;height:34px;margin-bottom:10px;border-radius:10px;border:1px solid rgba(190,236,97,.35);background:rgba(190,236,97,.08);color:#BEEC61}
+.mk.wall .mk-link{color:#cfe0d6;text-decoration:underline;text-underline-offset:3px}
+.mk.wall .mk-bar .m-theme-btn{position:static;flex:none;display:grid;place-items:center;width:36px;height:36px;min-width:36px;min-height:36px;padding:0;border-radius:50%;background:transparent;color:#fff;border:1px solid rgba(255,255,255,.22)}

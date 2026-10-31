@@ -3,6 +3,8 @@ import "./home.css";
 import { Button } from "./ui";
 import { Mark, Wordmark } from "./brand";
 import "./wall.css";
+import Ic from './icons';
+import ThemeToggle from './ThemeToggle';
 
 const NAV = ["Home", "Students", "Exams", "Reports", "Analytics", "Fees"];
 
@@ -28,6 +30,8 @@ const STEPS = [
   ["Set up", "Complete the setup wizard."],
   ["Invite teachers", "Teachers join with your School Code."],
 ];
+
+const BENEFIT_ICONS = ['Approve', 'Reports', 'Admins'];
 
 function Preview() {
   return (
@@ -65,6 +69,7 @@ export default function Landing({ onStart, onRegister, onSignIn, onStatus }) {
           <Mark size={26} />
           <Wordmark height={14} />
         </span>
+        <ThemeToggle />
       </header>
 
 
@@ -95,8 +100,8 @@ export default function Landing({ onStart, onRegister, onSignIn, onStatus }) {
         <section className="mk-sec">
           <h2>Why Marian</h2>
           <div className="mk-grid c3">
-            {BENEFITS.map(([t, d]) => (
-              <div className="mk-card" key={t}><h3>{t}</h3><p>{d}</p></div>
+            {BENEFITS.map(([t, d], i) => (
+              <div className="mk-card" key={t}><span className="mk-ico"><Ic n={BENEFIT_ICONS[i]} size={18} /></span><h3>{t}</h3><p>{d}</p></div>
             ))}
           </div>
         </section>
