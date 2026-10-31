@@ -89,3 +89,9 @@ body:has(.mk.wall){background-color:#03140E;background-image:url("data:image/svg
 /* Cleanup: bulb spacer reduced, footer legal column */
 .mk.wall>main{padding-top:72px}
 .mk.wall .mk-fcols{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:18px 24px}
+
+.mk-grid.c4{grid-template-columns:1fr}
+@media (min-width:600px){.mk-grid.c4{grid-template-columns:repeat(2,1fr)}}
+@media (min-width:1000px){.mk-grid.c4{grid-template-columns:repeat(4,1fr)}}
+.mk-mig-lead{color:#a9bbb2;margin:0 0 20px}
+.mk-mig-note{color:#a9bbb2;margin:20px 0 0;font-size:14px}

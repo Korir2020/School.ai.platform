@@ -14,7 +14,7 @@ export default function Intro({ onStart }) {
     <div className={"intro" + (out ? " out" : "")} onClick={skip}>
         <Mark size={110} />
         <h1><Wordmark height={26} /></h1>
-      <p className="itag">Turning School Data Into Better Decisions.</p>
+      <p className="itag">Marks, report cards, attendance and fees in one place.</p>
     </div>
   );
 }
