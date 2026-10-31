@@ -48,7 +48,7 @@ button{color:var(--m-action-text);background:var(--blue);font-weight:600}
 .go{background:var(--m-action);color:var(--m-action-text)}
 .ghost{background:transparent;color:var(--blue-hi);border:1px solid var(--m-border)}
 input,select{background:var(--m-card);border-color:var(--line);border-radius:12px}
-main input:focus,main select:focus{outline:0;border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.28)}
+main input:focus,main select:focus{outline:0;border-color:var(--blue);box-shadow:0 0 0 3px rgba(11,93,68,.28)}
 .card{background:var(--m-card)}
 header{background:var(--m-card);border-bottom:1px solid var(--line)}
 header b{color:var(--gold);font-size:.95rem}

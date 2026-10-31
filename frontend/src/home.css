@@ -1,27 +1,27 @@
 body:has(.mk){background:var(--mu-bg,#f6f8fb)}
 body:has(.mk)::before{display:none}
-.mk{--ink:#0f2747;--mut:#5b6675;--line:var(--mu-line,#e3e8ef);
+.mk{--ink:#062219;--mut:#5b6675;--line:var(--mu-line,#e3e8ef);
   max-width:1040px;margin:0 auto;padding:0 18px 28px;color:var(--ink);
   font-size:15px;line-height:1.5}
 .mk-bar{display:flex;align-items:center;padding:14px 0}
 .mk-brand{display:inline-flex;align-items:center;gap:9px;color:#fff}
 .mk-hero{display:grid;gap:22px;padding:14px 0 8px}
-.mk-eyebrow{margin:0 0 8px;font-size:.78rem;font-weight:600;letter-spacing:.3px;color:#0a66ff}
+.mk-eyebrow{margin:0 0 8px;font-size:.78rem;font-weight:600;letter-spacing:.3px;color:#0B5D44}
 .mk-hero h1{margin:0 0 10px;font-size:clamp(1.7rem,6vw,2.4rem);line-height:1.15;letter-spacing:-.4px}
 .mk-lead{margin:0 0 16px;max-width:460px;color:var(--mut)}
 .mk-act{display:flex;gap:10px;flex-wrap:wrap}
 .mk .mu-btn{height:36px;font-size:13px;min-width:130px}
 .mk-sub{margin:12px 0 0;font-size:.82rem;color:var(--mut)}
 .mk-link{background:none;border:0;padding:4px 2px;font:inherit;font-weight:600;
-  color:#0a66ff;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
-.mk-link:focus-visible{outline:2px solid #0a66ff;outline-offset:2px;border-radius:4px}
+  color:#0B5D44;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.mk-link:focus-visible{outline:2px solid #0B5D44;outline-offset:2px;border-radius:4px}
 .mk-note{margin:6px 0 0;font-size:.78rem;color:var(--mut)}
 .mk-pv{display:grid;grid-template-columns:76px 1fr;overflow:hidden;font-size:10px;
   border-radius:12px;border:1px solid var(--line);background:#fff;
   box-shadow:0 8px 24px #0f274722;min-height:210px}
 .mk-pv aside{display:flex;flex-direction:column;gap:3px;padding:10px 6px;background:#1f2328}
 .mk-pv aside span{padding:5px 7px;border-radius:6px;color:#fff;font-size:10px}
-.mk-pv aside span.on{background:#0a66ff}
+.mk-pv aside span.on{background:#0B5D44}
 .mk-pv-main{padding:10px}
 .mk-pv-top{display:flex;justify-content:space-between;align-items:center}
 .mk-pv-top b{font-size:12px}
@@ -32,7 +32,7 @@ body:has(.mk)::before{display:none}
 .mk-pv-cards span{display:block;width:50%;height:8px;margin-top:6px;border-radius:4px;background:#e6ebf2}
 .mk-pv-chart{display:flex;align-items:flex-end;gap:6px;height:84px;margin-top:10px;
   padding:8px;border:1px solid var(--line);border-radius:8px}
-.mk-pv-chart span{flex:1;border-radius:3px 3px 0 0;background:#0a66ff;opacity:.85}
+.mk-pv-chart span{flex:1;border-radius:3px 3px 0 0;background:#0B5D44;opacity:.85}
 .mk-cap{margin:6px 0 0;font-size:.7rem;color:var(--mut);text-align:center}
 .mk-sec{padding-top:30px}
 .mk-sec h2{margin:0 0 12px;font-size:1.1rem}
@@ -47,12 +47,12 @@ body:has(.mk)::before{display:none}
 .mk-steps li{counter-increment:s;padding:14px;border:1px solid var(--line);
   border-radius:12px;background:#fff}
 .mk-steps li::before{content:counter(s);display:inline-grid;place-items:center;
-  width:22px;height:22px;margin-bottom:8px;border-radius:50%;background:#0a66ff;
+  width:22px;height:22px;margin-bottom:8px;border-radius:50%;background:#0B5D44;
   color:#fff;font-size:.75rem;font-weight:700}
 .mk-steps b{display:block;font-size:.92rem}
 .mk-steps span{font-size:.82rem;color:var(--mut)}
 .mk-final{margin-top:30px;padding:22px 18px;border-radius:14px;text-align:center;
-  background:#0f2747;color:#fff}
+  background:#062219;color:#fff}
 .mk-final h2{margin:0 0 6px;font-size:1.15rem}
 .mk-final p{margin:0 0 14px;font-size:.88rem;opacity:.85}
 .mk-final .mk-act{justify-content:center}
@@ -70,14 +70,14 @@ body:has(.mk)::before{display:none}
 }
 .mk .mk-bar{display:flex;align-items:center;justify-content:flex-start;background:#141414;padding:14px 18px;min-height:64px}
 .mk .mk-brand{margin:0 auto 0 0;color:#fff}
-.mk .mk-hero h1{color:#0f2747}
+.mk .mk-hero h1{color:#062219}
 .mk .mk-hero h1,.mk .mk-lead,.mk .mk-eyebrow{opacity:1}
 .mk .mk-bar{justify-content:center}
 .mk .mk-brand{margin:0 auto}
-.mk h1,.mk h2,.mk h3,.mk h4{color:#0f2747;opacity:1}
+.mk h1,.mk h2,.mk h3,.mk h4{color:#062219;opacity:1}
 .mk p,.mk li{opacity:1}
-.mk h1,.mk h2,.mk h3,.mk h4{color:#0f2747;opacity:1}
+.mk h1,.mk h2,.mk h3,.mk h4{color:#062219;opacity:1}
 .mk p,.mk li{opacity:1}
-.mk h1,.mk h2,.mk h3,.mk h4{color:#0f2747;opacity:1}
+.mk h1,.mk h2,.mk h3,.mk h4{color:#062219;opacity:1}
 .mk p,.mk li{opacity:1}
 .mk .mk-bar{position:sticky;top:0;z-index:50;box-shadow:0 2px 10px rgba(0,0,0,.25)}

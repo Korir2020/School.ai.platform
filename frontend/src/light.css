@@ -31,11 +31,11 @@ body:has(.shell)::before{display:none}
 .shell .s-draft{background:#94a3b8}
 .shell .s-submitted{background:#d97706}
 .shell .s-approved{background:#16a34a}
-.shell .s-locked{background:#2563eb}
+.shell .s-locked{background:#0B5D44}
 .shell .term{background:var(--m-card);border-color:var(--line);color:var(--mut)}
 .shell .term.live{color:var(--txt)}
 .shell .qrow button{background:#eff6ff;color:var(--blue-hi);
-  border:1px solid #bfdbfe}
+  border:1px solid #cfe3d8}
 .shell .arow{border-top-color:var(--line)}
 .shell .arow span{color:var(--mut)}
 .shell .arow span b{color:var(--txt)}

@@ -15,7 +15,7 @@ const TONE = {
 };
 const SEV = { block: "#dc2626", confirm: "#d97706", notice: "#6b7280" };
 const btn = { minHeight: 44, padding: "0 16px", borderRadius: 10, border: LINE, background: "transparent", color: "inherit", font: "inherit", cursor: "pointer" };
-const btnMain = { ...btn, background: "#2563eb", borderColor: "#2563eb", color: "#fff", fontWeight: 600 };
+const btnMain = { ...btn, background: "#0B5D44", borderColor: "#0B5D44", color: "#fff", fontWeight: 600 };
 const card = { border: LINE, borderRadius: 12, padding: 12, marginBottom: 10 };
 const inp = { display: "block", width: "100%", boxSizing: "border-box", minHeight: 44, marginTop: 4, padding: "0 10px", borderRadius: 10, border: LINE, background: "transparent", color: "inherit", font: "inherit", fontSize: 16 };
 const FIX_LABELS = [
@@ -46,7 +46,7 @@ function helpFor(code) {
 
 function Tab({ n, label, color, active, onClick }) {
   return (
-    <button type="button" role="tab" aria-selected={active} onClick={onClick} style={{ ...btn, flex: "1 1 90px", minHeight: 56, padding: "6px 8px", textAlign: "center", borderColor: color || "rgba(128,128,128,.4)", fontWeight: active ? 700 : 400, background: active ? "rgba(37,99,235,.12)" : "transparent" }}>
+    <button type="button" role="tab" aria-selected={active} onClick={onClick} style={{ ...btn, flex: "1 1 90px", minHeight: 56, padding: "6px 8px", textAlign: "center", borderColor: color || "rgba(128,128,128,.4)", fontWeight: active ? 700 : 400, background: active ? "rgba(11,93,68,.12)" : "transparent" }}>
       <div style={{ fontSize: 20, fontWeight: 700, color }}>{n}</div>
       <div style={{ fontSize: 12 }}>{label}</div>
     </button>
@@ -359,13 +359,13 @@ export default function MigrationCentre() {
           onDragLeave={() => setDrag(false)}
           onDrop={(e) => { e.preventDefault(); setDrag(false); takeFile(e.dataTransfer.files && e.dataTransfer.files[0]); }}
         >
-          <svg className="mc-cloud" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ display: "block", margin: "0 auto 8px" }}>
+          <svg className="mc-cloud" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#0B5D44" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ display: "block", margin: "0 auto 8px" }}>
             <path d="M12 13v8" />
             <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" />
             <path d="m8 17 4-4 4 4" />
           </svg>
           <div style={{ fontWeight: 700 }}>Drag and drop your file here</div>
-          <div style={{ fontSize: 13, color: "#2563eb", marginTop: 2 }}>or click to browse</div>
+          <div style={{ fontSize: 13, color: "#0B5D44", marginTop: 2 }}>or click to browse</div>
           <div style={{ fontSize: 13, opacity: 0.85, margin: "4px 0 10px" }}>Excel, CSV, TSV, TXT or typed PDF</div>
           <span style={{ ...btnMain, display: "inline-block", padding: "10px 16px", borderRadius: 10 }}>Choose File</span>
           <input type="file" accept=".csv,.xlsx,.pdf,.tsv,.txt,image/*" style={{ display: "none" }} onChange={(e) => { takeFile(e.target.files && e.target.files[0]); e.target.value = ""; }} />
@@ -428,7 +428,7 @@ export default function MigrationCentre() {
         <details open={WIDE} style={{ ...card, marginBottom: 0 }}>
           <summary style={{ fontWeight: 700, cursor: "pointer", minHeight: 28 }}>How it works</summary>
           <div style={{ fontSize: 14, marginTop: 8 }}>
-            <div style={{ ...card, borderColor: "#2563eb", marginBottom: 8 }}>
+            <div style={{ ...card, borderColor: "#0B5D44", marginBottom: 8 }}>
               <b>Before you start:</b> add your classes in Setup. Learners can only be added to classes that already exist.
               <a href={SETUP.hash} target="_blank" rel="noopener noreferrer" style={{ ...btn, display: "inline-block", marginTop: 6, minHeight: 36, lineHeight: "36px", padding: "0 12px", textDecoration: "none" }}>{SETUP.label}</a>
             </div>
@@ -532,7 +532,7 @@ export default function MigrationCentre() {
 
           {sum && sum.ready > 0 && !(res.file_issues || []).some((i) => i.severity === "block") && (
             ask ? (
-              <div id="add-confirm" style={{ ...card, borderColor: "#2563eb" }}>
+              <div id="add-confirm" style={{ ...card, borderColor: "#0B5D44" }}>
                 <b>Add {sum.ready} learner(s) now?</b>
                 <div style={{ fontSize: 14, margin: "6px 0 10px" }}>
                   {sum.needs_confirmation + sum.blocked > 0 ? (sum.needs_confirmation + sum.blocked) + " will be left out (blocked, or not yet accepted). " : ""}

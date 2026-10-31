@@ -2,8 +2,8 @@
 .mc-steps{display:flex;gap:6px;margin:12px 0}
 .mc-step{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:8px 6px;border-radius:10px;border:1px solid rgba(128,128,128,.4);font-size:13px;min-width:0}
 .mc-dot{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:rgba(128,128,128,.25);font-size:12px;font-weight:700;flex:none}
-.mc-step.is-current{background:#2563eb;border-color:#2563eb;color:#fff;font-weight:700}
-.mc-step.is-current .mc-dot{background:#fff;color:#2563eb}
+.mc-step.is-current{background:#0B5D44;border-color:#0B5D44;color:#fff;font-weight:700}
+.mc-step.is-current .mc-dot{background:#fff;color:#0B5D44}
 .mc-step.is-done{background:rgba(22,163,74,.15);border-color:rgba(22,163,74,.5)}
 .mc-step.is-done .mc-dot{background:#16a34a;color:#fff}
 @media (max-width:560px){.mc-step:not(.is-current) .mc-label{display:none}.mc-step{padding:8px 4px}.mc-step.is-current{flex:3}}
@@ -11,11 +11,11 @@
 .mc-help{display:none}
 @media (min-width:900px){.mc-grid{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}.mc-help{display:block}}
 .mc-drop{display:block;text-align:center;border:2px dashed rgba(128,128,128,.6);border-radius:12px;padding:20px 12px;cursor:pointer;margin-bottom:8px}
-.mc-drop.is-over{border-color:#2563eb;background:rgba(37,99,235,.1)}
+.mc-drop.is-over{border-color:#0B5D44;background:rgba(11,93,68,.1)}
 .mc-help{display:block;order:-1}
 @media (min-width:900px){.mc-help{order:0}}
 .mc-banner{position:relative;overflow:hidden;display:flex;align-items:center;gap:14px;padding:16px;margin-bottom:12px;border:1px solid rgba(128,128,128,.35);border-radius:16px}
 .mc-banner-photo{position:absolute;top:0;right:0;bottom:0;width:100%;background-size:cover;background-position:center 40%;opacity:.18;pointer-events:none}
 .mc-banner-icon,.mc-banner-text{position:relative}
-.mc-banner-icon{flex:none;width:56px;height:56px;border-radius:14px;background:#2563eb;display:flex;align-items:center;justify-content:center}
+.mc-banner-icon{flex:none;width:56px;height:56px;border-radius:14px;background:#0B5D44;display:flex;align-items:center;justify-content:center}
 @media (min-width:700px){.mc-banner{min-height:130px}.mc-banner-photo{width:55%;opacity:1;-webkit-mask-image:linear-gradient(to right,transparent,#000 70%);mask-image:linear-gradient(to right,transparent,#000 70%)}.mc-banner-text{max-width:55%}}

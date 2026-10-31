@@ -2,17 +2,17 @@
 .gwrap{position:relative;width:100%;max-width:400px;border-radius:28px;overflow:hidden}
 .gbox{position:relative;box-sizing:border-box;padding:40px 24px 30px;text-align:left;color:#f8fafc;border:1px solid rgba(255,255,255,.1);border-radius:28px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);clip-path:polygon(52px 0,100% 0,100% calc(100% - 52px),calc(100% - 52px) 100%,0 100%,0 52px);background:linear-gradient(135deg,transparent 36px,rgba(255,255,255,.25) 37px,transparent 38px) 0 0/60px 60px no-repeat,linear-gradient(-45deg,transparent 36px,rgba(255,255,255,.25) 37px,transparent 38px) 100% 100%/60px 60px no-repeat,rgba(14,14,14,.32)}
 .gbox h2{margin:0 0 4px;padding-left:12px;font-size:1.75rem;font-weight:700}
-.gbox h2 b{color:#3DA5FF}
+.gbox h2 b{color:#0B5D44}
 .lsub{margin:0 0 16px 12px;color:#a8a29e;font-size:.8rem}
 .gbox label{display:block;margin:14px 0 0 2px;font-size:.82rem;font-weight:600}
 .fld{position:relative;display:flex;align-items:center;margin:7px 3px 0;border:1px solid rgba(255,255,255,.09);border-radius:12px;background:rgba(255,255,255,.04);color:#8b8576;padding:0 12px;overflow:hidden}
-.fld:focus-within{border-color:#3DA5FF;box-shadow:0 0 0 3px rgba(61,165,255,.16)}
+.fld:focus-within{border-color:#0B5D44;box-shadow:0 0 0 3px rgba(11,93,68,.16)}
 .fld .lic{width:18px;height:18px;flex:none}
 .gbox .fld input{flex:1;min-width:0;max-width:none;margin:0;border:0;background:transparent;color:#f8fafc;padding:14px 8px;outline:0}
 .gbox .eye{background:none;margin:0;padding:6px;color:#8b8576;border-radius:8px}
 .pwrow{max-height:0;opacity:0;overflow:hidden;transition:max-height .4s,opacity .4s}
 .pwrow.show{max-height:110px;opacity:1}
-.gbox .sign{display:block;width:100%;margin:20px 0 0;padding:15px;border-radius:12px;color:#111;font-weight:700;background:linear-gradient(180deg,#7CC4FF,#3DA5FF);box-shadow:0 0 24px rgba(61,165,255,.4);white-space:pre}
+.gbox .sign{display:block;width:100%;margin:20px 0 0;padding:15px;border-radius:12px;color:#111;font-weight:700;background:linear-gradient(180deg,#7CC4FF,#0B5D44);box-shadow:0 0 24px rgba(11,93,68,.4);white-space:pre}
 .fade{animation:lfin .45s ease forwards;opacity:0}
 .lerr{margin:12px 0 0;color:#fda4af;font-size:.88rem}
 .dog{position:absolute;z-index:2;width:44px;height:44px;pointer-events:none;background:linear-gradient(135deg,transparent 30px,rgba(255,255,255,.4) 31px,transparent 32px),linear-gradient(135deg,rgba(255,255,255,.22),rgba(255,255,255,.04))}
@@ -66,9 +66,9 @@
 /* Extra rows in reference order */
 .rmrow{display:flex;justify-content:space-between;align-items:center;margin:12px 3px 0;font-size:.82rem;font-weight:700;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.9)}
 .gbox .rm{display:flex;align-items:center;gap:8px;margin:0;font-size:.82rem;cursor:pointer}
-.gbox .rm input{display:inline-block;width:16px;height:16px;margin:0;padding:0;accent-color:#3DA5FF}
+.gbox .rm input{display:inline-block;width:16px;height:16px;margin:0;padding:0;accent-color:#0B5D44}
 .gbox .lnk{border:0;background:none;margin:0;padding:2px 0;border-radius:0;color:#f1ede0;font-weight:700;font-size:inherit;box-shadow:none}
-.gbox .lnk.gold{color:#3DA5FF;padding:0}
+.gbox .lnk.gold{color:#0B5D44;padding:0}
 .alt{text-align:center}
 .orc{margin:20px 0 10px;font-size:.68rem;letter-spacing:.14em;font-weight:700;color:#d6d0bf;text-shadow:0 1px 6px rgba(0,0,0,.9)}
 .soc{display:flex;gap:10px;margin:0 3px}
@@ -86,5 +86,5 @@
 
 /* Yellow tick like the reference */
 .gbox .rm input{appearance:none;-webkit-appearance:none;position:relative;width:18px;height:18px;border-radius:5px;border:1.5px solid rgba(255,255,255,.6);background:rgba(0,0,0,.35)}
-.gbox .rm input:checked{background:#3DA5FF;border-color:#3DA5FF}
+.gbox .rm input:checked{background:#0B5D44;border-color:#0B5D44}
 .gbox .rm input:checked::after{content:"";position:absolute;left:5px;top:1px;width:5px;height:10px;border:solid #111;border-width:0 2.5px 2.5px 0;transform:rotate(45deg)}
