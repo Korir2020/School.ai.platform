@@ -106,9 +106,9 @@ export default function Marks({ d }) {
   const cols = [
     { label: "Student", key: "name", sort: true },
     { label: "Marks (out of " + maxFor + ")", render: (r) => (r.o ? r.o.marks :
-      <MarkInput type="number" min="1" max={maxFor} value={vals[r.student] ?? ""}
+      <><MarkInput type="number" min="1" max={maxFor} value={vals[r.student] ?? ""}
         aria-label={"Marks for " + r.name}
-        onChange={(ev) => setVals({ ...vals, [r.student]: ev.target.value })} />) },
+        onChange={(ev) => setVals({ ...vals, [r.student]: ev.target.value })} />{vals[r.student] === "1" && <Badge kind="warn">Abs</Badge>}</>) },
     { label: "Status", key: "status", sort: true, render: (r) => (r.o
       ? <Badge kind={kinds[r.o.status] || "info"}>{r.o.status}</Badge>
       : "Not entered") },
