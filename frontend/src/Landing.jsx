@@ -4,6 +4,7 @@ import { Button } from "./ui";
 import { Mark, Wordmark } from "./brand";
 import "./wall.css";
 import Ic from './icons';
+import Demo from './Demo';
 import ThemeToggle from './ThemeToggle';
 
 const NAV = ["Home", "Students", "Exams", "Reports", "Analytics", "Fees"];
@@ -96,6 +97,8 @@ export default function Landing({ onStart, onRegister, onSignIn, onStatus, onPri
           </div>
           <Preview />
         </section>
+
+        <Demo />
 
         <section className="mk-sec">
           <h2>Why Marian</h2>
