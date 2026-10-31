@@ -1,4 +1,5 @@
 const P = {
+  Calendar: "M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z M3 10h18 M8 3v4 M16 3v4",
   Home: "M3 11l9-8 9 8v10h-6v-6H9v6H3z",
   Approve: "M5 12l5 5 9-10",
   Exams: "M6 3h9l4 4v14H6z M9 13h6 M9 17h6",
