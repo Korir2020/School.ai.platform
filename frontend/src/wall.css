@@ -70,3 +70,14 @@ body:has(.mk.wall){background-color:#03140E;background-image:url("data:image/svg
 .mk.wall .mk-ico{display:grid;place-items:center;width:34px;height:34px;margin-bottom:10px;border-radius:10px;border:1px solid rgba(190,236,97,.35);background:rgba(190,236,97,.08);color:#BEEC61}
 .mk.wall .mk-link{color:#cfe0d6;text-decoration:underline;text-underline-offset:3px}
 .mk.wall .mk-bar .m-theme-btn{position:static;flex:none;display:grid;place-items:center;width:36px;height:36px;min-width:36px;min-height:36px;padding:0;border-radius:50%;background:transparent;color:#fff;border:1px solid rgba(255,255,255,.22)}
+
+/* Landing polish: lime and outline buttons, dark glass final box, footer links */
+.mk.wall .mk-act .mu-btn{min-height:36px;height:36px;padding:0 18px;font-size:13px;font-weight:600;border-radius:999px;box-shadow:none}
+.mk.wall .mu-btn.teal{background:#BEEC61;color:#062219;border:1px solid #BEEC61}
+.mk.wall .mu-btn.teal:hover{background:#a9d950;color:#062219;border-color:#a9d950}
+.mk.wall .mu-btn.secondary{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.28)}
+.mk.wall .mu-btn.secondary:hover{background:rgba(255,255,255,.08);color:#fff}
+.mk.wall .mk-final{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);box-shadow:none;color:#fff}
+.mk.wall .mk-final p{color:#a9bbb2;opacity:1}
+.mk.wall .mk-fcols a,.mk.wall .mk-fcols button{display:block;background:none;border:0;padding:0;margin:0 0 6px;font:inherit;text-align:left;text-decoration:none;color:#cfe0d6;cursor:pointer}
+.mk.wall .mk-fcols a:hover,.mk.wall .mk-fcols button:hover{color:#BEEC61}
