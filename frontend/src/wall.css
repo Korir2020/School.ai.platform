@@ -57,3 +57,6 @@ body:has(.mk.wall){background-color:#03140E;background-image:url("data:image/svg
 .mk.wall h1,.mk.wall .mk-sec>h2{text-shadow:none}
 .mk.wall .mk-brand svg{filter:drop-shadow(0 0 10px rgba(190,236,97,.4))}
 .mk-lamp,.mk-bulb,.mk-cone{display:none}
+
+/* support-clear: leave room under the footer so the support button never covers text */
+.mk.wall>footer{padding-bottom:84px}
