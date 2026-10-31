@@ -17,7 +17,7 @@ export function TrendChart({ data = [] }) {
       <path d={path} fill="none" stroke="#0F8B8D" strokeWidth="2.5" />
       {pts.map((p, i) => (
         <g key={p.term_id ?? i}>
-          <circle cx={x(i)} cy={y(p.average)} r="4" fill="#0F2747" />
+          <circle cx={x(i)} cy={y(p.average)} r="4" fill="#062219" />
           <text x={x(i)} y={y(p.average) - 8} fontSize="10" textAnchor="middle" fill="#172033" fontWeight="600">{p.average}%</text>
           <text x={x(i)} y={H - 8} fontSize="9" textAnchor="middle" fill="#64748B">{String(p.term).slice(0, 12)}</text>
         </g>

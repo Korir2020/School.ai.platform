@@ -1,12 +1,12 @@
 .rg-steps{display:flex;gap:6px;margin:0 0 14px;padding:0;list-style:none}
 .rg-steps li{flex:1;display:flex;align-items:center;gap:6px;padding:6px 8px;border:1px solid var(--mu-line,#e3e8ef);border-radius:8px;font-size:.78rem;color:#5b6675}
 .rg-steps li span{display:grid;place-items:center;width:18px;height:18px;border-radius:50%;background:#e6ebf2;font-size:.7rem;font-weight:700}
-.rg-steps li.on{border-color:#0a66ff;color:#0f2747;font-weight:600}
-.rg-steps li.on span,.rg-steps li.done span{background:#0a66ff;color:#fff}
+.rg-steps li.on{border-color:#0B5D44;color:#062219;font-weight:600}
+.rg-steps li.on span,.rg-steps li.done span{background:#0B5D44;color:#fff}
 .rg-help{margin:0 0 10px;font-size:.85rem;color:#5b6675}
 .rg-sum h3{display:flex;justify-content:space-between;align-items:center;margin:10px 0 4px;font-size:.88rem}
 .rg-sum dl{margin:0 0 6px;display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:.82rem}
 .rg-sum dt{color:#5b6675}
 .rg-sum dd{margin:0;word-break:break-word}
-.rg-edit{background:none;border:0;padding:2px;font:inherit;font-size:.8rem;font-weight:600;color:#0a66ff;cursor:pointer;text-decoration:underline}
+.rg-edit{background:none;border:0;padding:2px;font:inherit;font-size:.8rem;font-weight:600;color:#0B5D44;cursor:pointer;text-decoration:underline}
 @media (max-width:380px){.rg-steps li{font-size:.7rem;padding:5px 6px}}

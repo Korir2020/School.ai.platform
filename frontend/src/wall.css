@@ -19,9 +19,9 @@ body:has(.mk.wall){background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w
 .mk.wall .mk-card:nth-child(even){transform:perspective(800px) rotateX(3deg) rotate(1.2deg)}
 .mk.wall .mk-card h3{color:#062219}
 .mk.wall .mk-card p{color:#4a5568}
-.mk.wall .mk-card::before{content:"";position:absolute;top:-10px;left:50%;width:20px;height:20px;margin-left:-10px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#9cc2ff,#0a66ff 55%,#063a99);box-shadow:0 5px 7px rgba(0,0,0,.45)}
+.mk.wall .mk-card::before{content:"";position:absolute;top:-10px;left:50%;width:20px;height:20px;margin-left:-10px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#cfe0d6,#0B5D44 55%,#062219);box-shadow:0 5px 7px rgba(0,0,0,.45)}
 .mk.wall .mk-chips li{color:#062219}
-.mk.wall .mk-link{color:#8ab8ff}
+.mk.wall .mk-link{color:#cfe0d6}
 .mk.wall .mk-pv{--ink:#062219;--mut:#5b6675;--line:#e3e8ef;color:#062219;box-shadow:0 24px 40px rgba(0,0,0,.55)}
 .mk.wall .mk-final{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:18px}
 .mk.wall .mk-foot2{margin-top:30px;padding-top:22px;border-top:1px solid rgba(255,255,255,.14)}
@@ -45,10 +45,10 @@ body:has(.mk.wall){background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w
 .mk.wall .mk-sub,.mk.wall .mk-note,.mk.wall .mk-cap{color:#aab6c8}
 
 /* Wireflow look: grain + teal/blue glow on the landing wall */
-body:has(.mk.wall){background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.07'/%3E%3C/svg%3E"),radial-gradient(60% 70% at 12% 0%,rgba(15,139,141,.30),transparent 70%),radial-gradient(50% 70% at 100% 10%,rgba(59,130,246,.20),transparent 70%),#07142B;background-size:160px 160px,100% 100%,100% 100%,auto;background-repeat:repeat,no-repeat,no-repeat,no-repeat;background-attachment:fixed}
+body:has(.mk.wall){background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.07'/%3E%3C/svg%3E"),radial-gradient(60% 70% at 12% 0%,rgba(15,139,141,.30),transparent 70%),radial-gradient(50% 70% at 100% 10%,rgba(11,93,68,.20),transparent 70%),#062219;background-size:160px 160px,100% 100%,100% 100%,auto;background-repeat:repeat,no-repeat,no-repeat,no-repeat;background-attachment:fixed}
 
 /* Stronger wireflow look */
-body:has(.mk.wall){background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.60'/%3E%3C/svg%3E"),radial-gradient(60% 45% at 0% 40%,rgba(15,139,141,.6),transparent 70%),radial-gradient(55% 40% at 100% 0%,rgba(59,130,246,.36),transparent 70%),#05070D;background-size:200px 200px,100% 100%,100% 100%,auto;background-repeat:repeat,no-repeat,no-repeat,no-repeat}
+body:has(.mk.wall){background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.60'/%3E%3C/svg%3E"),radial-gradient(60% 45% at 0% 40%,rgba(15,139,141,.6),transparent 70%),radial-gradient(55% 40% at 100% 0%,rgba(11,93,68,.36),transparent 70%),#05070D;background-size:200px 200px,100% 100%,100% 100%,auto;background-repeat:repeat,no-repeat,no-repeat,no-repeat}
 
 /* landing wall: deep forest grain, forest glow, no bulb, flat headings */
 body:has(.mk.wall){background-color:#03140E;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .22 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:200px 200px;background-repeat:repeat;background-attachment:fixed}
@@ -81,3 +81,7 @@ body:has(.mk.wall){background-color:#03140E;background-image:url("data:image/svg
 .mk.wall .mk-final p{color:#a9bbb2;opacity:1}
 .mk.wall .mk-fcols a,.mk.wall .mk-fcols button{display:block;background:none;border:0;padding:0;margin:0 0 6px;font:inherit;text-align:left;text-decoration:none;color:#cfe0d6;cursor:pointer}
 .mk.wall .mk-fcols a:hover,.mk.wall .mk-fcols button:hover{color:#BEEC61}
+
+/* Blues leftover: eyebrow and focus ring readable on the dark wall */
+.mk.wall .mk-eyebrow{color:#BEEC61}
+.mk.wall :focus-visible{outline-color:#BEEC61}

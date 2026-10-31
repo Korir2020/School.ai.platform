@@ -3,12 +3,12 @@
 .dash2 .d2-banner{position:relative;overflow:hidden;display:flex;align-items:center;min-height:170px;padding:22px;border:1px solid var(--d2-line);border-radius:16px;background:linear-gradient(100deg,#f6f9ff,#e6efff)}
 .dash2 .d2-photo{position:absolute;inset:0;background-size:cover;background-position:center 40%}
 .dash2 .d2-banner::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(248,250,255,.97) 0%,rgba(248,250,255,.9) 40%,rgba(248,250,255,.15) 100%)}
-.dash2 .d2-hello{position:relative;z-index:2;color:#152542}
+.dash2 .d2-hello{position:relative;z-index:2;color:#062219}
 .dash2 .d2-hello h2{margin:0;font-size:1.05rem;font-weight:500}
 .dash2 .d2-hello h1{margin:2px 0 4px;font-size:1.6rem;font-weight:750;line-height:1.2}
-.dash2 .d2-hello p{margin:0 0 12px;color:#596b88;font-size:.8125rem}
+.dash2 .d2-hello p{margin:0 0 12px;color:#4a5d54;font-size:.8125rem}
 .dash2 .d2-period{display:inline-flex;flex-wrap:wrap;gap:8px 14px;padding:7px 12px;border:1px solid #d7e0f2;border-radius:9px;background:rgba(255,255,255,.92);color:#5b6980;font-size:.75rem}
-.dash2 .d2-period b{color:#253650}
+.dash2 .d2-period b{color:#062219}
 .dash2 .d2-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0}
 .dash2 .d2-stat{display:flex;align-items:center;gap:10px;min-width:0;min-height:84px;padding:12px;text-align:left;font:inherit;color:var(--d2-txt);cursor:pointer;background:var(--d2-card);border:1px solid var(--d2-line);border-radius:12px;box-shadow:0 2px 8px rgba(24,44,80,.04)}
 .dash2 .d2-stat:hover{transform:translateY(-2px)}
@@ -16,12 +16,12 @@
 .dash2 .d2-stat b{display:block;font-size:1.4rem;line-height:1.2}
 .dash2 .d2-stat em{font-style:normal;font-size:.6875rem;color:var(--d2-mut)}
 .dash2 .d2-ico{display:grid;place-items:center;flex-shrink:0;width:40px;height:40px;border-radius:11px}
-.dash2 .t-blue{background:#e7efff;color:#2f6be5}.dash2 .t-green{background:#e1f8eb;color:#209c62}.dash2 .t-purple{background:#f0e8ff;color:#8752d6}.dash2 .t-orange{background:#fff1db;color:#d68a16}.dash2 .t-pink{background:#ffe8ef;color:#d94e81}.dash2 .t-teal{background:#dcf6f1;color:#148f87}.dash2 .t-cyan{background:#e1f5ff;color:#168dbf}.dash2 .t-violet{background:#eee8ff;color:#7655c9}
+.dash2 .t-blue{background:#e3f1ea;color:#0B5D44}.dash2 .t-green{background:#e1f8eb;color:#209c62}.dash2 .t-purple{background:#f0e8ff;color:#8752d6}.dash2 .t-orange{background:#fff1db;color:#d68a16}.dash2 .t-pink{background:#ffe8ef;color:#d94e81}.dash2 .t-teal{background:#dcf6f1;color:#148f87}.dash2 .t-cyan{background:#e1f5ff;color:#168dbf}.dash2 .t-violet{background:#eee8ff;color:#7655c9}
 .dash2 .d2-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;margin-bottom:12px}
 .dash2 .d2-panel{min-width:0;padding:16px;background:var(--d2-card);border:1px solid var(--d2-line);border-radius:12px;box-shadow:0 2px 8px rgba(24,44,80,.04)}
 .dash2 .d2-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}
 .dash2 .d2-head h3{margin:0;font-size:.9rem;font-weight:700}
-.dash2 .d2-link{padding:6px;border:0;background:none;color:#2f6be5;font:inherit;font-size:.75rem;font-weight:600;cursor:pointer}
+.dash2 .d2-link{padding:6px;border:0;background:none;color:#0B5D44;font:inherit;font-size:.75rem;font-weight:600;cursor:pointer}
 .dash2 .d2-muted,.dash2 .d2-empty{color:var(--d2-mut);font-size:.8125rem}
 .dash2 .d2-empty{padding:14px;border-radius:8px;text-align:center;background:var(--mu-neutral-bg,#f1f5f9)}
 .dash2 .d2-perf{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
@@ -63,14 +63,14 @@
 .dash2 .d2-help a{text-decoration:none}
 @media(min-width:900px){.dash2 .d2-help{grid-template-columns:repeat(2,minmax(0,1fr))}}
 /* d2-sidebar-v2: sidebar restyle (desktop only, CSS only) */
-.mu-app .mu-side{background:linear-gradient(180deg,#101d3a,#0b1530)}
+.mu-app .mu-side{background:linear-gradient(180deg,#062219,#03140E)}
 .mu-app .mu-brand b{font-size:1.05rem}
 .mu-app .mu-nav button{height:38px;gap:12px;font-size:.8125rem;color:#c9d4ea;transition:background .2s,color .2s}
 .mu-app .mu-nav button:hover{background:rgba(255,255,255,.08);color:#fff}
-.mu-app .mu-nav button.on{background:#2864e8;color:#fff;font-weight:600;box-shadow:0 4px 12px rgba(20,70,190,.3)}
-.mu-app .mu-nav button:focus-visible{outline:2px solid #8fb2ff;outline-offset:2px}
-.mu-app .mu-nav small{margin-top:6px;font-size:.625rem;letter-spacing:.14em;color:#8594af}
-.mu-app .mu-user{padding-top:14px;border-top:1px solid rgba(255,255,255,.1);color:#94a4be}
+.mu-app .mu-nav button.on{background:#0B5D44;color:#fff;font-weight:600;box-shadow:0 4px 12px rgba(20,70,190,.3)}
+.mu-app .mu-nav button:focus-visible{outline:2px solid #BEEC61;outline-offset:2px}
+.mu-app .mu-nav small{margin-top:6px;font-size:.625rem;letter-spacing:.14em;color:#9fb5a9}
+.mu-app .mu-user{padding-top:14px;border-top:1px solid rgba(255,255,255,.1);color:#9fb5a9}
 .mu-app .mu-user b{color:#fff}
 .mu-app .mu-user .mu-btn{border-radius:999px;background:transparent;border:1px solid rgba(255,255,255,.28);color:#fff}
 .mu-app .mu-user .mu-btn:hover{background:rgba(255,255,255,.1)}

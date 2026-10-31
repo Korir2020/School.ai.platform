@@ -18,13 +18,13 @@
 .icards{display:flex;gap:14px;margin-top:22px}
 .ic{min-width:112px;padding:12px 16px;border-radius:16px;background:#0b0f1acc;border:1px solid #3DA5FF55;backdrop-filter:blur(6px);display:flex;flex-direction:column;animation:ipop .7s cubic-bezier(.3,1.4,.5,1) both}
 .c1{animation-delay:3.7s}.c2{animation-delay:4.1s}
-.ic b{font-size:1.7rem;color:#3DA5FF;line-height:1.1}
+.ic b{font-size:1.7rem;color:#BEEC61;line-height:1.1}
 .ic small{color:#e5dfc8;font-size:.85rem}
 @media (prefers-reduced-motion:reduce){.intro *,.intro::before{animation:none!important}}
 
 /* Wireflow look: grain + teal/blue glow + glass cards */
 .intro{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.07'/%3E%3C/svg%3E");background-size:160px 160px}
-.intro::before{background:radial-gradient(40% 35% at 20% 18%,rgba(15,139,141,.45),transparent 70%),radial-gradient(35% 30% at 82% 30%,rgba(59,130,246,.35),transparent 70%),radial-gradient(40% 35% at 78% 85%,rgba(15,139,141,.30),transparent 70%)}
+.intro::before{background:radial-gradient(40% 35% at 20% 18%,rgba(15,139,141,.45),transparent 70%),radial-gradient(35% 30% at 82% 30%,rgba(11,93,68,.35),transparent 70%),radial-gradient(40% 35% at 78% 85%,rgba(15,139,141,.30),transparent 70%)}
 .ic{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
 
 /* Stronger wireflow look */
