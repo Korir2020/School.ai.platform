@@ -7,12 +7,11 @@ import Ic from './icons';
 import Demo from './Demo';
 import ThemeToggle from './ThemeToggle';
 
-const NAV = ["Home", "Students", "Exams", "Reports", "Analytics", "Fees"];
-
 const BENEFITS = [
   ["Settled results", "Marks are entered, reviewed and locked in one place."],
   ["Reports from real marks", "Report cards are built from the marks held in Marian."],
   ["The right view for each role", "Administrators, teachers and parents see what their role allows."],
+  ['Analytics', 'See how your school is doing across marks and fees, so you know where to act.'],
 ];
 
 const CAPS = [
@@ -32,35 +31,17 @@ const STEPS = [
   ["Invite teachers", "Teachers join with your School Code."],
 ];
 
-const BENEFIT_ICONS = ['Approve', 'Reports', 'Admins'];
+const BENEFIT_ICONS = ['Approve', 'Reports', 'Admins', 'Analytics'];
 
-function Preview() {
-  return (
-    <div>
-      <div className="mk-pv" role="img" aria-label="Illustration of the Marian dashboard">
-        <aside>
-          {NAV.map((n, i) => (
-            <span key={n} className={i === 4 ? "on" : ""}>{n}</span>
-          ))}
-        </aside>
-        <div className="mk-pv-main">
-          <div className="mk-pv-top"><b>Analytics</b><i /></div>
-          <div className="mk-pv-cards">
-            {["Students", "Exams", "Reports"].map((n) => (
-              <div key={n}><small>{n}</small><span /></div>
-            ))}
-          </div>
-          <div className="mk-pv-chart">
-            {[40, 62, 48, 75, 58, 84, 70].map((h, i) => (
-              <span key={i} style={{ height: h + "%" }} />
-            ))}
-          </div>
-        </div>
-      </div>
-      <p className="mk-cap">Illustration, not real data</p>
-    </div>
-  );
-}
+const MIGRATE = [
+  ['Upload or paste', 'Use an Excel, CSV or typed PDF file, or paste the list.'],
+  ['Check the list', 'Marian shows who is ready and anyone who is blocked.'],
+  ['Fix what is blocked', 'Correct mistakes on the spot, and undo a fix if you need to.'],
+  ['Add the ready learners', 'Add the ones that passed the check to your school.'],
+];
+
+
+const YEAR = new Date().getFullYear();
 
 export default function Landing({ onStart, onRegister, onSignIn, onStatus, onPrivacy, onTerms }) {
   return (
@@ -95,14 +76,13 @@ export default function Landing({ onStart, onRegister, onSignIn, onStatus, onPri
             </p>
             <p className="mk-note">Joining a school? Get Started, then enter its School Code.</p>
           </div>
-          <Preview />
         </section>
 
         <Demo />
 
         <section className="mk-sec">
           <h2>Why Marian</h2>
-          <div className="mk-grid c3">
+          <div className="mk-grid c4">
             {BENEFITS.map(([t, d], i) => (
               <div className="mk-card" key={t}><span className="mk-ico"><Ic n={BENEFIT_ICONS[i]} size={18} /></span><h3>{t}</h3><p>{d}</p></div>
             ))}
@@ -125,22 +105,32 @@ export default function Landing({ onStart, onRegister, onSignIn, onStatus, onPri
           </ol>
         </section>
 
+        <section className="mk-sec">
+          <h2>Bring in your existing learners</h2>
+          <p className="mk-mig-lead">Moving from a register, Excel or CSV? Upload or paste your learner list. Marian checks it before anything is added.</p>
+          <ol className="mk-steps">
+            {MIGRATE.map(([t, d]) => (
+              <li key={t}><b>{t}</b><span>{d}</span></li>
+            ))}
+          </ol>
+          <p className="mk-mig-note">Photos of paper registers are not read yet. Use an Excel, CSV or typed PDF file.</p>
+        </section>
+
         <section className="mk-final">
           <h2>Ready to begin?</h2>
-          <p>Register your school, or sign in if you already have an account.</p>
+          <p>Get started, or sign in if you already have an account.</p>
           <div className="mk-act">
-            <Button kind="teal" onClick={onRegister}>Register a school</Button>
+            <Button kind="teal" onClick={onStart}>Get Started</Button>
             <Button kind="secondary" onClick={onSignIn}>Sign In</Button>
           </div>
         </section>
       </main>
       <footer className="mk-foot2">
         <div className="mk-fcols">
-          <div><h4>Platform</h4><span>Academic analytics</span><span>School management</span><span>Parent access</span></div>
-          <div><h4>Access</h4><button type="button" onClick={onSignIn}>Sign In</button><button type="button" onClick={onRegister}>Register a school</button><button type="button" onClick={onStart}>Join a school</button></div>
-          <div><h4>Support</h4><a href="mailto:korirmartin42@gmail.com">Email support</a><a href="tel:+254703702690">Call us</a><button type="button" onClick={onStatus}>Check my application</button></div><div><h4>Legal</h4><button type="button" onClick={onPrivacy}>Privacy Policy</button><button type="button" onClick={onTerms}>Terms of Service</button></div>
+          <div><h4>Support</h4><a href="mailto:korirmartin42@gmail.com">Email support</a><a href="tel:+254703702690">Call us</a><button type="button" onClick={onStatus}>Check my application</button></div>
+          <div><h4>Legal</h4><button type="button" onClick={onPrivacy}>Privacy Policy</button><button type="button" onClick={onTerms}>Terms of Service</button></div>
         </div>
-        <p className="mk-foot">Marian · Turning School Data Into Better Decisions.</p>
+        <p className="mk-foot">© {YEAR} Marian. All rights reserved.</p>
       </footer>
     </div>
   );
