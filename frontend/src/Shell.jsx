@@ -8,7 +8,7 @@ import { Modal, Button } from "./ui";
 import './shell.css';
 
 const GROUPS = [
-  ['Main', ['Home', 'Approve', 'Registrations']],
+  ['Main', ['Home', 'Calendar', 'Approve', 'Registrations']],
   ['Academics', ['Students', 'Teachers', 'Marks', 'Attendance', 'Exams', 'Reports', 'Report Cards', 'Analytics']],
   ['Manage', ['Parents', 'Staff', 'Fees', 'Documents', 'Transfers', 'Schools', 'Migration Centre']],
   ['Settings', ['Audit', 'Setup', 'Admins']],
