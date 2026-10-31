@@ -1001,3 +1001,39 @@ class FeeAdjustment(models.Model):
 
     class Meta:
         ordering = ["-id"]
+
+
+class CalendarEvent(models.Model):
+    KINDS = [
+        ("holiday", "Holiday"),
+        ("exam", "Exam"),
+        ("meeting", "Meeting"),
+        ("event", "Event"),
+        ("other", "Other"),
+    ]
+
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name="calendar_events")
+    title = models.CharField(max_length=120)
+    kind = models.CharField(max_length=10, choices=KINDS, default="event")
+    start_date = models.DateField()
+    end_date = models.DateField(null=True, blank=True)
+    location = models.CharField(max_length=120, blank=True, default="")
+    notes = models.TextField(max_length=1000, blank=True, default="")
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["start_date", "id"]
+        indexes = [models.Index(fields=["school", "start_date"])]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(end_date__isnull=True) | models.Q(end_date__gte=models.F("start_date")),
+                name="calendar_end_not_before_start",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.title} ({self.start_date})"
