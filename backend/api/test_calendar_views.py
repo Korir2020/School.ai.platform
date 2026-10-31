@@ -146,3 +146,60 @@ class CalendarApiTests(TestCase):
         self.assertEqual(self._c(self.teacher).delete(detail).status_code, 403)
         self.assertEqual(self._c(self.admin).delete(detail).status_code, 204)
         self.assertEqual(CalendarEvent.objects.count(), 0)
+
+
+class CalendarBursarTests(TestCase):
+    def setUp(self):
+        from schools.models import StaffProfile
+
+        U = get_user_model()
+        self.school = School.objects.create(name="Bur School", code="bur-test")
+        self.other = School.objects.create(name="Bur Other", code="bur-other")
+        self.admin = U.objects.create_user("bur_admin", "ba@example.com", "pw12345!")
+        SchoolAdminProfile.objects.create(user=self.admin, school=self.school)
+        self.bursar = U.objects.create_user("bur_bursar", "bb@example.com", "pw12345!")
+        StaffProfile.objects.create(user=self.bursar, school=self.school, role="bursar")
+        self.other_bursar = U.objects.create_user("bur_other", "bo@example.com", "pw12345!")
+        StaffProfile.objects.create(user=self.other_bursar, school=self.other, role="bursar")
+        self.secretary = U.objects.create_user("bur_sec", "bs@example.com", "pw12345!")
+        StaffProfile.objects.create(user=self.secretary, school=self.school, role="secretary")
+        self.event = CalendarEvent.objects.create(
+            school=self.school, title="Fees Deadline", start_date=date(2026, 3, 10), end_date=None
+        )
+
+    def _c(self, user):
+        c = APIClient()
+        c.force_authenticate(user=user)
+        return c
+
+    def test_bursar_reads_own_school_events_but_cannot_edit(self):
+        r = self._c(self.bursar).get(URL + MARCH)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual([e["title"] for e in r.data["events"]], ["Fees Deadline"])
+        self.assertFalse(r.data["can_edit"])
+
+    def test_bursar_cannot_add_change_or_delete(self):
+        c = self._c(self.bursar)
+        body = {"title": "Sports Day", "kind": "event", "start_date": "2026-03-11"}
+        self.assertEqual(c.post(URL, body, format="json").status_code, 403)
+        detail = URL + str(self.event.id) + "/"
+        self.assertEqual(c.patch(detail, {"title": "x"}, format="json").status_code, 403)
+        self.assertEqual(c.delete(detail).status_code, 403)
+        self.assertEqual(CalendarEvent.objects.count(), 1)
+        self.assertEqual(CalendarEvent.objects.get().title, "Fees Deadline")
+
+    def test_bursar_of_another_school_sees_nothing(self):
+        r = self._c(self.other_bursar).get(URL + MARCH)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["events"], [])
+        detail = URL + str(self.event.id) + "/"
+        self.assertEqual(self._c(self.other_bursar).delete(detail).status_code, 403)
+        self.assertEqual(CalendarEvent.objects.count(), 1)
+
+    def test_secretary_is_still_blocked(self):
+        self.assertEqual(self._c(self.secretary).get(URL + MARCH).status_code, 403)
+
+    def test_admin_can_still_edit(self):
+        r = self._c(self.admin).get(URL + MARCH)
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(r.data["can_edit"])
