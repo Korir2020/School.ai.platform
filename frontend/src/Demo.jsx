@@ -6,16 +6,21 @@ const PLAN = [
   [600, 1],
   [2300, 2],
   [2800, 3],
-  [4400, 4],
-  [8000, 5],
-  [15300, 6],
+  [4600, 4],
+  [5600, 5],
+  [7200, 6],
+  [7700, 7],
+  [12600, 8],
 ];
-const END = 16000;
+const END = 17500;
 const CAPS = [
   "Choose the class and the exam",
   "Choose the class and the exam",
   "One tap to generate",
   "Building every report card…",
+  "All report cards are ready",
+  "Send them to the printer",
+  "Send them to the printer",
   "Printing the whole class",
   "A complete report for every learner",
 ];
@@ -30,7 +35,7 @@ const LEARNERS = [
   ["Peter Kamau", "2414"],
 ];
 const SHEETS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
-const STEPS = [1, 2, 3, 4, 5, 6];
+const STEPS = [1, 2, 3, 4, 5, 6, 7, 8];
 
 export default function Demo() {
   const [step, setStep] = useState(0);
@@ -85,8 +90,8 @@ export default function Demo() {
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
-  const cur = calm ? 5 : step;
-  const cls = "dm" + STEPS.filter((n) => cur >= n).map((n) => " s" + n).join("");
+  const cur = calm ? 8 : step;
+  const cls = "dm" + STEPS.filter((n) => cur >= n).map((n) => (n <= 3 ? " s" : " q") + n).join("");
 
   return (
     <section className="mk-sec dm-sec">
@@ -108,7 +113,7 @@ export default function Demo() {
                 <small>End of Term 2</small>
               </div>
               <span className="dm-btnwrap">
-                <span className="dm-btn">{cur >= 3 ? "Generating…" : "Generate reports"}</span>
+                <span className="dm-btn">{cur >= 4 ? "All done" : cur >= 3 ? "Generating…" : "Generate reports"}</span>
                 <span className="dm-ripple" />
                 <span className="dm-cur">
                   <svg viewBox="0 0 24 24" width="24" height="24">
@@ -131,14 +136,24 @@ export default function Demo() {
         </div>
 
         <div className="dm-print" aria-hidden="true">
-          <div className="dm-printer">
-            <svg viewBox="0 0 240 100">
-              <rect x="72" y="0" width="96" height="26" rx="3" fill="#e7efe9" />
-              <rect x="10" y="18" width="220" height="82" rx="14" fill="#0B2E22" stroke="rgba(190,236,97,.28)" />
-              <rect x="26" y="34" width="64" height="9" rx="4.5" fill="rgba(255,255,255,.14)" />
-              <circle cx="206" cy="39" r="4" fill="#BEEC61" />
-              <rect x="42" y="91" width="156" height="9" rx="3" fill="#03140E" />
-            </svg>
+          <div className="dm-pr">
+            <div className="dm-pr-top">
+              <b>MARIAN</b>
+              <small>RC-200 Report Card Printer</small>
+            </div>
+            <div className="dm-pr-panel">
+              <span className="dm-pr-lcd">{cur >= 7 ? "Printing…" : "8 cards ready"}</span>
+              <span className="dm-pr-led" />
+              <span className="dm-pr-btn">
+                Print
+                <span className="dm-pr-cur">
+                  <svg viewBox="0 0 24 24" width="24" height="24">
+                    <path d="M4 2l15 9-6.5 1.6L9 19z" fill="#fff" stroke="#111" strokeWidth="1.4" strokeLinejoin="round" />
+                  </svg>
+                </span>
+              </span>
+            </div>
+            <div className="dm-pr-slot" />
           </div>
           <div className="dm-pile">
             {SHEETS.map((n) => (
@@ -159,7 +174,7 @@ export default function Demo() {
         </div>
       </div>
 
-      <p className="dm-cap">{CAPS[Math.min(cur, 5)]}</p>
+      <p className="dm-cap">{CAPS[Math.min(cur, 8)]}</p>
       <div className="dm-act">
         <button type="button" className="dm-view" onClick={() => setOpen(true)}>
           View the sample report full size
