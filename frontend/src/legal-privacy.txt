@@ -1,0 +1,133 @@
+Effective Date: 31 October 2026
+Last Updated: 31 October 2026
+## 1. Introduction
+MARIAN – Intelligent School Management (“Marian”, “we”, “our” or “us”) is a digital school management platform designed to help educational institutions manage their academic and administrative activities.
+Marian provides tools for managing student information, teacher records, attendance, examinations, academic performance, fees, parent communication and school-related reports.
+This Privacy Policy explains what information is collected through Marian, why it is collected, how it is used, who may access it and the choices available to individuals whose information is stored on the platform.
+We recognise that school records contain personal information about students, parents, teachers and other members of a school community. We therefore treat the handling of this information as an important responsibility.
+## 2. Information We Collect
+The information collected depends on how a school uses Marian and which platform features it activates.
+### 2.1 Student Information
+A school may enter or upload information such as:
+- Student names and admission numbers.
+- Date of birth, gender and class.
+- Parent or guardian contact information.
+- Attendance records.
+- Examination marks and academic results.
+- Subject performance and rankings.
+- Behavioural or disciplinary records, where used by the school.
+- Other educational information required for school administration.
+### 2.2 Teacher and Staff Information
+Marian may store information relating to teachers and authorised school employees, including:
+- Names and contact details.
+- Staff identification details.
+- Teaching subjects and assigned classes.
+- Employment or administrative records entered by the school.
+- Usernames, account details and access permissions.
+### 2.3 Parent and Guardian Information
+Where parent or guardian access is provided, the platform may process:
+- Names and contact details.
+- Relationship to the student.
+- Parent or guardian account details.
+- Communication and notification records.
+- Information relating to their child’s academic progress and school activities.
+### 2.4 Account and Technical Information
+When users access Marian, certain technical information may be collected or recorded, depending on the system configuration. This may include:
+- Login details and account identifiers.
+- Login dates and activity records.
+- IP address and browser information.
+- Device and operating system information.
+- Error reports and system activity logs.
+Passwords should be stored using secure password-hashing methods, not as readable text.
+## 3. How We Use Information
+Information processed through Marian is used to support school operations and the services requested by the institution.
+Depending on the features activated, this may include:
+- Registering and maintaining student records.
+- Managing teacher and staff accounts.
+- Recording and monitoring attendance.
+- Entering, calculating and presenting examination results.
+- Generating report cards and academic reports.
+- Analysing student and class performance.
+- Producing academic rankings and performance comparisons.
+- Managing fee records and payment information entered by the school.
+- Providing parent access to authorised student information.
+- Sending school-related notifications.
+- Maintaining user accounts and system security.
+- Identifying technical problems and improving platform performance.
+Marian does not require schools to collect information that is unrelated to their legitimate educational and administrative needs.
+## 4. Academic Analytics and Automated Analysis
+Marian may provide analytical tools that help schools understand academic performance, identify patterns and monitor student progress.
+These tools may use examination results, attendance records and other information entered into the platform.
+For example, academic analytics may help a school identify:
+- Subjects in which students are performing poorly.
+- Changes in academic performance over time.
+- Students who may require additional academic support.
+- Differences in performance between classes or subjects.
+Such information is intended to assist teachers and school administrators in making informed decisions.
+Academic analytics should support professional judgement, not replace it. A school remains responsible for decisions concerning student assessment, discipline, promotion, placement and educational support.
+Where automated or AI-assisted features are introduced, the school and Marian will need to identify what information those features use and how their outputs are presented.
+## 5. Who Can Access Information?
+Access to school information depends on the permissions assigned to each user.
+For example:
+- School administrators may access information necessary for managing the institution.
+- Teachers may access student and academic records relevant to their assigned responsibilities.
+- Parents or guardians may access information made available to them by the school.
+- Students may access information made available through their accounts, where applicable.
+- Marian’s authorised technical personnel may access limited information when necessary to provide support, maintain the platform or investigate technical problems.
+Users should not access student or staff records outside their assigned permissions.
+Schools are responsible for creating appropriate user accounts, assigning permissions and removing access when a person no longer has a legitimate reason to use the system.
+## 6. Sharing of Information
+Marian does not sell school records or personal information to advertisers.
+Information may be shared or made accessible in the following circumstances:
+With the school: The school that uses Marian determines how its educational records are collected and used.
+With authorised service providers: Certain third-party providers may be involved in hosting, infrastructure, communications or technical services. Where they process personal information on Marian’s behalf, appropriate contractual and security arrangements should apply.
+For legal obligations: Information may be disclosed where disclosure is required by law or a lawful order.
+For security purposes: Information may be accessed where reasonably necessary to investigate suspected unauthorised access, fraud, misuse or threats to the platform.
+Marian does not give third parties unrestricted access to school records.
+## 7. Protection of Children’s Information
+Marian is designed for use in an educational environment where much of the information processed may relate to children.
+The school using Marian is responsible for ensuring that it has the appropriate authority and lawful basis to collect and submit student information.
+Where parental or guardian consent is required, the school must obtain it through an appropriate process.
+We will handle children’s information with particular care and will not knowingly use student records for unrelated advertising or commercial profiling.
+Access to children’s information should be limited to authorised persons with a legitimate educational or administrative purpose.
+## 8. Data Storage and Security
+Marian uses digital systems to store and process information.
+We aim to apply appropriate technical and organisational safeguards, including measures relating to:
+- Account authentication.
+- User access permissions.
+- Password protection.
+- Secure communication between users and the platform.
+- Monitoring of suspicious activity.
+- Protection against unauthorised access.
+- Backup and recovery arrangements, where configured.
+No internet-based system can guarantee complete protection against every possible security incident.
+We will take reasonable steps to investigate and respond to security incidents affecting information processed through Marian and to make notifications required by applicable law.
+## 9. Data Retention and Deletion
+School information is retained for as long as it is required for the school’s educational, administrative or legal purposes, subject to applicable retention requirements and the school’s instructions.
+When a school stops using Marian, arrangements for exporting, retaining or deleting its information will be handled in accordance with the applicable service agreement and legal obligations.
+Certain information may need to be retained for legitimate purposes such as resolving disputes, maintaining security records or complying with legal requirements.
+Marian should not retain identifiable personal information indefinitely without a valid reason.
+## 10. Your Data Protection Rights
+Under applicable Kenyan data protection law, individuals may have the right to:
+- Be informed about how their personal information is used.
+- Request access to their personal information.
+- Request correction of inaccurate or misleading information.
+- Request deletion of personal information where legally applicable.
+- Object to certain forms of processing.
+- Request restriction of processing in applicable circumstances.
+- Exercise other rights provided under applicable data protection law.
+Where the information is held by a school, requests relating to student or school records should normally be directed to the relevant school administrator.
+A parent or legal guardian may exercise applicable rights on behalf of a child.
+You may also contact Marian using the contact details provided below for privacy-related concerns.
+## 11. Cookies and Website Technologies
+Marian’s website or application may use cookies or similar technologies where necessary for functions such as maintaining login sessions, remembering preferences, improving navigation or understanding website usage.
+Where non-essential analytics or tracking technologies are used, appropriate information and consent mechanisms should be provided where required by law.
+Users can manage cookies through their browser settings, although disabling certain cookies may affect platform functionality.
+## 12. Changes to This Policy
+We may update this Privacy Policy when Marian introduces new features, changes its data-handling practices or becomes subject to new legal requirements.
+The latest version will be published on the Marian website with its updated date.
+## 13. Contact Us
+For questions, complaints or requests relating to this Privacy Policy, contact:
+MARIAN – Intelligent School Management
+Email: korirmartin2020@gmail.com
+Location: Kenya

@@ -1,12 +1,38 @@
 import { Mark, Wordmark } from "./brand";
 import { Button } from "./ui";
 import "./legal.css";
+import privacyText from "./legal-privacy.txt?raw";
+import termsText from "./legal-terms.txt?raw";
 
-// Add each paragraph as a string once the final wording is ready.
+// Wording lives in legal-privacy.txt and legal-terms.txt. A line starting with ## is a heading, ### a subheading, - a bullet; anything else is a paragraph.
 const PAGES = {
-  privacy: { title: "Privacy Policy", body: [] },
-  terms: { title: "Terms of Service", body: [] },
+  privacy: { title: "Privacy Policy", body: privacyText.split("\n").filter(Boolean) },
+  terms: { title: "Terms of Service", body: termsText.split("\n").filter(Boolean) },
 };
+
+function renderBody(lines) {
+  const out = [];
+  let items = [];
+  const flush = () => {
+    if (items.length) {
+      const list = items;
+      out.push(<ul key={"ul-" + list[0]}>{list.map((t) => <li key={t}>{t}</li>)}</ul>);
+      items = [];
+    }
+  };
+  lines.forEach((t) => {
+    if (t.startsWith("- ")) {
+      items.push(t.slice(2));
+      return;
+    }
+    flush();
+    if (t.startsWith("### ")) out.push(<h3 key={t}>{t.slice(4)}</h3>);
+    else if (t.startsWith("## ")) out.push(<h2 key={t}>{t.slice(3)}</h2>);
+    else out.push(<p key={t}>{t}</p>);
+  });
+  flush();
+  return out;
+}
 
 export default function LegalPage({ kind, onBack }) {
   const page = PAGES[kind] || PAGES.privacy;
@@ -24,7 +50,7 @@ export default function LegalPage({ kind, onBack }) {
           {page.body.length === 0 ? (
             <p>This page is being prepared and will be published soon.</p>
           ) : (
-            page.body.map((t) => <p key={t}>{t}</p>)
+            renderBody(page.body)
           )}
         </div>
         <div className="lg-back">

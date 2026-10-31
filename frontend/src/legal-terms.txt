@@ -1,0 +1,158 @@
+Effective Date: 31 October 2026
+Last Updated: 31 October 2026
+## 1. Introduction
+Welcome to MARIAN – Intelligent School Management.
+These Terms of Service govern access to and use of the Marian platform by schools, administrators, teachers, parents, students and other authorised users.
+Marian provides digital tools that support the management of school records, academic activities, communication and administrative processes.
+By creating an account, accessing the platform or using its services, you agree to comply with these Terms.
+If you are accessing Marian on behalf of a school or educational institution, you confirm that you are authorised to accept these Terms on behalf of that institution.
+## 2. About Marian
+Marian is a school management platform intended to support educational institutions in organising and managing their operations.
+Depending on the services activated by a school, the platform may provide:
+- Student registration and record management.
+- Teacher and staff management.
+- Class and subject management.
+- Attendance management.
+- Examination and marks management.
+- Report card generation.
+- Academic rankings and performance analysis.
+- Fee record management.
+- Parent and student access.
+- School notifications and communication.
+- Academic reporting and analytics.
+The features available to a particular school may depend on its subscription, configuration and the services agreed upon with Marian.
+## 3. User Accounts
+Users may be provided with accounts according to their roles within a school.
+Each user is responsible for:
+- Providing accurate account information.
+- Keeping login credentials confidential.
+- Not sharing passwords with unauthorised persons.
+- Using only the account assigned to them.
+- Reporting suspected unauthorised access.
+- Logging out of shared or public devices.
+Users must not attempt to access accounts, records or system functions that they have not been authorised to use.
+Marian or the relevant school administrator may suspend an account where there is reasonable evidence of misuse, unauthorised access or a security risk.
+## 4. Responsibilities of Schools
+A school using Marian is responsible for the information it enters, uploads or makes available through the platform.
+The school agrees to:
+- Provide accurate student and staff information.
+- Ensure that it has the lawful authority to process information submitted to Marian.
+- Obtain parental or guardian consent where required by law.
+- Assign appropriate access permissions to staff.
+- Protect user accounts and login credentials.
+- Review examination marks and academic records before publishing them.
+- Correct inaccurate information when identified.
+- Use the platform for legitimate educational and administrative purposes.
+- Ensure that staff members understand their responsibilities when handling student information.
+The school remains responsible for its educational decisions, institutional policies and the accuracy of official school records.
+## 5. Responsibilities of Teachers and Staff
+Teachers and other authorised staff must use Marian in accordance with their assigned roles.
+They must:
+- Enter accurate academic and attendance information.
+- Keep student information confidential.
+- Avoid sharing student records with unauthorised persons.
+- Use the platform for authorised school activities.
+- Report errors or suspected security incidents.
+- Avoid altering or deleting records without proper authority.
+A user must not deliberately manipulate examination results, attendance records, rankings or other official school information.
+## 6. Student and Parent Access
+Where Marian provides student or parent accounts, those accounts are intended to provide access to information authorised by the school.
+Parents and guardians must keep their account credentials confidential and must not attempt to access another student’s records without lawful authority.
+Students must use their accounts responsibly and must not attempt to interfere with the accounts, records or activities of other users.
+The school is responsible for determining which information is available to parents and students.
+## 7. Accuracy of Academic Records
+Marian provides tools for recording, processing and presenting academic information.
+However, the school and its authorised personnel are responsible for ensuring that:
+- Marks are entered correctly.
+- Assessment information is accurate.
+- Subject and class assignments are correct.
+- Report cards are reviewed before release.
+- Rankings and performance reports reflect the school’s approved assessment data.
+Automated calculations and reports should be reviewed before being used as official school documents.
+Marian is not responsible for errors caused by incorrect information entered or approved by authorised school users.
+## 8. Academic Analytics and AI-Assisted Features
+Marian may include analytical or AI-assisted tools to help schools interpret academic information and identify performance patterns.
+These tools are intended to support teaching, planning and school administration.
+They should not be treated as a substitute for professional judgement, direct assessment or the school’s established decision-making procedures.
+Schools must review important analytical outputs before acting on them, particularly where the decisions may affect a student’s academic progress, placement or access to educational opportunities.
+Users must not use automated outputs to unfairly discriminate against or disadvantage students.
+## 9. Acceptable Use
+Users agree not to:
+- Access another person’s account without permission.
+- Attempt to bypass platform security.
+- Upload malicious software or harmful files.
+- Interfere with the operation of Marian.
+- Use the platform to harass, threaten or impersonate others.
+- Copy, distribute or misuse information belonging to other schools or users.
+- Attempt to extract information from the platform without authorisation.
+- Use Marian for unlawful activities.
+- Deliberately damage, manipulate or falsify school records.
+Marian may restrict access where these Terms are violated.
+## 10. School Data and Ownership
+Information entered into Marian by a school remains under the control of that school, subject to applicable law and the rights of the individuals concerned.
+Marian does not become the owner of student records, examination results, staff records or other school information simply because the information is stored on the platform.
+The school grants Marian permission to host, process and display that information only to the extent necessary to provide the agreed services.
+Marian retains ownership of its software, platform design, source code, branding, documentation and other intellectual property, except where otherwise agreed in writing.
+No user may copy, modify, distribute or attempt to reverse-engineer Marian’s software without written permission, except where applicable law permits it.
+## 11. Fees and Payments
+Where Marian is offered as a paid service, the applicable fees, payment schedule and service limits will be communicated to the school before the relevant service is purchased.
+A school is responsible for paying agreed fees according to the applicable subscription or service agreement.
+Any additional charges, including charges for optional services, must be communicated before the school becomes liable for them.
+Marian may restrict access to paid features where an agreed payment remains outstanding, subject to the applicable agreement and reasonable notice.
+Nothing in this section should be interpreted as introducing charges that have not been agreed with the school.
+## 12. Availability and Maintenance
+We aim to keep Marian accessible and functioning properly.
+However, access may occasionally be interrupted because of:
+- Scheduled maintenance.
+- Software updates.
+- Internet connectivity problems.
+- Hosting or infrastructure failures.
+- Security incidents.
+- Events outside our reasonable control.
+Where practical, we will communicate planned maintenance that may significantly affect access.
+Marian does not guarantee uninterrupted access at all times.
+## 13. Data Backup and Recovery
+Schools should maintain appropriate records and follow any backup or export procedures made available through Marian.
+Where backup and recovery services are provided, their scope and frequency will depend on the platform configuration and applicable service agreement.
+A school should not assume that every deleted or overwritten record can always be recovered.
+## 14. Suspension and Termination
+A school may stop using Marian in accordance with its applicable service agreement.
+Marian may suspend or restrict access where:
+- A user violates these Terms.
+- There is suspected unauthorised access.
+- The platform is being used for unlawful activities.
+- A security threat requires immediate action.
+- Agreed payment obligations remain unresolved.
+Where appropriate, the affected school or user will be informed of the reason for suspension.
+When a school’s service ends, arrangements for access to, export of or deletion of its information will follow the applicable service agreement and legal requirements.
+## 15. Limitation of Responsibility
+Marian provides digital tools to support school administration and academic management.
+The platform does not replace the professional responsibilities of teachers, school administrators or educational institutions.
+To the extent permitted by law, Marian will not be responsible for losses arising from:
+- Incorrect information entered by authorised users.
+- Decisions made solely on unverified reports or analytical outputs.
+- Unauthorised sharing of login credentials by users.
+- Internet or third-party infrastructure failures outside Marian’s reasonable control.
+- Misuse of the platform in violation of these Terms.
+Nothing in these Terms excludes liability that cannot legally be excluded under applicable law.
+## 16. Changes to the Platform
+Marian may update, improve, modify or discontinue particular features as the platform develops.
+Where a significant change affects an agreed service, we will make reasonable efforts to notify affected schools.
+Changes will not automatically transfer ownership of school records or remove the school’s rights over its information.
+## 17. Privacy and Data Protection
+Use of Marian is also subject to the Marian Privacy Policy.
+Schools and users agree to handle personal information responsibly and in accordance with applicable data protection laws.
+Where Marian processes school information on behalf of an institution, the parties should follow the applicable data-processing arrangements.
+## 18. Applicable Law and Disputes
+These Terms are governed by the laws of the Republic of Kenya.
+Where a dispute arises, the parties should first attempt to resolve it through direct communication and good-faith discussions.
+Where the dispute cannot be resolved through discussion, either party may pursue the remedies available under Kenyan law.
+## 19. Changes to These Terms
+We may revise these Terms when Marian’s services change or when legal or operational requirements make an update necessary.
+The latest version will be published on the Marian website.
+Continued use of the platform after an updated version takes effect constitutes acceptance of the revised Terms, to the extent permitted by law.
+## 20. Contact Information
+For questions about these Terms or the use of Marian, contact:
+MARIAN – Intelligent School Management
+Email: korirmartin2020@gmail.com
+Location: Kenya
