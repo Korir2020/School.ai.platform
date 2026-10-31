@@ -78,9 +78,11 @@ export default function Login({ onDone, onForgot }) {
       </section>
       <section className="lp-panel">
         <div className="lp-card">
-          <div className="lp-brand lp-brand-m"><Logo size={42} /><span>Marian</span></div>
-          <h2>Sign in to Marian</h2>
-          <p className="lp-intro">Use your school account to continue.</p>
+          <div className="lp-top">
+            <div className="lp-brand lp-brand-m"><Logo size={42} /><span>Marian</span></div>
+            <h2>Sign in to Marian</h2>
+            <p className="lp-intro">Use your school account to continue.</p>
+          </div>
           <form onSubmit={submit} noValidate>
             <label htmlFor="lp-u">Username or email</label>
             <div className="lp-field">
