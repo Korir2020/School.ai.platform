@@ -12,7 +12,7 @@ body:has(.mu-pub)::before{display:none}
 .mu-pub-card p{margin:0 0 10px;color:var(--mu-muted);font-size:.9rem}
 .mu-pub-list{margin:0;padding-left:18px;color:var(--mu-muted);line-height:1.8}
 .mu-pub-acts{display:flex;flex-direction:column;gap:10px;margin-top:8px}
-.mu-pub-acts .mu-btn{height:46px;font-size:1rem}
+.mu-pub-acts .mu-btn{height:36px;font-size:13px}
 .mu-pub-form{display:flex;flex-direction:column;gap:12px}
 .mu-pub-code{font:700 1.3rem ui-monospace,monospace;letter-spacing:2px}
 .mu-pub-note{margin:14px 0 0;text-align:center;font-size:.8rem;

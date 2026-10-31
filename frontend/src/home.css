@@ -10,7 +10,7 @@ body:has(.mk)::before{display:none}
 .mk-hero h1{margin:0 0 10px;font-size:clamp(1.7rem,6vw,2.4rem);line-height:1.15;letter-spacing:-.4px}
 .mk-lead{margin:0 0 16px;max-width:460px;color:var(--mut)}
 .mk-act{display:flex;gap:10px;flex-wrap:wrap}
-.mk .mu-btn{height:42px;font-size:.92rem;min-width:130px}
+.mk .mu-btn{height:36px;font-size:13px;min-width:130px}
 .mk-sub{margin:12px 0 0;font-size:.82rem;color:var(--mut)}
 .mk-link{background:none;border:0;padding:4px 2px;font:inherit;font-weight:600;
   color:#0a66ff;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
