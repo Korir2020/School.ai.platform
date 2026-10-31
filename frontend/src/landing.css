@@ -26,7 +26,7 @@ body:has(.mu-ld)::before{display:none}
   justify-content:center;gap:10px;padding:10px 16px;
   padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));
   background:var(--m-card);border-top:1px solid var(--mu-line)}
-.mu-ld-bar .mu-btn{flex:1;max-width:220px;height:46px;font-size:1rem}
+.mu-ld-bar .mu-btn{flex:1;max-width:220px;height:36px;font-size:13px}
 @media (prefers-reduced-motion:reduce){.mu-ld-ch{transition:none}}
 
 /* Let the four landing buttons wrap into two rows on narrow screens */

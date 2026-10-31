@@ -131,3 +131,7 @@
   .mu-modal-actions .mu-btn { flex: 1 1 120px; }
   .mu-table th, .mu-table td { padding: 10px 12px; }
 }
+
+/* compact buttons: one shared size for the whole app */
+.mu-btn{height:36px;min-height:36px;padding:0 16px;font-size:13px;font-weight:600;line-height:1;border-radius:999px}
+.mu-btn.sm{height:36px;min-height:36px;padding:0 16px;font-size:13px}
