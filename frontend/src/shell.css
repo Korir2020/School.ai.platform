@@ -243,3 +243,11 @@
 .mu-bell i{animation:mu-pop .4s ease-out}
 @keyframes mu-pop{0%{transform:scale(.4)}60%{transform:scale(1.3)}100%{transform:scale(1)}}
 @media (prefers-reduced-motion:reduce){.mu-bell i{animation:none}}
+
+/* Title band: forest strip behind the top of the page, first card overlaps it */
+.mu-content{position:relative;isolation:isolate}
+.mu-content::before{content:"";position:absolute;z-index:-1;top:0;left:0;right:0;height:72px;background:var(--mu-navy);box-shadow:0 0 0 100vmax var(--mu-navy);clip-path:inset(0 -100vmax)}
+.mu-content .m-theme-wrap .m-theme-btn{color:#fff;background:transparent;border-color:rgba(255,255,255,.3)}
+@media (min-width: 900px){
+  .mu-content::before{height:84px}
+}
