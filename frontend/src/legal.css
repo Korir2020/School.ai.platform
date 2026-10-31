@@ -1,0 +1,6 @@
+.lg-main{max-width:720px;margin:0 auto;padding:28px 18px 60px}
+.lg-main h1{margin:0 0 14px;font-size:1.5rem}
+.lg-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:18px;color:#cfe0d6;line-height:1.6}
+.lg-card p{margin:0 0 12px}
+.lg-card p:last-child{margin-bottom:0}
+.lg-back{margin-top:16px}

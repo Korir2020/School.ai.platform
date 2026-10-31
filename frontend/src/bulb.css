@@ -1,6 +1,0 @@
-body:has(.mk.wall){background:#010101!important}
-.bulb-bg{position:fixed;inset:0;z-index:0;pointer-events:none;
-  background:#010101 url("/bulb-bg.jpg") no-repeat center top / contain}
-.mk.wall .mk-bar{background:transparent!important;backdrop-filter:none!important;box-shadow:none!important;border:0!important}
-.mk.wall>main,.mk.wall>footer{position:relative;z-index:1}
-.mk.wall>main{padding-top:max(150px,calc(min(100svh,177.78vw)*.766 - 165px))}

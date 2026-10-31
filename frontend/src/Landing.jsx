@@ -61,7 +61,7 @@ function Preview() {
   );
 }
 
-export default function Landing({ onStart, onRegister, onSignIn, onStatus }) {
+export default function Landing({ onStart, onRegister, onSignIn, onStatus, onPrivacy, onTerms }) {
   return (
     <div className="mk wall">
       <header className="mk-bar">
@@ -135,7 +135,7 @@ export default function Landing({ onStart, onRegister, onSignIn, onStatus }) {
         <div className="mk-fcols">
           <div><h4>Platform</h4><span>Academic analytics</span><span>School management</span><span>Parent access</span></div>
           <div><h4>Access</h4><button type="button" onClick={onSignIn}>Sign In</button><button type="button" onClick={onRegister}>Register a school</button><button type="button" onClick={onStart}>Join a school</button></div>
-          <div><h4>Support</h4><a href="mailto:korirmartin42@gmail.com">Email support</a><a href="tel:+254703702690">Call us</a><button type="button" onClick={onStatus}>Check my application</button></div>
+          <div><h4>Support</h4><a href="mailto:korirmartin42@gmail.com">Email support</a><a href="tel:+254703702690">Call us</a><button type="button" onClick={onStatus}>Check my application</button></div><div><h4>Legal</h4><button type="button" onClick={onPrivacy}>Privacy Policy</button><button type="button" onClick={onTerms}>Terms of Service</button></div>
         </div>
         <p className="mk-foot">Marian · Turning School Data Into Better Decisions.</p>
       </footer>

@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { login } from "./api";
 import { Mark as Logo } from "./brand";
-import ThemeToggle from "./ThemeToggle";
 import "./backgrounds.css";
 import "./login.css";
 import "./login-pro.css";
@@ -105,7 +104,6 @@ export default function Login({ onDone, onForgot }) {
           </form>
           <p className="lp-help">Need access to a school? <span>Ask your school administrator for an invitation.</span></p>
         </div>
-        <div className="lp-theme"><ThemeToggle /></div>
         <footer className="lp-foot">© Marian · Smarter Schools. Brighter Futures.</footer>
       </section>
     </main>

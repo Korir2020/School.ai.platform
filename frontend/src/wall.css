@@ -85,3 +85,7 @@ body:has(.mk.wall){background-color:#03140E;background-image:url("data:image/svg
 /* Blues leftover: eyebrow and focus ring readable on the dark wall */
 .mk.wall .mk-eyebrow{color:#BEEC61}
 .mk.wall :focus-visible{outline-color:#BEEC61}
+
+/* Cleanup: bulb spacer reduced, footer legal column */
+.mk.wall>main{padding-top:72px}
+.mk.wall .mk-fcols{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:18px 24px}
