@@ -14,24 +14,24 @@ body:has(.mk.wall){background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w
 .mk.wall .mk-hero{text-align:center}
 .mk.wall .mk-act{justify-content:center}
 .mk.wall .mk-lead{margin-left:auto;margin-right:auto}
-.mk.wall .mk-eyebrow{color:#f0c36a}
+.mk.wall .mk-eyebrow{color:#BEEC61}
 .mk.wall .mk-card{position:relative;background:linear-gradient(#fffdf6,#f4efe0);border:0;border-radius:6px;padding:34px 20px 20px;box-shadow:0 18px 28px rgba(0,0,0,.55),0 2px 4px rgba(0,0,0,.4);transform:perspective(800px) rotateX(3deg) rotate(-1.2deg)}
 .mk.wall .mk-card:nth-child(even){transform:perspective(800px) rotateX(3deg) rotate(1.2deg)}
-.mk.wall .mk-card h3{color:#0f2747}
+.mk.wall .mk-card h3{color:#062219}
 .mk.wall .mk-card p{color:#4a5568}
 .mk.wall .mk-card::before{content:"";position:absolute;top:-10px;left:50%;width:20px;height:20px;margin-left:-10px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#9cc2ff,#0a66ff 55%,#063a99);box-shadow:0 5px 7px rgba(0,0,0,.45)}
-.mk.wall .mk-chips li{color:#0f2747}
+.mk.wall .mk-chips li{color:#062219}
 .mk.wall .mk-link{color:#8ab8ff}
-.mk.wall .mk-pv{--ink:#0f2747;--mut:#5b6675;--line:#e3e8ef;color:#0f2747;box-shadow:0 24px 40px rgba(0,0,0,.55)}
+.mk.wall .mk-pv{--ink:#062219;--mut:#5b6675;--line:#e3e8ef;color:#062219;box-shadow:0 24px 40px rgba(0,0,0,.55)}
 .mk.wall .mk-final{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:18px}
 .mk.wall .mk-foot2{margin-top:30px;padding-top:22px;border-top:1px solid rgba(255,255,255,.14)}
 .mk.wall .mk-fcols{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;font-size:.85rem}
-.mk.wall .mk-fcols h4{margin:0 0 8px;color:#f0c36a;font-size:.8rem;letter-spacing:.12em;text-transform:uppercase}
+.mk.wall .mk-fcols h4{margin:0 0 8px;color:#BEEC61;font-size:.8rem;letter-spacing:.12em;text-transform:uppercase}
 .mk.wall .mk-fcols span{display:block;padding:4px 0;color:#aab6c8}
 .mk.wall .mk-fcols button{display:block;background:none;border:0;padding:4px 0;color:#cdd7e6;font:inherit;text-align:left;cursor:pointer}
 .mk.wall .mk-foot{margin-top:18px;color:#8794a8;font-size:.78rem}
 .mk.wall h1,.mk.wall .mk-hero h1,.mk.wall .mk-sec>h2,.mk.wall .mk-final h2{color:#efeae0!important}
-.mk.wall .mk-card h3{color:#0f2747!important}
+.mk.wall .mk-card h3{color:#062219!important}
 .mk.wall .mk-bar{justify-content:center;background:rgba(11,14,19,.78);backdrop-filter:blur(8px);box-shadow:0 2px 12px rgba(0,0,0,.5)}
 .mk.wall .mk-brand{margin:0 auto;color:#fff}
 .mk.wall .mk-brand svg{filter:drop-shadow(0 0 10px rgba(255,200,90,.65))}
@@ -40,8 +40,8 @@ body:has(.mk.wall){background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w
 .mk.wall>main{padding-top:250px}
 .mk.wall .mk-steps li{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);border-radius:12px;color:#e8edf5}
 .mk.wall .mk-steps li *{color:inherit}
-.mk.wall .mk-steps b,.mk.wall .mk-steps strong{color:#f0c36a}
-.mk.wall .mk-chips li{background:#fffdf6;color:#0f2747}
+.mk.wall .mk-steps b,.mk.wall .mk-steps strong{color:#BEEC61}
+.mk.wall .mk-chips li{background:#fffdf6;color:#062219}
 .mk.wall .mk-sub,.mk.wall .mk-note,.mk.wall .mk-cap{color:#aab6c8}
 
 /* Wireflow look: grain + teal/blue glow on the landing wall */
@@ -49,3 +49,11 @@ body:has(.mk.wall){background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w
 
 /* Stronger wireflow look */
 body:has(.mk.wall){background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.60'/%3E%3C/svg%3E"),radial-gradient(60% 45% at 0% 40%,rgba(15,139,141,.6),transparent 70%),radial-gradient(55% 40% at 100% 0%,rgba(59,130,246,.36),transparent 70%),#05070D;background-size:200px 200px,100% 100%,100% 100%,auto;background-repeat:repeat,no-repeat,no-repeat,no-repeat}
+
+/* landing wall: deep forest grain, forest glow, no bulb, flat headings */
+body:has(.mk.wall){background-color:#03140E;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .22 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:200px 200px;background-repeat:repeat;background-attachment:fixed}
+.mk.wall::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background:radial-gradient(60% 38% at 50% 0%,rgba(16,92,64,.55),rgba(16,92,64,0) 70%)}
+.mk.wall .mk-bar{background:rgba(3,20,14,.78)}
+.mk.wall h1,.mk.wall .mk-sec>h2{text-shadow:none}
+.mk.wall .mk-brand svg{filter:drop-shadow(0 0 10px rgba(190,236,97,.4))}
+.mk-lamp,.mk-bulb,.mk-cone{display:none}

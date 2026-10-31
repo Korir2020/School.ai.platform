@@ -3,7 +3,6 @@ import "./home.css";
 import { Button } from "./ui";
 import { Mark, Wordmark } from "./brand";
 import "./wall.css";
-import Bulb from "./Bulb";
 
 const NAV = ["Home", "Students", "Exams", "Reports", "Analytics", "Fees"];
 
@@ -67,7 +66,6 @@ export default function Landing({ onStart, onRegister, onSignIn, onStatus }) {
           <Wordmark height={14} />
         </span>
       </header>
-      <Bulb />
 
 
       <main>
