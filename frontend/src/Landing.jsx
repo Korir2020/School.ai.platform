@@ -58,7 +58,7 @@ export default function Landing({ onStart, onRegister, onSignIn, onStatus, onPri
       <main>
         <section className="mk-hero">
           <div>
-            <p className="mk-eyebrow">Turning School Data Into Better Decisions.</p>
+            <p className="mk-eyebrow">Marks, report cards, attendance and fees in one place.</p>
             <h1>Run your school on clear data</h1>
             <p className="mk-lead">
               Marian brings marks, report cards, attendance, fees and parents into
