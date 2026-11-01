@@ -1,6 +1,5 @@
 import { useState, useRef } from 'react';
 import { Mark as Logo, Wordmark } from "./brand";
-import ThemeToggle from "./ThemeToggle.jsx";
 import Ic from "./icons";
 import Bell from "./Bell";
 import Search from './Search';
