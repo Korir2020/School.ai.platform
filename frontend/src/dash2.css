@@ -197,3 +197,13 @@ html body .hero.plain .term .dot{width:8px;height:8px;border-radius:50%;backgrou
   .mu-app .mu-side,.mu-app .mu-side.open,.mu-app .mu-side.open .mu-nav button,.mu-back,.st-box.done .st-tick svg{transition:none!important;animation:none!important}
   .st-tick svg{stroke-dashoffset:0}
 }
+
+/* ===== Compact status chips ===== */
+.st-grid{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0}
+.st-box{display:inline-flex;flex-direction:row;align-items:center;gap:8px;min-height:0;height:38px;padding:0 12px 0 0;border:1.5px solid #E2DFA8;border-left:4px solid var(--st,#8FB5A0);border-radius:0;background:#FFFEF4;box-shadow:none}
+.st-box:hover{transform:none;box-shadow:none;background:#F6F7EA}
+.st-box .st-tick{position:static;order:0;width:22px;height:22px;margin-left:8px;flex:none}
+.st-box small{order:1;font-size:.66rem;letter-spacing:.1em}
+.st-box b{order:2;font-size:1rem;font-weight:800;letter-spacing:0;margin-left:2px}
+.mu-content::before{display:none!important}
+.dash-kpis .mu-stat:only-child{grid-column:1/-1}
