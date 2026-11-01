@@ -116,3 +116,10 @@
 .mu-app .mu-nav small,.mu-app .mu-user{color:#A9C9B8}
 .mu-app .mu-user .mu-btn{border-color:rgba(255,255,255,.3);color:#fff}
 .mu-app .mu-nav button:focus-visible{outline:2px solid #C6F26B}
+
+/* ===== Sidebar nav states ===== */
+.mu-app .mu-side .mu-nav button{color:#9CBFAC;font-weight:500;border-radius:12px}
+.mu-app .mu-side .mu-nav button:hover{background:rgba(198,242,107,.1);color:#fff}
+.mu-app .mu-side .mu-nav button.on{background:#C6F26B;color:#0A3326;font-weight:700;box-shadow:none}
+.mu-app .mu-side .mu-nav small{color:#6F9784;font-weight:600}
+.mu-app .mu-side .mu-brand b{color:#fff}
