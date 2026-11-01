@@ -12,7 +12,7 @@ from api.calendar_rules import (
     terms_in_range,
 )
 from api.permissions import get_user_school_id
-from schools.models import CalendarEvent, SchoolAdminProfile
+from schools.models import CalendarEvent, SchoolAdminProfile, StaffProfile
 
 
 def _err(code, message, status):
@@ -23,10 +23,19 @@ def _is_admin(user):
     return SchoolAdminProfile.objects.filter(user=user).exists()
 
 
+def _school_id(user):
+    """School of an admin or teacher; a bursar may also read their school's calendar."""
+    sid = get_user_school_id(user)
+    if sid is not None:
+        return sid
+    staff = StaffProfile.objects.filter(user=user, role="bursar").first()
+    return staff.school_id if staff else None
+
+
 @api_view(["GET", "POST"])
 @permission_classes([IsAuthenticated])
 def calendar_events(request):
-    sid = get_user_school_id(request.user)
+    sid = _school_id(request.user)
     if sid is None:
         return _err("no_school", "This account is not linked to a school.", 403)
     if request.method == "GET":
@@ -54,7 +63,7 @@ def calendar_events(request):
 @api_view(["PATCH", "DELETE"])
 @permission_classes([IsAuthenticated])
 def calendar_event_detail(request, pk):
-    sid = get_user_school_id(request.user)
+    sid = _school_id(request.user)
     if sid is None:
         return _err("no_school", "This account is not linked to a school.", 403)
     if not _is_admin(request.user):
