@@ -1,6 +1,7 @@
 from django.contrib.auth import authenticate
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
+from .suspension import SchoolNotSuspended
 from rest_framework.response import Response
 
 from api.framework_rules import (
@@ -34,7 +35,7 @@ def _ctx(request):
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, SchoolNotSuspended])
 def framework_overview(request):
     school, bad = _ctx(request)
     if bad:
@@ -72,7 +73,7 @@ def framework_overview(request):
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, SchoolNotSuspended])
 def framework_version(request):
     school, bad = _ctx(request)
     if bad:
@@ -100,7 +101,7 @@ def framework_version(request):
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, SchoolNotSuspended])
 def framework_assign(request):
     school, bad = _ctx(request)
     if bad:

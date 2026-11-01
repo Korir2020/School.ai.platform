@@ -1,5 +1,6 @@
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
+from .suspension import SchoolNotSuspended
 from rest_framework.response import Response
 
 from api.framework_rules import is_authorized
@@ -39,7 +40,7 @@ def _ct(r):
 
 
 @api_view(["GET", "POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, SchoolNotSuspended])
 def class_teachers(request):
     sid, bad = _admin(request)
     if bad:
