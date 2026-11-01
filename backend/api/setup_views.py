@@ -2,6 +2,7 @@ from django.db import transaction
 from django.utils import timezone
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
+from .suspension import SchoolNotSuspended
 from rest_framework.response import Response
 
 from schools.models import (
@@ -44,7 +45,7 @@ def _payload(school, checklist):
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, SchoolNotSuspended])
 def setup_status(request):
     profile = _caller(request)
     if not profile:
@@ -54,7 +55,7 @@ def setup_status(request):
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, SchoolNotSuspended])
 def setup_complete(request):
     profile = _caller(request)
     if not profile or profile.is_deputy:

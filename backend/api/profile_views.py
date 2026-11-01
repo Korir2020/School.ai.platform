@@ -1,6 +1,7 @@
 from django.db import transaction
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
+from .suspension import SchoolNotSuspended
 from rest_framework.response import Response
 
 from schools.models import MarkAuditLog, School, SchoolAdminProfile
@@ -28,7 +29,7 @@ def _data(school):
 
 
 @api_view(["GET", "PATCH"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, SchoolNotSuspended])
 def school_profile(request):
     profile = _caller(request)
     if not profile:
