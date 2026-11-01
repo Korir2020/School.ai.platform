@@ -3,10 +3,10 @@ import "./dashboard.css";
 
 const K = ["draft", "submitted", "approved", "locked"];
 const kinds = { draft: "info", submitted: "warn", approved: "ok", locked: "teal" };
-const hues = { draft: "#3B82F6", submitted: "#F59E0B", approved: "#16A34A",
-  locked: "#0F8B8D" };
+const hues = { draft: "#8FB5A0", submitted: "#E0B84A", approved: "#1F7A55",
+  locked: "#0A3326" };
 const meter = { display: "flex", height: 10, borderRadius: 6,
-  overflow: "hidden", background: "#E2E8F0", margin: "8px 0" };
+  overflow: "hidden", background: "#E2DFA8", margin: "8px 0" };
 
 export default function Stats({ d }) {
   const adm = d.role === "school_admin", x = d.exams || {};
