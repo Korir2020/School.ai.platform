@@ -16,7 +16,7 @@ h1,.mu-title{font-size:clamp(2.1rem,8vw,3.4rem)}
 h2{font-size:clamp(1.6rem,5.5vw,2.4rem)}
 h3{font-size:clamp(1.2rem,4vw,1.5rem)}
 html:root{
-  --mu-navy:var(--m-side);--mu-navy-2:var(--m-navy);
+  --mu-navy:var(--m-side);--mu-navy-2:#14503B;
   --mu-teal:var(--m-action);--mu-teal-bg:var(--m-info-bg);
   --mu-blue:var(--m-blue);--mu-blue-bg:var(--m-info-bg);
   --mu-bg:var(--m-bg);--mu-card:var(--m-card);--mu-text:var(--m-text);

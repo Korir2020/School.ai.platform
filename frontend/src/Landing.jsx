@@ -5,7 +5,6 @@ import { Mark, Wordmark } from "./brand";
 import "./wall.css";
 import Ic from './icons';
 import Demo from './Demo';
-import ThemeToggle from './ThemeToggle';
 
 const BENEFITS = [
   ["Settled results", "Marks are entered, reviewed and locked in one place."],
@@ -51,7 +50,7 @@ export default function Landing({ onStart, onRegister, onSignIn, onStatus, onPri
           <Mark size={26} />
           <Wordmark height={14} />
         </span>
-        <ThemeToggle />
+        
       </header>
 
 
