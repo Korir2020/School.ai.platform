@@ -81,3 +81,38 @@
 .dash2 .d2-rp-row{display:flex;justify-content:space-between;gap:10px;padding:6px 0;font-size:.9rem}
 .dash2 .d2-rp-row small{display:block;color:var(--d2-mut);font-size:.72rem}
 .dash2 .d2-rp-row b{font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* ===== Forest & cream design pass ===== */
+.dash2{--d2-line:#E2DFA8;--d2-mut:#4C6A5D;--d2-card:#FFFEF4;--d2-txt:#0E2A21}
+.dash2 .d2-banner{border:0;border-radius:20px;min-height:190px;padding:26px 22px;background:linear-gradient(135deg,#0A3326,#0E4A37)}
+.dash2 .d2-banner::after{background:linear-gradient(90deg,rgba(10,51,38,.98) 0%,rgba(10,51,38,.92) 45%,rgba(10,51,38,.45) 100%)}
+.dash2 .d2-hello{color:#fff}
+.dash2 .d2-hello h2{font-size:.95rem;font-weight:700;color:#C6F26B;letter-spacing:.02em}
+.dash2 .d2-hello h1{font-size:clamp(2rem,8vw,3.2rem);font-weight:800;letter-spacing:-.03em;line-height:1.05;color:#fff;margin:6px 0 8px}
+.dash2 .d2-hello p{color:#CFE3D8;font-size:.95rem}
+.dash2 .d2-period{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.22);color:#CFE3D8}
+.dash2 .d2-period b{color:#fff}
+.dash2 .d2-stat{border-radius:16px;box-shadow:none;background:var(--d2-card)}
+.dash2 .d2-stat b{font-size:1.9rem;font-weight:800;letter-spacing:-.02em}
+.dash2 .d2-stat small{color:var(--d2-mut);font-size:.8rem}
+.dash2 .d2-panel{border-radius:16px;box-shadow:none}
+.dash2 .d2-head h3{font-size:1.2rem;font-weight:800;letter-spacing:-.02em}
+.dash2 .d2-link{color:#0E5238}
+.dash2 .t-blue{background:#DCEBDD;color:#0E5238}
+.dash2 .t-green{background:#DFF0C0;color:#1F5A2A}
+.dash2 .t-purple{background:#EDE9C0;color:#6B5A00}
+.dash2 .t-orange{background:#F8E8A8;color:#6B4E00}
+.dash2 .t-pink{background:#F9D9D2;color:#9A2A1A}
+.dash2 .t-teal{background:#D5EBE0;color:#0E5238}
+.dash2 .t-cyan{background:#DCEBDD;color:#1F7A55}
+.dash2 .t-violet{background:#E6EFD8;color:#3E6B3A}
+.dash2 .d2-bar i{background:#1F7A55}
+.dash2 .d2-dot{background:#1F7A55}
+.dash2 .d2-empty{background:#F6F7EA;color:#4C6A5D}
+.dash2 .d2-badge{background:#F9D9D2;color:#9A2A1A}
+.mu-app .mu-side{background:linear-gradient(180deg,#0A3326,#062219)}
+.mu-app .mu-nav button{color:#CFE3D8}
+.mu-app .mu-nav button.on{background:#14503B;color:#fff;box-shadow:inset 4px 0 0 #C6F26B}
+.mu-app .mu-nav small,.mu-app .mu-user{color:#A9C9B8}
+.mu-app .mu-user .mu-btn{border-color:rgba(255,255,255,.3);color:#fff}
+.mu-app .mu-nav button:focus-visible{outline:2px solid #C6F26B}
