@@ -1037,3 +1037,84 @@ class CalendarEvent(models.Model):
 
     def __str__(self):
         return f"{self.title} ({self.start_date})"
+
+
+class ConnectChannel(models.Model):
+    KINDS = [
+        ("notices", "Notices"),
+        ("community", "Community"),
+    ]
+
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name="connect_channels")
+    name = models.CharField(max_length=60)
+    description = models.CharField(max_length=200, blank=True, default="")
+    kind = models.CharField(max_length=10, choices=KINDS, default="community")
+    is_default = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["id"]
+        constraints = [
+            models.UniqueConstraint(fields=["school", "name"], name="connect_channel_unique_name")
+        ]
+
+    def __str__(self):
+        return f"{self.school_id}: {self.name}"
+
+
+class ConnectPost(models.Model):
+    channel = models.ForeignKey(ConnectChannel, on_delete=models.CASCADE, related_name="posts")
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    body = models.TextField()
+    is_pinned = models.BooleanField(default=False)
+    is_urgent = models.BooleanField(default=False)
+    event = models.ForeignKey("CalendarEvent", null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    is_hidden = models.BooleanField(default=False)
+    hidden_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-id"]
+        indexes = [models.Index(fields=["channel", "-id"], name="connect_post_channel_id")]
+
+
+class ConnectAck(models.Model):
+    post = models.ForeignKey(ConnectPost, on_delete=models.CASCADE, related_name="acks")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="+")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["post", "user"], name="connect_ack_unique")]
+
+
+class ConnectReport(models.Model):
+    post = models.ForeignKey(ConnectPost, on_delete=models.CASCADE, related_name="reports")
+    reporter = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="+")
+    reason = models.CharField(max_length=200, blank=True, default="")
+    resolved = models.BooleanField(default=False)
+    resolved_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["post", "reporter"], name="connect_report_unique")]
+
+
+class ConnectMute(models.Model):
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name="connect_mutes")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="+")
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["school", "user"], name="connect_mute_unique")]
+
+
+class ConnectRead(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="+")
+    channel = models.ForeignKey(ConnectChannel, on_delete=models.CASCADE, related_name="reads")
+    last_read_id = models.BigIntegerField(default=0)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["user", "channel"], name="connect_read_unique")]
