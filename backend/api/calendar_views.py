@@ -1,5 +1,6 @@
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
+from .suspension import SchoolNotSuspended
 from rest_framework.response import Response
 
 from api.calendar_rules import (
@@ -33,7 +34,7 @@ def _school_id(user):
 
 
 @api_view(["GET", "POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, SchoolNotSuspended])
 def calendar_events(request):
     sid = _school_id(request.user)
     if sid is None:
@@ -61,7 +62,7 @@ def calendar_events(request):
 
 
 @api_view(["PATCH", "DELETE"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, SchoolNotSuspended])
 def calendar_event_detail(request, pk):
     sid = _school_id(request.user)
     if sid is None:

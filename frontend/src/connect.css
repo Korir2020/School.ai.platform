@@ -1,0 +1,31 @@
+.cn{max-width:720px;margin:0 auto}
+.cn h2{margin:.2em 0}
+.cn-hint{color:var(--m-mute);font-size:.85rem;margin:.4em 0 .8em}
+.cn-tabs{display:flex;gap:6px;overflow-x:auto;padding:4px 0 10px;scrollbar-width:none}
+.cn-tab{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;margin:0;padding:8px 14px;border:1px solid var(--line);border-radius:10px;background:transparent;color:var(--txt);font-size:.85rem;font-weight:600;white-space:nowrap}
+.cn-tab.on{background:var(--card);border-color:var(--blue)}
+.cn-badge{min-width:20px;padding:1px 6px;border-radius:10px;background:var(--blue);color:#fff;font-size:.7rem;text-align:center}
+.cn-chat>button{margin:4px 0 8px}
+.cn-search{display:flex;align-items:center;gap:6px;margin:0 0 10px}
+.cn-search input{flex:1;min-width:0;max-width:none;margin:0}
+.cn-h{margin:14px 0 4px;color:var(--m-mute);font-size:.8rem;letter-spacing:.06em;text-transform:uppercase}
+.cn-post{margin:10px 0;padding:12px;border:1px solid var(--line);border-radius:12px}
+.cn-post.urgent{border-color:var(--m-err-text,#c0392b)}
+.cn-post.hidden{opacity:.6}
+.cn-ph{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.cn-time{margin-left:auto;color:var(--m-mute);font-size:.75rem}
+.cn-tag{padding:1px 8px;border:1px solid var(--line);border-radius:8px;color:var(--m-mute);font-size:.7rem}
+.cn-urgent{border-color:currentColor;color:var(--m-err-text,#c0392b)}
+.cn-body{margin:.5em 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.cn-event{margin:.4em 0;padding:8px 10px;border-left:3px solid var(--blue);border-radius:6px;background:var(--bg);font-size:.85rem}
+.cn-pa{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin-top:6px}
+.cn-pa button{margin:0}
+.cn-ok,.cn-meta{color:var(--m-mute);font-size:.8rem}
+.cn-link{padding:4px 2px;border-radius:6px;background:none;color:var(--m-mute);font-size:.8rem;font-weight:500;text-decoration:underline}
+.cn-compose{margin:8px 0 12px;padding:12px;border:1px solid var(--line);border-radius:12px}
+.cn-text{display:block;box-sizing:border-box;width:100%;min-height:96px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--txt);font:inherit;resize:vertical}
+.cn-check{display:flex;align-items:center;margin:.5em 0;font-size:.9rem}
+.cn-check input{display:inline-block;width:auto;max-width:none;margin:0 8px 0 0}
+.cn-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)}
+.cn-row b{flex:1;min-width:120px}
+.cn-row button{margin:0}

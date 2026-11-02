@@ -1,5 +1,6 @@
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
+from .suspension import SchoolNotSuspended
 from rest_framework.response import Response
 
 from api.level_rules import LevelError, create_scale, move, roster, save_level
@@ -46,7 +47,7 @@ _CTX = {
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, SchoolNotSuspended])
 def level_roster(request):
     got = _need(request, dict(_CTX, stream=(Stream, "school_id")))
     if isinstance(got, Response):
@@ -59,7 +60,7 @@ def level_roster(request):
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, SchoolNotSuspended])
 def level_save(request):
     got = _need(request, dict(_CTX, student=(Student, "school_id")))
     if isinstance(got, Response):
@@ -75,7 +76,7 @@ def level_save(request):
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, SchoolNotSuspended])
 def level_move(request):
     row = _find(LevelResult, request, request.data.get("result_id"), "student__school_id")
     if row is None:
@@ -88,7 +89,7 @@ def level_move(request):
 
 
 @api_view(["GET", "POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, SchoolNotSuspended])
 def level_scales(request):
     sid = get_user_school_id(request.user)
     if sid is None:

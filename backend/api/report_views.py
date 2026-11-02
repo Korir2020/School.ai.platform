@@ -10,6 +10,7 @@ from functools import wraps
 from django.http import HttpResponse
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
+from .suspension import SchoolNotSuspended
 from rest_framework.response import Response
 
 from marian_reports.assembler import ReportService
@@ -131,7 +132,7 @@ def build_many(user, svc, snap, pool, prov):
 
 # ---------------------------------------------------------------- views
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, SchoolNotSuspended])
 @guard
 def report_meta(request):
     user, svc = ctx(request)
@@ -158,7 +159,7 @@ def report_meta(request):
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, SchoolNotSuspended])
 @guard
 def report_selection(request):
     user, svc = ctx(request)
@@ -190,7 +191,7 @@ def report_selection(request):
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, SchoolNotSuspended])
 @guard
 def report_student_pdf(request, student_id):
     user, svc = ctx(request)
@@ -235,7 +236,7 @@ def _class_snapshot(request):
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, SchoolNotSuspended])
 @guard
 def report_analytics(request):
     svc, snap, stream = _class_snapshot(request)
@@ -246,7 +247,7 @@ def report_analytics(request):
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, SchoolNotSuspended])
 @guard
 def report_rankings(request):
     svc, snap, stream = _class_snapshot(request)
@@ -259,7 +260,7 @@ def report_rankings(request):
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, SchoolNotSuspended])
 @guard
 def report_support_list(request):
     svc, snap, _stream = _class_snapshot(request)
@@ -267,7 +268,7 @@ def report_support_list(request):
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, SchoolNotSuspended])
 @guard
 def report_export(request, fmt):
     if fmt not in ("csv", "xlsx"):
@@ -348,7 +349,7 @@ def cbody(request):
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, SchoolNotSuspended])
 @guard
 def report_comments_list(request):
     user, svc = ctx(request)
@@ -359,7 +360,7 @@ def report_comments_list(request):
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, SchoolNotSuspended])
 @guard
 def report_comment_draft(request):
     user, svc = ctx(request)
@@ -370,7 +371,7 @@ def report_comment_draft(request):
 
 
 @api_view(["PUT"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, SchoolNotSuspended])
 @guard
 def report_comment_edit(request, cid):
     user, svc = ctx(request)
@@ -379,7 +380,7 @@ def report_comment_edit(request, cid):
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, SchoolNotSuspended])
 @guard
 def report_comment_approve(request, cid):
     user, svc = ctx(request)
@@ -387,7 +388,7 @@ def report_comment_approve(request, cid):
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, SchoolNotSuspended])
 @guard
 def report_comment_reject(request, cid):
     user, svc = ctx(request)
@@ -422,7 +423,7 @@ def scheme_json(s):
 
 
 @api_view(["GET", "PUT"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, SchoolNotSuspended])
 @guard
 def report_grading_config(request):
     user = admin_user(request)
@@ -456,7 +457,7 @@ def report_grading_config(request):
 
 
 @api_view(["GET", "PUT"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, SchoolNotSuspended])
 @guard
 def report_section_config(request):
     user = admin_user(request)
@@ -477,7 +478,7 @@ def report_section_config(request):
 
 
 @api_view(["GET", "PUT"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, SchoolNotSuspended])
 @guard
 def report_options(request):
     user = admin_user(request)
@@ -496,7 +497,7 @@ def report_options(request):
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, SchoolNotSuspended])
 @guard
 def report_audit(request):
     user = admin_user(request)
@@ -513,7 +514,7 @@ def report_audit(request):
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, SchoolNotSuspended])
 @guard
 def report_grading_scale(request):
     """Read-only view of the school's saved scale for admins and teachers."""
