@@ -58,6 +58,7 @@ urlpatterns += [
     path('api/levels/', include('api.level_urls')),
     path('api/calendar/', include('api.calendar_urls')),
     path('api/connect/', include('api.connect_urls')),
+    path('api/feedback/', include('api.feedback_urls')),
     path('api/frameworks/', include('api.framework_urls')),
     path('api/records/', include('api.national_urls')),
 ]
