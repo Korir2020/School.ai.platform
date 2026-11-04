@@ -286,6 +286,16 @@ function ChatPanel({ channel, me, onSeen }) {
     setLoadingMore(false);
   };
 
+  const newestId = feed.posts.length ? feed.posts[0].id : 0;
+  useEffect(() => {
+    if (!ready) return undefined;
+    const t = setTimeout(() => {
+      const el = document.getElementById("cn-end");
+      if (el) el.scrollIntoView({ block: "end" });
+    }, 60);
+    return () => clearTimeout(t);
+  }, [ready, newestId]);
+
   if (!ready && !err) return <Loading />;
   const pinIds = new Set(query ? [] : pinned.map((p) => p.id));
   const shown = feed.posts.filter((p) => !pinIds.has(p.id));
@@ -332,18 +342,19 @@ function ChatPanel({ channel, me, onSeen }) {
         </section>
       )}
       <h3 className="cn-h">{query ? "Search results" : "Latest"}</h3>
-      {shown.length === 0 && pinIds.size === 0 && (
+      {feed.hasMore && (
+          <Button kind="secondary" busy={loadingMore} onClick={loadEarlier}>Show earlier posts</Button>
+        )}
+        {shown.length === 0 && pinIds.size === 0 && (
         <EmptyState
           title={query ? "No matching posts" : "No posts yet"}
           text={query ? "Try a different word." : "Posts from the school will appear here."}
         />
       )}
-      {shown.map((p) => (
+      {[...shown].reverse().map((p) => (
         <PostCard key={p.id} post={p} me={me} kind={channel.kind} acts={acts} />
       ))}
-      {feed.hasMore && (
-        <Button kind="secondary" busy={loadingMore} onClick={loadEarlier}>Show earlier posts</Button>
-      )}
+      <div id="cn-end" />
       {pending && (
         <ConfirmDialog
           title={pending.title}
