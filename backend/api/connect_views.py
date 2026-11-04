@@ -287,10 +287,7 @@ def post_detail(request, pk):
     if request.method == "DELETE":
         if role != ADMIN and post.author_id != request.user.id:
             return _err("forbidden", "You can only delete your own posts.", 403)
-        post.is_hidden = True
-        post.is_pinned = False
-        post.hidden_by = request.user
-        post.save(update_fields=["is_hidden", "is_pinned", "hidden_by"])
+        post.delete()
         return Response(status=204)
     if role != ADMIN:
         return _err("forbidden", "Only a school administrator can change a post.", 403)

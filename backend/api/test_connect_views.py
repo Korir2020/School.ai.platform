@@ -254,3 +254,36 @@ class ConnectApiTests(TestCase):
         self.assertFalse(by["Peter Mwangi"]["muted"])
         found = self._c(self.admin).get(B + "members/?q=peter").data["members"]
         self.assertEqual(sorted(m["name"] for m in found), ["Ann Admin", "Peter Mwangi", "Tom Teacher"])
+
+    def test_delete_is_permanent(self):
+        from schools.models import ConnectAck, ConnectPost
+        mine = self.say(self.parent, self.community, "Delete me").data["id"]
+        ConnectAck.objects.create(post_id=mine, user=self.admin)
+        self.assertEqual(self._c(self.parent2).delete(f"{B}posts/{mine}/").status_code, 403)
+        self.assertTrue(ConnectPost.objects.filter(pk=mine).exists())
+        self.assertEqual(self._c(self.parent).delete(f"{B}posts/{mine}/").status_code, 204)
+        self.assertFalse(ConnectPost.objects.filter(pk=mine).exists())
+        self.assertFalse(ConnectAck.objects.filter(post_id=mine).exists())
+        self.assertEqual(self.read(self.admin, self.community).data["posts"], [])
+        self.assertEqual(self._c(self.parent).delete(f"{B}posts/{mine}/").status_code, 404)
+
+    def test_admin_can_delete_any_post_permanently(self):
+        from schools.models import ConnectPost
+        pid = self.say(self.parent, self.community, "Hello").data["id"]
+        self.assertEqual(self._c(self.admin).delete(f"{B}posts/{pid}/").status_code, 204)
+        self.assertFalse(ConnectPost.objects.filter(pk=pid).exists())
+        self.assertEqual(self._c(self.admin).delete(f"{B}posts/{pid}/").status_code, 404)
+
+    def test_other_school_admin_cannot_delete(self):
+        from schools.models import ConnectPost
+        pid = self.say(self.parent, self.community, "Private").data["id"]
+        r = self._c(self.other_admin).delete(f"{B}posts/{pid}/")
+        self.assertIn(r.status_code, (403, 404))
+        self.assertTrue(ConnectPost.objects.filter(pk=pid).exists())
+
+    def test_anonymous_cannot_delete(self):
+        from schools.models import ConnectPost
+        pid = self.say(self.parent, self.community, "Public eyes").data["id"]
+        r = self._c().delete(f"{B}posts/{pid}/")
+        self.assertIn(r.status_code, (401, 403))
+        self.assertTrue(ConnectPost.objects.filter(pk=pid).exists())
