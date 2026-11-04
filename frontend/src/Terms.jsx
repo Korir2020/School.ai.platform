@@ -6,6 +6,23 @@ import { Card, Badge, DataTable, Loading, ErrorState } from "./ui";
 
 const empty = { name: "", start_date: "", end_date: "" };
 
+// Turn any server reply into a sentence, so the red message is never blank.
+const NAMES = { academic_year: "Academic year", name: "Term name",
+  start_date: "Start date", end_date: "End date", non_field_errors: "" };
+function explain(status, e) {
+  if (e && typeof e.detail === "string" && e.detail) return e.detail;
+  const parts = Object.entries(e || {}).map(([k, v]) => {
+    const msg = Array.isArray(v) ? v.join(" ") : String(v);
+    const n = NAMES[k] === undefined ? k : NAMES[k];
+    return n ? n + ": " + msg : msg;
+  }).filter(Boolean);
+  if (parts.length) return parts.join(" ");
+  if (status === 403) return "You do not have permission to do this.";
+  if (status === 401) return "Please sign in again.";
+  if (status >= 500) return "The server had a problem (error " + status + "). Please try again.";
+  return "Unexpected error (" + status + ").";
+}
+
 export default function Terms() {
   const toast = useToast();
   const [x, setX] = useState(null), [bad, setBad] = useState(false);
@@ -27,7 +44,7 @@ export default function Terms() {
     const e = r.ok ? {} : await r.json().catch(() => ({}));
     setBusy(false);
     if (r.ok) toast("Saved", "ok");
-    else toast("Failed: " + (e.detail || JSON.stringify(e)), "err");
+    else toast("Could not save: " + explain(r.status, e), "err");
     load();
     return r.ok;
   };

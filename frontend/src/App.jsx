@@ -41,6 +41,7 @@ import Attendance from "./Attendance";
 import ParentAccounts from "./ParentAccounts";
 import RegistrationReview from "./RegistrationReview";
 import TeacherTransfers from "./TeacherTransfers";
+import Promotion from "./Promotion";
 import PasswordRecovery from "./PasswordRecovery";
 import SchoolRegistration from "./SchoolRegistration";
 import SchoolStatus from "./SchoolStatus";
@@ -49,6 +50,8 @@ import Dash2Mid from "./Dash2Mid";
 import Dash2Low from "./Dash2Low";
 import Dash2Act from "./Dash2Act";
 import Help from "./Help";
+import Announcements from "./Announcements";
+import Backups, { SchoolExport } from "./Backups";
 import { useHashTab } from "./hashtab";
 import "./app.css";
 import "./light.css";
@@ -68,11 +71,11 @@ function Dash({ onOut }) {
   const role = d && d.role;
   const need = (el) => (d.active_term ? el : <p className="plain">No active term yet. Create one in Setup first.</p>);
   const home = d && <>{role === "school_admin" ? <Dash2Top me={me} d={d} go={setTab} tabs={{ Students: 1, Teachers: 1, Exams: 1, Approve: 1, Fees: 1 }}><Dash2Mid d={d} go={setTab} /><Dash2Low d={d} go={setTab} tabs={{ Approve: 1, Exams: 1, Reports: 1, Students: 1, Analytics: 1, Fees: 1 }} /></Dash2Top> : <Home me={me} d={d} />}{role === "teacher" && <TeacherTodo d={d} go={setTab} />}{role === "teacher" && <Mine d={d} />}{role === "school_admin" && <Dash2Act go={setTab} />}<Password /></>;
-  const baseTabs = role === "teacher" ? { Home: home, Connect: <Connect />, Feedback: <Feedback />, Calendar: <Calendar />, Marks: need(<Marks d={d} />), Levels: need(<LevelEntry d={d} />), Attendance: <Attendance />, ...(me && me.is_class_teacher ? { 'Report Cards': <ReportModule /> } : {}) }
-    : role === "school_admin" ? { Home: home, Connect: <Connect />, Feedback: <Feedback />, Calendar: <Calendar />, Approve: <Approvals />, Exams: need(<Exams d={d} />), Reports: need(<ReportCards d={d} />), 'Report Cards': <ReportModule />, Analytics: need(<Analytics d={d} />), Attendance: <Attendance />, Fees: <Fees admin />, Documents: <BulkDocuments admin />, 'Migration Centre': <MigrationCentre />, Students: need(<Students d={d} />), Parents: <ParentAccounts />, Transfers: <TeacherTransfers />, Teachers: need(<><Teachers />{me && !me.is_deputy && <Deputies />}</>), Staff: <Staff />, Audit: <AuditLog />, Setup: <><SetupWizard /><Terms /><Setup /></> }
-    : role === "bursar" ? { Fees: <Fees admin />, Documents: <BulkDocuments />, Calendar: <Calendar /> }
-    : role === "parent" ? { Home: <Parent />, Connect: <Connect />, Feedback: <Feedback /> }
-    : role === "superadmin" ? { Home: home, Schools: <Platform d={d} />, Registrations: <RegistrationReview />, Transfers: <TeacherTransfers />, Admins: <Accounts />, Audit: <AuditLog />, Feedback: <Feedback owner /> }
+  const baseTabs = role === "teacher" ? { Home: home, Announcements: <Announcements />, Connect: <Connect />, Feedback: <Feedback />, Calendar: <Calendar />, Marks: need(<Marks d={d} />), Levels: need(<LevelEntry d={d} />), Attendance: <Attendance />, ...(me && me.is_class_teacher ? { 'Report Cards': <ReportModule /> } : {}) }
+    : role === "school_admin" ? { Home: home, Announcements: <Announcements />, Connect: <Connect />, Feedback: <Feedback />, Calendar: <Calendar />, Approve: <Approvals />, Exams: need(<Exams d={d} />), Reports: need(<ReportCards d={d} />), 'Report Cards': <ReportModule />, Analytics: need(<Analytics d={d} />), Attendance: <Attendance />, Fees: <Fees admin />, Documents: <BulkDocuments admin />, 'Migration Centre': <MigrationCentre />, Students: need(<Students d={d} />), Parents: <ParentAccounts />, Promotion: <Promotion />, Transfers: <TeacherTransfers />, Teachers: need(<><Teachers />{me && !me.is_deputy && <Deputies />}</>), Staff: <Staff />, Audit: <AuditLog />, Setup: <><SetupWizard /><Terms /><Setup />{me && !me.is_deputy && <SchoolExport />}</> }
+    : role === "bursar" ? { Fees: <Fees admin />, Announcements: <Announcements />, Documents: <BulkDocuments />, Calendar: <Calendar /> }
+    : role === "parent" ? { Home: <Parent />, Announcements: <Announcements />, Connect: <Connect />, Feedback: <Feedback /> }
+    : role === "superadmin" ? { Home: home, Schools: <Platform d={d} />, Registrations: <RegistrationReview />, Transfers: <TeacherTransfers />, Admins: <Accounts />, Backups: <Backups />, Audit: <AuditLog />, Feedback: <Feedback owner /> }
     : d ? { Home: home } : {};
   const tabs = d ? { ...baseTabs, Help: <Help /> } : baseTabs;
   const out = async () => { await logout(); onOut(); };
@@ -86,7 +89,7 @@ function Dash({ onOut }) {
 
 export default function App() {
   const [ok, setOk] = useState(!!localStorage.getItem("in"));
-  const [scr, setScr] = useState(() => window.location.search.includes("recovery=1") ? "recovery" : "intro");
+  const [scr, setScr] = useState(() => window.location.search.includes("recovery=1") ? "recovery" : window.location.hash ? "landing" : "intro");
   const [blocked, setBlocked] = useState(null);
   useEffect(() => {
     const h = (e) => setBlocked(e.detail || "This school account is suspended.");
@@ -104,7 +107,7 @@ export default function App() {
     </div>
   );
   if (ok) return <Dash onOut={() => { setOk(false); setScr("landing"); }} />;
-  if (scr === "login") return <Login onDone={() => setOk(true)} onForgot={to("recovery")} />;
+  if (scr === "login") return <Login onDone={() => { if (window.location.hash) window.history.replaceState(null, "", window.location.pathname + window.location.search); setOk(true); }} onForgot={to("recovery")} onBack={to("landing")} onJoin={to("join")} onRegister={to("school-register")} />;
   if (scr === "recovery") return <PasswordRecovery onBack={to("login")} />;
   if (scr === "join") {
     return <Join onBack={to("landing")} onSignIn={to("login")} />;

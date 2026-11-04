@@ -4,14 +4,28 @@ from rest_framework_simplejwt.views import TokenRefreshView
 from .auth_throttle import LoginView
 
 COOKIE = "marian_rt"
+# "0" marks a browser-session sign-in ("Remember me" off). It holds no secret.
+REMEMBER = "marian_rm"
 
 
-def put_cookie(resp):
+def _remember(request):
+    """Login reads the form flag; refresh keeps the choice made at login."""
+    data = getattr(request, "data", None) or {}
+    if "remember" in data:
+        return str(data.get("remember")).lower() not in ("false", "0", "")
+    return request.COOKIES.get(REMEMBER) != "0"
+
+
+def put_cookie(resp, remember=True):
     tok = getattr(resp, "data", None) and resp.data.get("refresh")
     if resp.status_code == 200 and tok:
-        resp.set_cookie(COOKIE, tok, max_age=7 * 24 * 3600, httponly=True,
-                        secure=not settings.DEBUG, samesite="Lax",
-                        path="/api/auth/")
+        age = 7 * 24 * 3600 if remember else None  # None = ends with the browser
+        opts = dict(httponly=True, secure=not settings.DEBUG, samesite="Lax", path="/api/auth/")
+        resp.set_cookie(COOKIE, tok, max_age=age, **opts)
+        if remember:
+            resp.delete_cookie(REMEMBER, path="/api/auth/")
+        else:
+            resp.set_cookie(REMEMBER, "0", max_age=None, **opts)
         if not settings.REFRESH_IN_BODY:
             resp.data.pop("refresh", None)
     return resp
@@ -20,7 +34,7 @@ def put_cookie(resp):
 class _Cookie:
     def finalize_response(self, request, response, *a, **k):
         r = super().finalize_response(request, response, *a, **k)
-        return put_cookie(r)
+        return put_cookie(r, _remember(request))
 
 
 class CookieLoginView(_Cookie, LoginView): pass

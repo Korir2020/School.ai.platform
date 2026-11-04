@@ -1,0 +1,31 @@
+/* Announcements, alert settings and backups. Colours come from marian-theme tokens. */
+.an { display: grid; gap: 16px; }
+.an-body { min-height: 120px; resize: vertical; font: inherit; }
+.an-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin-top: 12px; }
+.an-channels { border: 1px solid var(--m-border); border-radius: 12px; padding: 10px 14px; margin: 14px 0; display: grid; gap: 8px; }
+.an-channels legend { padding: 0 6px; font-weight: 600; color: var(--m-text); }
+.an-check { display: flex; align-items: center; gap: 10px; min-height: 40px; color: var(--m-text); }
+.an-check input { width: 20px; height: 20px; accent-color: var(--m-action); }
+.an-check small { color: var(--m-muted); }
+.an-preview { background: var(--m-info-bg); color: var(--m-info-text); border-radius: 12px; padding: 10px 14px; margin: 12px 0; }
+.an-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+.an-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.an-item { width: 100%; text-align: left; display: grid; gap: 4px; padding: 12px 14px; border: 1px solid var(--m-border); border-radius: 12px; background: var(--m-card); color: var(--m-text); cursor: pointer; font: inherit; }
+.an-item:hover { border-color: var(--m-action); }
+.an-item:focus-visible { outline: 3px solid var(--m-focus); outline-offset: 2px; }
+.an-item.unread { border-left: 4px solid var(--m-action); }
+.an-item small, .an-meta { color: var(--m-muted); }
+.an-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.an-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--m-action); flex: none; }
+.an-snip { color: var(--m-muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.an-text { white-space: pre-wrap; line-height: 1.55; color: var(--m-text); }
+.an-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; margin: 14px 0; }
+.an-stats > div { border: 1px solid var(--m-border); border-radius: 12px; padding: 10px; display: grid; }
+.an-stats small { color: var(--m-muted); text-transform: uppercase; font-size: 11px; letter-spacing: .04em; }
+.an-stats b { font-size: 22px; color: var(--m-text); }
+.an-stats em { font-style: normal; color: var(--m-muted); font-size: 13px; }
+.an-h4 { margin: 12px 0 6px; }
+.an-problems { margin: 0; padding-left: 18px; display: grid; gap: 4px; max-height: 240px; overflow: auto; }
+.an-problems small { color: var(--m-muted); margin: 0 6px; }
+.an-report { margin-top: 12px; display: grid; gap: 8px; }
+.an-pre { background: var(--m-paper); color: var(--m-text); border: 1px solid var(--m-border); border-radius: 10px; padding: 10px; overflow-x: auto; font-size: 13px; }

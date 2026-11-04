@@ -7,12 +7,20 @@ import Search from './Search';
 import { Modal, Button } from "./ui";
 import './shell.css';
 
+// Sidebar sections. Page keys are unchanged so old links and bookmarks still work.
 const GROUPS = [
-  ['Main', ['Home', 'Calendar', 'Connect', 'Approve', 'Registrations']],
-  ['Academics', ['Students', 'Teachers', 'Marks', 'Attendance', 'Exams', 'Reports', 'Report Cards', 'Analytics']],
-  ['Manage', ['Parents', 'Staff', 'Fees', 'Documents', 'Transfers', 'Schools', 'Migration Centre']],
-  ['Settings', ['Audit', 'Setup', 'Admins']],
+  ['Dashboard', ['Home']],
+  ['Communication', ['Announcements', 'Connect', 'Calendar', 'Feedback']],
+  ['Students', ['Students', 'Promotion', 'Attendance', 'Parents']],
+  ['Staff', ['Teachers', 'Staff', 'Transfers']],
+  ['Academics', ['Exams', 'Marks', 'Levels', 'Approve']],
+  ['Reports', ['Reports', 'Report Cards', 'Documents', 'Analytics']],
+  ['Finance', ['Fees']],
+  ['Platform', ['Schools', 'Registrations', 'Admins', 'Backups']],
+  ['Administration', ['Setup', 'Migration Centre', 'Audit']],
+  ['Support', ['Help']],
 ];
+const sectionOf = (t) => (GROUPS.find((g) => g[1].includes(t)) || ['Other'])[0];
 const rd = (k) => { try { return localStorage.getItem(k) || ''; } catch { return ''; } };
 const wr = (k, v) => { try { if (v) localStorage.setItem(k, v); else localStorage.removeItem(k); } catch { /* storage blocked */ } };
 
@@ -108,9 +116,10 @@ export default function Shell({ tabs, tab, go, me, out, term, children }) {
       <div className="mu-dt">
         <h1 className="mu-dt-t">{tab}</h1>
         {school && <span className="mu-dt-s">{school}</span>}
+        {term && <span className="mu-dt-s">Term: {term}</span>}
         <div className="mu-dt-r"><Search tabs={tabs} go={go} hotkey /><Bell go={go} />{profile}</div>
       </div>
-      <div className="mu-content"><nav className="mu-crumb" aria-label="Breadcrumb"><span>{school || "Platform"}</span><span aria-hidden="true"> › </span><span aria-current="page">{tab}</span></nav><h1 className="mu-title">{tab}</h1>{term && tab !== "Home" ? <p className="mu-ctx">Active term: {term}</p> : null}{children}</div>
+      <div className="mu-content"><nav className="mu-crumb" aria-label="Breadcrumb"><span>{school || "Platform"}</span><span aria-hidden="true"> › </span>{sectionOf(tab) !== tab && sectionOf(tab) !== "Dashboard" ? <><span>{sectionOf(tab)}</span><span aria-hidden="true"> › </span></> : null}<span aria-current="page">{tab}</span></nav><h1 className="mu-title">{tab}</h1>{term && tab !== "Home" ? <p className="mu-ctx">Active term: {term}</p> : null}{children}</div>
     </div>
     <div className="mu-bar" role="navigation" aria-label="Main">
       {bar.map(item)}

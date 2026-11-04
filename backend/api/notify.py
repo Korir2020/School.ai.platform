@@ -1,22 +1,18 @@
 from schools.models import Notification, SchoolAdminProfile
 
-
-def _make(school, users, kind, message, join_request):
-    Notification.objects.bulk_create([
-        Notification(school=school, recipient=u, kind=kind,
-                     message=message[:255], join_request=join_request)
-        for u in users])
+from .alerts import notify
 
 
 def notify_admins(school, kind, message, join_request=None):
-    """One row per admin/deputy of THIS school only."""
+    """One row per admin/deputy of THIS school only, plus an email copy
+    for admins who have an address and have not turned email alerts off."""
     users = [p.user for p in SchoolAdminProfile.objects.filter(
         school=school).select_related("user")]
-    _make(school, users, kind, message, join_request)
+    notify(school, users, kind, message, join_request)
 
 
 def notify_user(school, user, kind, message, join_request=None):
-    _make(school, [user], kind, message, join_request)
+    notify(school, [user], kind, message, join_request)
 
 
 def stored_items(user):

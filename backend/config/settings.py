@@ -263,3 +263,7 @@ PASSWORD_RESET_COOLDOWN_SECONDS = 0 if "test" in sys.argv else 60
 
 # Admin account endpoints (reset / activate / deactivate) throttle.
 REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]["admin_account"] = "1000/min" if "test" in sys.argv else "30/min"
+
+# Public demo request form: throttle and optional notification address.
+REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]["demo_request"] = "1000/min" if "test" in sys.argv else "5/hour"
+DEMO_REQUEST_NOTIFY = os.environ.get("DJANGO_DEMO_REQUEST_EMAIL", "")

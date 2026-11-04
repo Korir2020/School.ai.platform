@@ -21,6 +21,7 @@ class StudentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Student
         fields = '__all__'
+        read_only_fields = ['status']  # changed only via promotion / exit / re-admit
 
 
 class AcademicYearSerializer(serializers.ModelSerializer):
@@ -48,6 +49,8 @@ class ClassLevelSerializer(serializers.ModelSerializer):
 
 
 class StreamSerializer(serializers.ModelSerializer):
+    class_level_name = serializers.CharField(source="class_level.name", read_only=True)
+
     class Meta:
         model = Stream
         fields = '__all__'

@@ -39,6 +39,9 @@ class Student(models.Model):
     fee_category = models.CharField(max_length=10, default="day",
                                     choices=[("day", "Day scholar"), ("boarder", "Boarder")])
     date_of_birth = models.DateField(null=True, blank=True)
+    status = models.CharField(max_length=12, default="active", choices=[
+        ("active", "Active"), ("transferred", "Transferred out"),
+        ("left", "Left school"), ("graduated", "Completed / graduated")])
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -432,7 +435,8 @@ class Notification(models.Model):
              ("join_rejected", "Request rejected"),
              ("teacher_transfer_requested", "Teacher transfer requested"),
              ("teacher_transfer_approved", "Teacher transfer approved"),
-             ("teacher_transfer_rejected", "Teacher transfer rejected")]
+             ("teacher_transfer_rejected", "Teacher transfer rejected"),
+             ("announcement", "School announcement")]
     school = models.ForeignKey("School", on_delete=models.CASCADE,
                                related_name="notifications")
     recipient = models.ForeignKey(settings.AUTH_USER_MODEL,
@@ -1167,3 +1171,113 @@ class FeedbackEntry(models.Model):
                 name="feedback_one_rating_per_user",
             ),
         ]
+
+
+class DemoRequest(models.Model):
+    """A request for a product demonstration sent from the public website."""
+    STATUSES = [("new", "New"), ("contacted", "Contacted"), ("closed", "Closed")]
+    ROLES = [
+        ("school_admin", "School administrator"), ("headteacher", "Headteacher / Principal"),
+        ("teacher", "Teacher"), ("bursar", "Bursar / Finance"), ("other", "Other"),
+    ]
+    full_name = models.CharField(max_length=120)
+    email = models.EmailField(max_length=255)
+    phone = models.CharField(max_length=30, blank=True)
+    school_name = models.CharField(max_length=200)
+    role = models.CharField(max_length=20, choices=ROLES)
+    learners = models.PositiveIntegerField(null=True, blank=True)
+    county = models.CharField(max_length=100, blank=True)
+    message = models.TextField(max_length=1000, blank=True)
+    status = models.CharField(max_length=12, choices=STATUSES, default="new")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+
+    def __str__(self):
+        return f"{self.school_name} ({self.full_name})"
+
+
+class StudentMovement(models.Model):
+    """Permanent history of promotions, repeats, exits and re-admissions."""
+    KINDS = [("promoted", "Promoted"), ("repeated", "Repeated class"),
+             ("graduated", "Completed final class"), ("transferred", "Transferred out"),
+             ("left", "Left school"), ("readmitted", "Re-admitted")]
+    school = models.ForeignKey(School, on_delete=models.CASCADE)
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="movements")
+    kind = models.CharField(max_length=12, choices=KINDS)
+    from_year = models.ForeignKey(AcademicYear, on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
+    to_year = models.ForeignKey(AcademicYear, on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
+    from_class = models.CharField(max_length=120, blank=True)
+    to_class = models.CharField(max_length=120, blank=True)
+    destination = models.CharField(max_length=200, blank=True)
+    reason = models.CharField(max_length=300, blank=True)
+    effective_date = models.DateField()
+    recorded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+
+
+class NotificationPreference(models.Model):
+    """Per-user choice of extra alert channels. In-app alerts are always on."""
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+                                related_name="notification_preference")
+    email_alerts = models.BooleanField(default=True)
+    sms_alerts = models.BooleanField(default=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.user} alerts"
+
+
+class Announcement(models.Model):
+    AUDIENCES = [("everyone", "Everyone"), ("staff", "All staff"),
+                 ("teachers", "Teachers"), ("parents", "Parents"),
+                 ("admins", "Administrators")]
+    PRIORITIES = [("normal", "Normal"), ("urgent", "Urgent")]
+    STATUSES = [("draft", "Draft"), ("sending", "Sending"), ("sent", "Sent"),
+                ("partial", "Sent with problems"), ("failed", "Failed")]
+    school = models.ForeignKey("School", on_delete=models.CASCADE, related_name="announcements")
+    title = models.CharField(max_length=120)
+    body = models.TextField(max_length=2000)
+    audience = models.CharField(max_length=12, choices=AUDIENCES, default="everyone")
+    class_level = models.ForeignKey("ClassLevel", null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    stream = models.ForeignKey("Stream", null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    priority = models.CharField(max_length=8, choices=PRIORITIES, default="normal")
+    send_email = models.BooleanField(default=False)
+    send_sms = models.BooleanField(default=False)
+    sms_text = models.CharField(max_length=459, blank=True)
+    status = models.CharField(max_length=10, choices=STATUSES, default="draft")
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
+                                   on_delete=models.SET_NULL, related_name="+")
+    created_at = models.DateTimeField(auto_now_add=True)
+    sent_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+        indexes = [models.Index(fields=["school", "-created_at"])]
+
+    def __str__(self):
+        return self.title
+
+
+class AnnouncementRecipient(models.Model):
+    """One row per person an announcement reaches, with per-channel delivery."""
+    DELIVERY = [("", "Not requested"), ("queued", "Queued"), ("sent", "Sent"),
+                ("failed", "Failed"), ("opted_out", "Turned off by recipient"),
+                ("no_contact", "No email or phone"), ("not_configured", "Channel not set up"),
+                ("over_limit", "Over the sending limit")]
+    announcement = models.ForeignKey(Announcement, on_delete=models.CASCADE, related_name="recipients")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="+")
+    role = models.CharField(max_length=10)
+    email_status = models.CharField(max_length=16, choices=DELIVERY, blank=True)
+    sms_status = models.CharField(max_length=16, choices=DELIVERY, blank=True)
+    sms_phone = models.CharField(max_length=20, blank=True)
+    error = models.CharField(max_length=200, blank=True)
+    read_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["announcement", "user"], name="unique_announcement_recipient")]
+        indexes = [models.Index(fields=["user", "read_at"])]
