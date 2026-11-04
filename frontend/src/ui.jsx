@@ -67,7 +67,7 @@ export function ToastProvider({ children }) {
   const push = (text, kind) => {
     const id = Date.now() + Math.random();
     setList((l) => [...l, { id, text, kind }]);
-    setTimeout(() => setList((l) => l.filter((t) => t.id !== id)), 4000);
+    setTimeout(() => setList((l) => l.filter((t) => t.id !== id)), kind === "err" ? 8000 : 4000);
   };
   return (<ToastCtx.Provider value={push}>{children}
     <div className="mu-toasts" role="status" aria-live="polite">

@@ -164,3 +164,5 @@
 .mu-empty,.kt-empty{background:#FFFEF4;border:1.5px dashed #BFD3C2;border-radius:16px;color:#4C6A5D}
 .mu-empty b{color:#0E2A21;font-size:1.05rem;font-weight:800;letter-spacing:-.01em}
 .kt-empty h4{font-size:1.15rem;font-weight:800;letter-spacing:-.01em;color:#0E2A21}
+
+.mu-toasts .mu-toast.err{background:#9b2a1d!important;color:#fff!important;font-weight:600}
