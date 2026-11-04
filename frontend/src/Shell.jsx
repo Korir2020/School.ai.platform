@@ -1,6 +1,7 @@
-import { useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Mark as Logo, Wordmark } from "./brand";
 import Ic from "./icons";
+import { api, upload } from "./api";
 import Bell from "./Bell";
 import Search from './Search';
 import { Modal, Button } from "./ui";
@@ -24,6 +25,20 @@ export default function Shell({ tabs, tab, go, me, out, term, children }) {
   const pk = 'mu-pic-' + user;
   const [pic, setPic] = useState(rd(pk));
   const fileRef = useRef(null);
+  useEffect(() => {
+    if (!user) return undefined;
+    let alive = true;
+    api('/api/connect/avatar/').then(async (r) => {
+      if (!r.ok) return;
+      const b = await r.blob();
+      const fr = new FileReader();
+      fr.onload = () => {
+        if (alive && typeof fr.result === 'string') { setPic(fr.result); wr(pk, fr.result); }
+      };
+      fr.readAsDataURL(b);
+    }).catch(() => {});
+    return () => { alive = false; };
+  }, [user, pk]);
   const groups = GROUPS.map(([n, l]) => [n, l.filter((t) => tabs.includes(t))]).filter((g) => g[1].length);
   const other = tabs.filter((t) => !GROUPS.some((g) => g[1].includes(t)));
   if (other.length) groups.push(['Other', other]);
@@ -32,7 +47,7 @@ export default function Shell({ tabs, tab, go, me, out, term, children }) {
   const pick = (t) => { setMore(false); setDrawer(false); go(t); };
   const school = me && me.school ? me.school.name : "";
   const toggle = () => { const v = !small; setSmall(v); wr('mu-small', v ? '1' : ''); };
-  const dropPic = () => { setPic(''); wr(pk, ''); setMenu(false); };
+  const dropPic = () => { setPic(''); wr(pk, ''); api('/api/connect/avatar/', 'DELETE').catch(() => {}); setMenu(false); };
   const onFile = (e) => {
     const f = e.target.files && e.target.files[0];
     e.target.value = '';
@@ -47,7 +62,7 @@ export default function Shell({ tabs, tab, go, me, out, term, children }) {
       c.getContext('2d').drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, 96, 96);
       const d = c.toDataURL('image/jpeg', 0.8);
       URL.revokeObjectURL(url);
-      setPic(d); wr(pk, d);
+      setPic(d); wr(pk, d); c.toBlob((b) => { if (!b) return; const fd = new FormData(); fd.append('file', b, 'me.jpg'); upload('/api/connect/avatar/', fd).catch(() => {}); }, 'image/jpeg', 0.8);
     };
     img.src = url;
   };
