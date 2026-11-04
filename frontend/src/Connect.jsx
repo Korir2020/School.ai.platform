@@ -37,6 +37,41 @@ function mergeFeed(prev, d) {
   return { posts: d.posts.concat(older), hasMore: older.length ? prev.hasMore : true };
 }
 
+const AV_CACHE = new Map();
+
+function AuthorAv({ post }) {
+  const key = post.id + ":" + post.author_pic;
+  const [src, setSrc] = useState(post.author_pic ? AV_CACHE.get(key) || "" : "");
+  useEffect(() => {
+    if (!post.author_pic) return undefined;
+    if (AV_CACHE.has(key)) {
+      setSrc(AV_CACHE.get(key));
+      return undefined;
+    }
+    let alive = true;
+    api("/api/connect/posts/" + post.id + "/avatar/")
+      .then(async (r) => {
+        if (!r.ok) return;
+        const url = URL.createObjectURL(await r.blob());
+        AV_CACHE.set(key, url);
+        if (alive) setSrc(url);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [key, post.id, post.author_pic]);
+  return (
+    <span className="cn-av" aria-hidden="true">
+      {post.author_pic && src ? (
+        <img src={src} alt="" />
+      ) : (
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7z" /></svg>
+      )}
+    </span>
+  );
+}
+
 function PostCard({ post, me, acts }) {
   const [open, setOpen] = useState(false);
   const timer = useRef(null);
@@ -64,7 +99,7 @@ function PostCard({ post, me, acts }) {
   return (
     <article onPointerDown={pressStart} onPointerMove={pressMove} onPointerUp={pressEnd} onPointerCancel={pressEnd} onPointerLeave={pressEnd} onContextMenu={menuOnRight} className={cls + (post.mine ? " mine" : "")}>
       <header className="cn-ph">
-        <span className="cn-av" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7z" /></svg></span>
+        <AuthorAv post={post} />
         <b>{post.author}</b>
         {roleText && <span className="cn-tag">{roleText}</span>}
         {post.is_urgent && <span className="cn-tag cn-urgent">Urgent</span>}
