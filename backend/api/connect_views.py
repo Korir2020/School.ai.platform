@@ -475,6 +475,15 @@ def _sniff(head, name):
         return {"docx": DOCX, "xlsx": XLSX}.get(ext)
     if head.startswith(b"\xd0\xcf\x11\xe0"):
         return {"doc": "application/msword", "xls": "application/vnd.ms-excel"}.get(ext)
+    # Voice notes: checked by content, never by file name.
+    if head.startswith(b"\x1a\x45\xdf\xa3"):
+        return "audio/webm"
+    if head.startswith(b"OggS"):
+        return "audio/ogg"
+    if head[4:8] == b"ftyp":
+        return "audio/mp4"
+    if head.startswith(b"ID3") or head[:2] in (b"\xff\xfb", b"\xff\xf3", b"\xff\xf2"):
+        return "audio/mpeg"
     return None
 
 
@@ -490,7 +499,7 @@ def _read_files(request):
         f.seek(0)
         kind = _sniff(head, name)
         if kind is None:
-            return None, _err("bad_file", "This file type is not allowed. Use photos, PDF, Word or Excel files.", 400)
+            return None, _err("bad_file", "This file type is not allowed. Use photos, voice notes, PDF, Word or Excel files.", 400)
         out.append({"name": name, "content_type": kind, "size": f.size, "data": f.read()})
     return out, None
 
@@ -505,7 +514,8 @@ def attachment_file(request, pk):
     if att is None or _visible_post(sid, role, att.post_id) is None:
         return _err("not_found", "File not found.", 404)
     resp = HttpResponse(bytes(att.data), content_type=att.content_type)
-    disp = "inline" if att.content_type.startswith("image/") else "attachment"
+    inline = att.content_type.startswith(("image/", "audio/"))
+    disp = "inline" if inline else "attachment"
     resp["Content-Disposition"] = f"{disp}; filename*=UTF-8''{quote(att.name)}"
     resp["X-Content-Type-Options"] = "nosniff"
     resp["Cache-Control"] = "private, max-age=3600"

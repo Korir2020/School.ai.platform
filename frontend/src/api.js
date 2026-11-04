@@ -16,10 +16,20 @@ const post = (path, body) => fetch(`${BASE}${path}`, {
   credentials: "include",
 });
 
-export async function login(username, password) {
-  const r = await post("/api/auth/login/", { username, password });
+export async function login(username, password, remember = true, mfaCode = "") {
+  const body = { username, password, remember: !!remember };
+  if (mfaCode) body.mfa_code = mfaCode;
+  const r = await post("/api/auth/login/", body);
   if (r.status === 429) {
     throw new Error("Too many attempts. Wait a minute and try again.");
+  }
+  if (r.status === 401) {
+    const d = await r.json().catch(() => ({}));
+    if (d.mfa_required) {
+      const e = new Error(d.detail || "Enter the code from your authenticator app.");
+      e.mfa = true;
+      throw e;
+    }
   }
   if (!r.ok) throw new Error("Wrong username or password");
   access = (await r.json()).access;
@@ -54,7 +64,7 @@ async function flagSuspended(r) {
 export async function api(path, method = "GET", body) {
   const run = () => fetch(`${BASE}${path}`, {
     method,
-    headers: { ...J, Authorization: `Bearer ${access}` },
+    headers: access ? { ...J, Authorization: `Bearer ${access}` } : J,
     body: body ? JSON.stringify(body) : undefined,
     credentials: "include",
   });
@@ -66,7 +76,7 @@ export async function api(path, method = "GET", body) {
 }
 
 export async function upload(path, formData, timeoutMs) {
-  const run = () => fetch(`${BASE}${path}`, { method: "POST", headers: { Authorization: `Bearer ${access}` }, body: formData, credentials: "include", signal: timeoutMs ? AbortSignal.timeout(timeoutMs) : undefined });
+  const run = () => fetch(`${BASE}${path}`, { method: "POST", headers: access ? { Authorization: `Bearer ${access}` } : {}, body: formData, credentials: "include", signal: timeoutMs ? AbortSignal.timeout(timeoutMs) : undefined });
   if (!access) await refresh();
   let r = await run();
   if (r.status === 401 && (await refresh())) r = await run();

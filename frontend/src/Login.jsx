@@ -6,7 +6,7 @@ import "./login.css";
 import "./login-pro.css";
 
 const SUSPENDED = "This school's account is suspended. Contact Marian support.";
-const WRONG = "The username or password is incorrect. Check both and try again.";
+const WRONG = "The username, email or password is incorrect. Check them and try again.";
 const NETWORK = "We could not reach Marian. Check your connection and try again.";
 const LOCKED = "Too many sign-in attempts. Wait a minute, then try again.";
 const LOCK_MS = 60000;
@@ -25,15 +25,18 @@ function explain(err) {
   if (/suspended/i.test(m)) return ["suspended", SUSPENDED];
   if (/too many/i.test(m)) return ["locked", LOCKED];
   if (m === "Failed to fetch") return ["error", NETWORK];
-  return ["error", m || WRONG];
+  return ["error", /wrong username/i.test(m) || !m ? WRONG : m];
 }
 
-export default function Login({ onDone, onForgot }) {
+export default function Login({ onDone, onForgot, onBack, onJoin, onRegister }) {
   const [u, setU] = useState("");
   const [p, setP] = useState("");
   const [see, setSee] = useState(false);
+  const [keep, setKeep] = useState(() => { try { return localStorage.getItem("keep") !== "0"; } catch { return true; } });
   const [st, setSt] = useState("idle"); // idle | loading | success | error | locked | suspended
   const [msg, setMsg] = useState("");
+  const [needCode, setNeedCode] = useState(false);
+  const [code, setCode] = useState("");
   const timer = useRef(null);
 
   useEffect(() => {
@@ -43,7 +46,7 @@ export default function Login({ onDone, onForgot }) {
   }, []);
 
   const blocked = ["loading", "success", "locked", "suspended"].includes(st);
-  const ready = u.trim() && p.length >= 4;
+  const ready = u.trim() && p.length >= 4 && (!needCode || code.trim().length >= 6);
   const look = (e) => setTimeout(() => e.target.scrollIntoView({ block: "center", behavior: calm ? "auto" : "smooth" }), 350);
 
   const submit = async (e) => {
@@ -51,10 +54,17 @@ export default function Login({ onDone, onForgot }) {
     if (blocked || !ready) return;
     setMsg(""); setSt("loading");
     try {
-      await login(u.trim(), p);
+      try { localStorage.setItem("keep", keep ? "1" : "0"); } catch { /* storage blocked */ }
+      await login(u.trim(), p, keep, needCode ? code.trim() : "");
       setSt("success");
       setTimeout(onDone, 350);
     } catch (x) {
+      if (x && x.mfa) {
+        const first = !needCode;
+        setNeedCode(true); setCode(""); setSt("idle");
+        setMsg(first ? "" : x.message);
+        return;
+      }
       const [kind, text] = explain(x);
       setP(""); setMsg(text); setSt(kind);
       if (kind === "locked") timer.current = setTimeout(() => { setSt("idle"); setMsg(""); }, LOCK_MS);
@@ -86,7 +96,7 @@ export default function Login({ onDone, onForgot }) {
             <label htmlFor="lp-u">Username or email</label>
             <div className="lp-field">
               <Icon d={USER} />
-              <input id="lp-u" value={u} onChange={(e) => setU(e.target.value)} onFocus={look} autoComplete="username" autoCapitalize="none" disabled={blocked} />
+              <input id="lp-u" value={u} onChange={(e) => { setU(e.target.value); setNeedCode(false); }} onFocus={look} autoComplete="username" autoCapitalize="none" disabled={blocked} />
             </div>
             <label htmlFor="lp-p">Password</label>
             <div className="lp-field">
@@ -94,7 +104,18 @@ export default function Login({ onDone, onForgot }) {
               <input id="lp-p" type={see ? "text" : "password"} value={p} onChange={(e) => setP(e.target.value)} onFocus={look} autoComplete="current-password" disabled={blocked} />
               <button type="button" className="lp-eye" onClick={() => setSee(!see)} aria-pressed={see} aria-label={see ? "Hide password" : "Show password"}><Icon d={EYE} /></button>
             </div>
-            <div className="lp-row"><button type="button" className="lp-link" onClick={onForgot}>Forgot password?</button></div>
+            {needCode && <>
+              <label htmlFor="lp-c">Authenticator code</label>
+              <div className="lp-field">
+                <Icon d={LOCK} />
+                <input id="lp-c" value={code} onChange={(e) => setCode(e.target.value)} onFocus={look} inputMode="text" autoComplete="one-time-code" autoFocus disabled={blocked} />
+              </div>
+              <p className="lp-help">Two-step sign-in is on for this account. Enter the 6-digit code from your authenticator app, or one of your recovery codes.</p>
+            </>}
+            <div className="lp-row lp-row2">
+              <label className="lp-check"><input type="checkbox" checked={keep} onChange={(e) => setKeep(e.target.checked)} disabled={blocked} /> Remember me for 7 days</label>
+              <button type="button" className="lp-link" onClick={onForgot}>Forgot password?</button>
+            </div>
             {msg && <div className={"lp-alert " + (st === "locked" ? "warn" : "err")} role="alert">{msg}</div>}
             {st === "success" && <div className="lp-alert ok" role="status">Signed in. Loading your workspace…</div>}
             <button className="lp-btn" type="submit" disabled={blocked || !ready}>
@@ -102,8 +123,11 @@ export default function Login({ onDone, onForgot }) {
               {st === "idle" || st === "error" ? <Icon d={ARROW} /> : null}
             </button>
           </form>
-          <p className="lp-help">Need access to a school? <span>Ask your school administrator for an invitation.</span></p>
+          <p className="lp-help">Joining a school? <button type="button" className="lp-link" onClick={onJoin}>Get started with a School Code</button></p>
+          <p className="lp-help">New school? <button type="button" className="lp-link" onClick={onRegister}>Register your school</button></p>
+          {!keep && <p className="lp-help">You will be signed out when you close the browser. Use this on shared computers.</p>}
         </div>
+        <button type="button" className="lp-link lp-home" onClick={onBack}>← Back to the Marian website</button>
         <footer className="lp-foot">© Marian · Smarter Schools. Brighter Futures.</footer>
       </section>
     </main>

@@ -144,6 +144,63 @@ function PostCard({ post, me, acts }) {
 
 const MAX_FILES = 4;
 const MAX_BYTES = 5 * 1024 * 1024;
+const MAX_VOICE_SECONDS = 10 * 60;
+
+function mmss(sec) {
+  const m = Math.floor(sec / 60), s = Math.floor(sec % 60);
+  return m + ":" + (s < 10 ? "0" : "") + s;
+}
+
+// Records a voice note at low quality (about 2.4 MB for 10 minutes) and
+// hands it to the composer as an ordinary attachment.
+function useVoiceRecorder(onFile, onError) {
+  const [secs, setSecs] = useState(null);
+  const rec = useRef(null), timer = useRef(null), cancelled = useRef(false);
+  const supported = typeof window !== "undefined" && !!window.MediaRecorder
+    && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+  const stop = (cancel) => {
+    cancelled.current = !!cancel;
+    if (rec.current && rec.current.state !== "inactive") rec.current.stop();
+  };
+  const start = async () => {
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch {
+      onError("Microphone access was blocked. Allow it in your browser settings to record.");
+      return;
+    }
+    const types = ["audio/webm;codecs=opus", "audio/ogg;codecs=opus", "audio/mp4"];
+    const mimeType = types.find((t) => MediaRecorder.isTypeSupported(t)) || "";
+    const r = new MediaRecorder(stream, mimeType ? { mimeType, audioBitsPerSecond: 32000 } : undefined);
+    const chunks = [];
+    const began = Date.now();
+    cancelled.current = false;
+    r.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+    r.onstop = () => {
+      clearInterval(timer.current);
+      stream.getTracks().forEach((t) => t.stop());
+      setSecs(null);
+      if (cancelled.current || !chunks.length) return;
+      const type = (r.mimeType || "audio/webm").split(";")[0];
+      const ext = type.indexOf("mp4") >= 0 ? "m4a" : type.split("/")[1];
+      const blob = new Blob(chunks, { type });
+      if (blob.size > MAX_BYTES) { onError("This voice note is larger than 5 MB."); return; }
+      const stamp = new Date().toTimeString().slice(0, 5).replace(":", "");
+      onFile(new File([blob], "Voice note " + stamp + "." + ext, { type }));
+    };
+    r.start(1000);
+    rec.current = r;
+    setSecs(0);
+    timer.current = setInterval(() => {
+      const s = (Date.now() - began) / 1000;
+      setSecs(s);
+      if (s >= MAX_VOICE_SECONDS) stop(false);
+    }, 500);
+  };
+  useEffect(() => () => { clearInterval(timer.current); stop(true); }, []);
+  return { supported, recording: secs !== null, secs: secs || 0, start, stop };
+}
 
 function sizeText(n) {
   return n < 1048576 ? Math.max(1, Math.round(n / 1024)) + " KB" : (n / 1048576).toFixed(1) + " MB";
@@ -181,13 +238,14 @@ async function shrink(file) {
 
 function AttachmentView({ att }) {
   const isImg = att.type.indexOf("image/") === 0;
+  const isAudio = att.type.indexOf("audio/") === 0;
   const path = "/api/connect/attachments/" + att.id + "/";
   const [src, setSrc] = useState("");
   const [big, setBig] = useState(false);
   const [bad, setBad] = useState(false);
 
   useEffect(() => {
-    if (!isImg) return undefined;
+    if (!isImg && !isAudio) return undefined;
     let alive = true;
     let url = "";
     api(path)
@@ -203,7 +261,7 @@ function AttachmentView({ att }) {
       alive = false;
       if (url) URL.revokeObjectURL(url);
     };
-  }, [path, isImg]);
+  }, [path, isImg, isAudio]);
 
   const download = async () => {
     setBad(false);
@@ -223,6 +281,11 @@ function AttachmentView({ att }) {
     }
   };
 
+  if (isAudio) {
+    if (bad) return <span className="cn-meta">Could not load voice note.</span>;
+    if (!src) return <span className="cn-meta">Loading voice note...</span>;
+    return <audio className="cn-audio" controls preload="metadata" src={src} aria-label={att.name} />;
+  }
   if (isImg) {
     if (bad) return <span className="cn-meta">Could not load photo.</span>;
     if (!src) return <span className="cn-meta">Loading photo...</span>;
@@ -254,15 +317,17 @@ function AttachmentView({ att }) {
 }
 
 function Thumb({ file, onRemove }) {
-  const url = useMemo(() => (file.type.indexOf("image/") === 0 ? URL.createObjectURL(file) : ""), [file]);
+  const isAudio = file.type.indexOf("audio/") === 0;
+  const url = useMemo(() => (file.type.indexOf("image/") === 0 || file.type.indexOf("audio/") === 0 ? URL.createObjectURL(file) : ""), [file]);
   useEffect(() => {
     return () => {
       if (url) URL.revokeObjectURL(url);
     };
   }, [url]);
   return (
-    <div className="cn-thumb">
-      {url ? <img src={url} alt={file.name} /> : <span className="cn-doc">{file.name}</span>}
+    <div className={"cn-thumb" + (isAudio ? " cn-thumb-audio" : "")}>
+      {isAudio && url ? <audio className="cn-audio" controls preload="metadata" src={url} aria-label={"Listen before sending: " + file.name} />
+        : url ? <img src={url} alt={file.name} /> : <span className="cn-doc">{file.name}</span>}
       <button type="button" className="cn-x" aria-label={"Remove " + file.name} onClick={onRemove}>x</button>
     </div>
   );
@@ -279,6 +344,10 @@ function Composer({ me, events, onSend, onDone }) {
   const [err, setErr] = useState("");
   const pick = useRef(null);
   const box = useRef(null);
+  const voice = useVoiceRecorder(
+    (f) => { setErr(""); setFiles((prev) => [...prev, f].slice(0, MAX_FILES)); },
+    (m) => setErr(m),
+  );
 
   const add = async (list) => {
     setErr("");
@@ -363,13 +432,21 @@ function Composer({ me, events, onSend, onDone }) {
           ))}
         </div>
       )}
+      {voice.recording && (
+        <div className="cn-rec" role="status" aria-live="polite">
+          <span className="cn-rec-dot" aria-hidden="true" />
+          <span>Recording {mmss(voice.secs)} / {mmss(MAX_VOICE_SECONDS)}{voice.secs > MAX_VOICE_SECONDS - 30 ? " (ending soon)" : ""}</span>
+          <Button kind="secondary" size="sm" onClick={() => voice.stop(true)}>Cancel</Button>
+          <Button kind="teal" size="sm" onClick={() => voice.stop(false)}>Stop and attach</Button>
+        </div>
+      )}
       <div className="cn-row2">
         <input
           ref={pick}
           type="file"
           multiple
           hidden
-          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+          accept="image/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx"
           onChange={(e) => {
             add(e.target.files);
             e.target.value = "";
@@ -378,6 +455,12 @@ function Composer({ me, events, onSend, onDone }) {
         <button type="button" className="cn-ic" aria-label="Attach files" disabled={files.length >= MAX_FILES} onClick={() => pick.current && pick.current.click()}>
           <Ic><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" /></Ic>
         </button>
+        {voice.supported && (
+          <button type="button" className="cn-ic" aria-label="Record a voice note"
+            disabled={voice.recording || files.length >= MAX_FILES} onClick={voice.start}>
+            <Ic><rect x="9" y="2" width="6" height="12" rx="3" /><path d="M5 10a7 7 0 0 0 14 0" /><path d="M12 17v5" /></Ic>
+          </button>
+        )}
         {me.is_admin && (
           <button type="button" className="cn-ic" aria-label="Post options" aria-expanded={more} onClick={() => setMore(!more)}>
             <Ic><circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /></Ic>

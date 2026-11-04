@@ -326,3 +326,39 @@ urlpatterns += [
 
 from api.report_urls import report_urlpatterns  # noqa: E402
 urlpatterns += report_urlpatterns
+
+from api.demo_requests import demo_request_create  # noqa: E402
+urlpatterns += [path('api/demo-requests/', demo_request_create)]
+
+from api.student_movements import (
+    former_students, promotion_preview, promotion_run, promotion_years,
+    student_exit, student_movements, student_readmit)
+urlpatterns += [
+    path('api/promotions/years/', promotion_years),
+    path('api/promotions/preview/', promotion_preview),
+    path('api/promotions/run/', promotion_run),
+    path('api/students/former/', former_students),
+    path('api/students/<int:pk>/movements/', student_movements),
+    path('api/students/<int:pk>/exit/', student_exit),
+    path('api/students/<int:pk>/readmit/', student_readmit),
+]
+
+# Announcements, alert preferences, backups and school data export
+from api.announcements import (
+    alert_preferences, announcement_detail, announcement_preview, announcement_read,
+    announcement_retry, announcement_send, announcements)
+from api.backup import backup_status, full_backup, school_export_view, validate_backup
+
+urlpatterns += [
+    path('api/announcements/', announcements),
+    path('api/announcements/preview/', announcement_preview),
+    path('api/announcements/<int:pk>/', announcement_detail),
+    path('api/announcements/<int:pk>/send/', announcement_send),
+    path('api/announcements/<int:pk>/retry/', announcement_retry),
+    path('api/announcements/<int:pk>/read/', announcement_read),
+    path('api/me/alert-preferences/', alert_preferences),
+    path('api/backups/status/', backup_status),
+    path('api/backups/full/', full_backup),
+    path('api/backups/validate/', validate_backup),
+    path('api/school/export/', school_export_view),
+]

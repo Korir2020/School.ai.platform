@@ -91,3 +91,8 @@ body:has(.lp){background-color:#03140E}
 .lp-card>form{margin-top:16px}
 .lp-card>:last-child{margin-bottom:18px}
 .lp-field{background:#fff;border-color:var(--m-border)}
+.lp-row2{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.lp-check{display:inline-flex;align-items:center;gap:8px;font-size:.92rem;cursor:pointer;margin:0}
+.lp-check input{width:18px;height:18px;accent-color:var(--m-action)}
+.lp-home{display:block;margin:16px auto 0}
+.lp-help .lp-link{font-size:inherit}
