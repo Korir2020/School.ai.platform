@@ -78,4 +78,6 @@
 @media (max-width:700px){.cn-row2{padding-right:58px}}
 .cn .cn-post{-webkit-touch-callout:none}
 .cn .cn-time{margin-left:auto}
-.cn .cn-menu{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:8px;padding-top:8px;border-top:1px solid color-mix(in srgb,var(--blue) 20%,transparent)}
+.cn .cn-menu{display:flex;flex-direction:column;min-width:190px;margin-top:8px;padding:4px 0;border-radius:12px;background:var(--card);box-shadow:0 2px 10px rgba(0,0,0,.18);overflow:hidden}
+.cn .cn-menu .cn-link{display:block;width:100%;text-align:left;padding:12px 14px;min-height:44px;text-decoration:none;background:none;border:0;border-bottom:1px solid color-mix(in srgb,var(--blue) 14%,transparent);font:inherit;color:inherit;cursor:pointer}
+.cn .cn-menu .cn-link:last-child{border-bottom:0;opacity:.7}

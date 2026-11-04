@@ -64,7 +64,7 @@ function PostCard({ post, me, acts }) {
   return (
     <article onPointerDown={pressStart} onPointerMove={pressMove} onPointerUp={pressEnd} onPointerCancel={pressEnd} onPointerLeave={pressEnd} onContextMenu={menuOnRight} className={cls + (post.mine ? " mine" : "")}>
       <header className="cn-ph">
-        <span className="cn-av" aria-hidden="true" />
+        <span className="cn-av" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7z" /></svg></span>
         <b>{post.author}</b>
         {roleText && <span className="cn-tag">{roleText}</span>}
         {post.is_urgent && <span className="cn-tag cn-urgent">Urgent</span>}
