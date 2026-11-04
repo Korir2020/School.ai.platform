@@ -370,10 +370,6 @@ function Composer({ me, events, onSend, onDone }) {
           <Ic><path d="m22 2-7 20-4-9-9-4z" /><path d="M22 2 11 13" /></Ic>
         </button>
       </div>
-      <p className="cn-hint">
-        Please do not share phone numbers, emails or admission numbers.
-        {me.role === "parent" ? " You may mention your own child by name." : ""}
-      </p>
     </div>
   );
 }
