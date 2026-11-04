@@ -3,6 +3,7 @@ import sys
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError
 from django.db.models import Count, Q
+from django.http import HttpResponse
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -25,6 +26,7 @@ from api.suspension import SchoolNotSuspended
 from schools.models import (
     CalendarEvent,
     ConnectAck,
+    ConnectAttachment,
     ConnectChannel,
     ConnectMute,
     ConnectPost,
@@ -120,6 +122,10 @@ def _serialize(posts, viewer, role):
             .values_list("post_id")
             .annotate(n=Count("id"))
         )
+    atts = {}
+    att_rows = ConnectAttachment.objects.filter(post_id__in=ids).only("id", "post_id", "name", "content_type", "size").order_by("id")
+    for a in att_rows:
+        atts.setdefault(a.post_id, []).append({"id": a.id, "name": a.name, "type": a.content_type, "size": a.size})
     out = []
     for p in posts:
         author = users.get(p.author_id)
@@ -137,6 +143,7 @@ def _serialize(posts, viewer, role):
             "event": event_dict(events[p.event_id]) if p.event_id in events else None,
             "acknowledged": p.id in mine,
             "can_delete": role == ADMIN or p.author_id == viewer.id,
+            "attachments": atts.get(p.id, []),
         }
         if role == ADMIN:
             row["author_id"] = p.author_id
@@ -240,9 +247,12 @@ def _create_post(request, sid, role, channel):
     slow = _slow(request)
     if slow:
         return slow
+    files, bad_file = _read_files(request)
+    if bad_file is not None:
+        return bad_file
     body = request.data.get("body")
     try:
-        text = check_text(sid, role, request.user, body if isinstance(body, str) else "")
+        text = check_text(sid, role, request.user, body if isinstance(body, str) else "") if ((isinstance(body, str) and body.strip()) or not files) else ""
     except ConnectError as exc:
         return _err("post_rejected", str(exc), 400)
     pinned = role == ADMIN and _flag(request.data.get("is_pinned"))
@@ -260,6 +270,8 @@ def _create_post(request, sid, role, channel):
     post = ConnectPost.objects.create(
         channel=channel, author=request.user, body=text, is_pinned=pinned, is_urgent=urgent, event=event
     )
+    for f in files:
+        ConnectAttachment.objects.create(post=post, **f)
     return Response(_serialize([post], request.user, role)[0], status=201)
 
 
@@ -439,3 +451,63 @@ def member_mute(request, user_id):
         return Response(status=204)
     _, created = ConnectMute.objects.get_or_create(school_id=sid, user=target, defaults={"created_by": request.user})
     return Response({"muted": True}, status=201 if created else 200)
+
+
+# ---- Connect attachments ----
+from urllib.parse import quote
+
+MAX_FILE = 5 * 1024 * 1024
+MAX_FILES = 4
+DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+
+def _sniff(head, name):
+    ext = name.rsplit(".", 1)[-1].lower() if "." in name else ""
+    if head.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if head.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    if head[:4] == b"RIFF" and head[8:12] == b"WEBP":
+        return "image/webp"
+    if head.startswith(b"%PDF"):
+        return "application/pdf"
+    if head.startswith(b"PK\x03\x04"):
+        return {"docx": DOCX, "xlsx": XLSX}.get(ext)
+    if head.startswith(b"\xd0\xcf\x11\xe0"):
+        return {"doc": "application/msword", "xls": "application/vnd.ms-excel"}.get(ext)
+    return None
+
+
+def _read_files(request):
+    out = []
+    for f in request.FILES.getlist("files"):
+        if len(out) >= MAX_FILES:
+            return None, _err("too_many_files", "You can attach up to 4 files to one message.", 400)
+        if f.size > MAX_FILE:
+            return None, _err("file_too_big", "Each file must be 5 MB or smaller.", 400)
+        name = "".join(c for c in (f.name or "file").replace("\\", "/").split("/")[-1] if c.isprintable())[:200] or "file"
+        head = f.read(16)
+        f.seek(0)
+        kind = _sniff(head, name)
+        if kind is None:
+            return None, _err("bad_file", "This file type is not allowed. Use photos, PDF, Word or Excel files.", 400)
+        out.append({"name": name, "content_type": kind, "size": f.size, "data": f.read()})
+    return out, None
+
+
+@api_view(["GET"])
+@permission_classes(PERMS)
+def attachment_file(request, pk):
+    sid, role, bad = _ctx(request)
+    if bad:
+        return bad
+    att = ConnectAttachment.objects.filter(pk=pk).first()
+    if att is None or _visible_post(sid, role, att.post_id) is None:
+        return _err("not_found", "File not found.", 404)
+    resp = HttpResponse(bytes(att.data), content_type=att.content_type)
+    disp = "inline" if att.content_type.startswith("image/") else "attachment"
+    resp["Content-Disposition"] = f"{disp}; filename*=UTF-8''{quote(att.name)}"
+    resp["X-Content-Type-Options"] = "nosniff"
+    resp["Cache-Control"] = "private, max-age=3600"
+    return resp
