@@ -43,8 +43,9 @@ function PostCard({ post, me, kind, acts }) {
   const roleText = ROLE_TEXT[post.author_role];
   const cls = "cn-post" + (post.is_urgent ? " urgent" : "") + (post.hidden ? " hidden" : "");
   return (
-    <article className={cls}>
+    <article className={cls + (post.mine ? " mine" : "")}>
       <header className="cn-ph">
+        <span className="cn-av" aria-hidden="true">{(post.author || "?").trim().charAt(0).toUpperCase()}</span>
         <b>{post.author}</b>
         {roleText && <span className="cn-tag">{roleText}</span>}
         {post.is_urgent && <span className="cn-tag cn-urgent">Urgent</span>}
