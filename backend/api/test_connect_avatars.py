@@ -55,3 +55,12 @@ class AvatarTests(TestCase):
 
     def test_requires_login(self):
         self.assertIn(APIClient().post(f"{B}avatar/").status_code, (401, 403))
+
+    def test_get_own_picture(self):
+        c = self.client_for(self.admin)
+        self.assertEqual(c.get(f"{B}avatar/").status_code, 404)
+        self.assertEqual(self.upload(self.admin, png()).status_code, 200)
+        d = c.get(f"{B}avatar/")
+        self.assertEqual(d.status_code, 200)
+        self.assertEqual(d.content, PNG)
+        self.assertEqual(self.client_for(self.teacher).get(f"{B}avatar/").status_code, 404)

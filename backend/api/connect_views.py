@@ -519,12 +519,21 @@ MAX_AVATAR = 1024 * 1024
 AVATAR_TYPES = ("image/jpeg", "image/png", "image/webp")
 
 
-@api_view(["POST", "DELETE"])
+@api_view(["GET", "POST", "DELETE"])
 @permission_classes(PERMS)
 def my_avatar(request):
     sid, role, bad = _ctx(request)
     if bad:
         return bad
+    if request.method == "GET":
+        av = ConnectAvatar.objects.filter(user=request.user).first()
+        if av is None:
+            return _err("not_found", "No picture.", 404)
+        resp = HttpResponse(bytes(av.data), content_type=av.content_type)
+        resp["Content-Disposition"] = "inline"
+        resp["X-Content-Type-Options"] = "nosniff"
+        resp["Cache-Control"] = "private, no-cache"
+        return resp
     if request.method == "DELETE":
         ConnectAvatar.objects.filter(user=request.user).delete()
         return Response(status=204)
