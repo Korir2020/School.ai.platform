@@ -19,3 +19,7 @@ from django.urls import path as _att_path
 from api import connect_views as _att_views
 
 urlpatterns += [_att_path("attachments/<int:pk>/", _att_views.attachment_file)]
+urlpatterns += [
+    _att_path("avatar/", _att_views.my_avatar),
+    _att_path("posts/<int:pk>/avatar/", _att_views.post_avatar),
+]

@@ -122,6 +122,7 @@ def _serialize(posts, viewer, role):
             .values_list("post_id")
             .annotate(n=Count("id"))
         )
+    pics = dict(ConnectAvatar.objects.filter(user_id__in={q.author_id for q in posts if q.author_id}).values_list("user_id", "updated_at"))
     atts = {}
     att_rows = ConnectAttachment.objects.filter(post_id__in=ids).only("id", "post_id", "name", "content_type", "size").order_by("id")
     for a in att_rows:
@@ -136,6 +137,7 @@ def _serialize(posts, viewer, role):
             "body": p.body,
             "author": display_name(author, arole) if author else "Former member",
             "author_role": arole if author else "member",
+            "author_pic": int(pics[p.author_id].timestamp()) if p.author_id in pics else None,
             "mine": p.author_id == viewer.id,
             "is_pinned": p.is_pinned,
             "is_urgent": p.is_urgent,
@@ -505,6 +507,57 @@ def attachment_file(request, pk):
     resp = HttpResponse(bytes(att.data), content_type=att.content_type)
     disp = "inline" if att.content_type.startswith("image/") else "attachment"
     resp["Content-Disposition"] = f"{disp}; filename*=UTF-8''{quote(att.name)}"
+    resp["X-Content-Type-Options"] = "nosniff"
+    resp["Cache-Control"] = "private, max-age=3600"
+    return resp
+
+
+# ---- Connect profile pictures ----
+from schools.models import ConnectAvatar
+
+MAX_AVATAR = 1024 * 1024
+AVATAR_TYPES = ("image/jpeg", "image/png", "image/webp")
+
+
+@api_view(["POST", "DELETE"])
+@permission_classes(PERMS)
+def my_avatar(request):
+    sid, role, bad = _ctx(request)
+    if bad:
+        return bad
+    if request.method == "DELETE":
+        ConnectAvatar.objects.filter(user=request.user).delete()
+        return Response(status=204)
+    f = request.FILES.get("file")
+    if f is None:
+        return _err("no_file", "Choose a photo.", 400)
+    if f.size > MAX_AVATAR:
+        return _err("file_too_big", "The picture must be 1 MB or smaller.", 400)
+    head = f.read(16)
+    f.seek(0)
+    kind = _sniff(head, f.name or "")
+    if kind not in AVATAR_TYPES:
+        return _err("bad_file", "Use a JPEG, PNG or WebP photo.", 400)
+    ConnectAvatar.objects.update_or_create(
+        user=request.user,
+        defaults={"content_type": kind, "size": f.size, "data": f.read()},
+    )
+    return Response({"ok": True})
+
+
+@api_view(["GET"])
+@permission_classes(PERMS)
+def post_avatar(request, pk):
+    sid, role, bad = _ctx(request)
+    if bad:
+        return bad
+    post = _visible_post(sid, role, pk)
+    author_id = getattr(post, "author_id", None)
+    av = ConnectAvatar.objects.filter(user_id=author_id).first() if author_id else None
+    if av is None:
+        return _err("not_found", "No picture.", 404)
+    resp = HttpResponse(bytes(av.data), content_type=av.content_type)
+    resp["Content-Disposition"] = "inline"
     resp["X-Content-Type-Options"] = "nosniff"
     resp["Cache-Control"] = "private, max-age=3600"
     return resp

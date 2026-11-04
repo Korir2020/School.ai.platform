@@ -1128,3 +1128,11 @@ class ConnectAttachment(models.Model):
     size = models.PositiveIntegerField()
     data = models.BinaryField()
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+class ConnectAvatar(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="connect_avatar")
+    content_type = models.CharField(max_length=100)
+    size = models.PositiveIntegerField()
+    data = models.BinaryField()
+    updated_at = models.DateTimeField(auto_now=True)
