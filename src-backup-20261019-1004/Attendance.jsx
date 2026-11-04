@@ -1,0 +1,15 @@
+import { useEffect, useState } from "react";
+import { api, listAll } from "./api";
+import { useToast } from "./toastctx";
+import { Button, Card, Input, Loading, Select, Badge } from "./ui";
+
+export default function Attendance() {
+  const toast = useToast(); const [date, setDate] = useState(new Date().toISOString().slice(0, 10)); const [classId, setClassId] = useState(""); const [streamId, setStreamId] = useState(""); const [classes, setClasses] = useState([]), [streams, setStreams] = useState([]), [rows, setRows] = useState(null), [busy, setBusy] = useState(false);
+  const load = async () => { const qs = new URLSearchParams({ date, ...(classId && { class_level_id: classId }), ...(streamId && { stream_id: streamId }) }); const r = await api(`/api/attendance/?${qs}`); if (r.ok) setRows((await r.json()).students); };
+  useEffect(() => { Promise.all([listAll("/api/class-levels/"), listAll("/api/streams/")]).then(([c, s]) => { setClasses(c); setStreams(s); }); }, []);
+  useEffect(() => { load(); }, [date, classId, streamId]);
+  const setStatus = (id, status) => setRows(rows.map(x => x.id === id ? { ...x, status } : x));
+  const save = async () => { setBusy(true); const r = await api("/api/attendance/", "POST", { date, records: rows.map(x => ({ student_id: x.id, status: x.status, notes: x.notes })) }); setBusy(false); toast(r.ok ? "Attendance saved" : "Could not save attendance", r.ok ? "ok" : "err"); if (r.ok) load(); };
+  if (!rows) return <Loading />;
+  return <div className="attendance-page"><div className="analytics-heading"><div><h2>Attendance</h2><p className="sub">Record present, absent, late, and excused statuses for a school day.</p></div><Button kind="teal" busy={busy} onClick={save}>Save attendance</Button></div><Card title="Attendance filters"><div className="analytics-filters"><Input label="Date" type="date" value={date} onChange={e => setDate(e.target.value)} /><Select label="Class level" value={classId} onChange={e => setClassId(e.target.value)}><option value="">All classes</option>{classes.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}</Select><Select label="Stream" value={streamId} onChange={e => setStreamId(e.target.value)}><option value="">All streams</option>{streams.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}</Select></div></Card><Card title={`${rows.length} students`}><div className="attendance-list">{rows.map(x => <div className="attendance-row" key={x.id}><span><b>{x.name}</b><small>{x.admission_number}</small></span><div className="attendance-statuses">{[["present", "Present", "ok"], ["absent", "Absent", "danger"], ["late", "Late", "warn"], ["excused", "Excused", "info"]].map(([value, label, kind]) => <button className={x.status === value ? `selected ${kind}` : ""} key={value} type="button" onClick={() => setStatus(x.id, value)}>{label}</button>)}</div><Badge kind={x.status === "present" ? "ok" : x.status === "late" ? "warn" : x.status === "excused" ? "info" : "danger"}>{x.status}</Badge></div>)}</div></Card></div>;
+}

@@ -135,3 +135,32 @@
 /* compact buttons: one shared size for the whole app */
 .mu-btn{height:36px;min-height:36px;padding:0 16px;font-size:13px;font-weight:600;line-height:1;border-radius:999px}
 .mu-btn.sm{height:36px;min-height:36px;padding:0 16px;font-size:13px}
+
+/* ===== Forest & cream buttons ===== */
+.mu-btn{background:#0E5238;color:#fff;border:1.5px solid #0E5238;font-weight:700;letter-spacing:-.005em;border-radius:999px;transition:background .15s,transform .05s}
+.mu-btn:hover{background:#0A3326;border-color:#0A3326}
+.mu-btn:active{transform:translateY(1px)}
+.mu-btn.teal{background:#0E5238;border-color:#0E5238}
+.mu-btn.teal:hover{background:#0A3326;border-color:#0A3326}
+.mu-btn.secondary{background:transparent;color:#0E5238;border:1.5px solid #0E5238}
+.mu-btn.secondary:hover{background:#DCEBDD}
+.mu-btn.ghost{color:#0E5238}
+.mu-btn.ghost:hover{background:#DCEBDD}
+.mu-btn.danger{background:#B3261E;border-color:#B3261E;color:#fff}
+.mu-btn.danger:hover{background:#8E1D17;border-color:#8E1D17}
+.mu-btn:focus-visible{outline:3px solid #C6F26B;outline-offset:2px}
+.d2-banner .mu-btn,.mu-side .mu-btn,.mu-app .mu-user .mu-btn{background:#C6F26B;border-color:#C6F26B;color:#0A3326}
+.d2-banner .mu-btn:hover,.mu-side .mu-btn:hover,.mu-app .mu-user .mu-btn:hover{background:#B2E24F;border-color:#B2E24F}
+.mu-app .mu-user .mu-btn{background:transparent;border-color:rgba(255,255,255,.35);color:#fff}
+.mu-app .mu-user .mu-btn:hover{background:rgba(255,255,255,.12);border-color:#C6F26B}
+
+/* ===== Forest & cream badges + empty states ===== */
+.mu-badge{font-weight:700;letter-spacing:.01em;border-radius:999px;padding:3px 11px}
+.mu-badge.ok{background:#DFF0C0;color:#1F5A2A}
+.mu-badge.warn{background:#F8E8A8;color:#6B4E00}
+.mu-badge.err{background:#F9D9D2;color:#9A2A1A}
+.mu-badge.info{background:#DCEBDD;color:#0E5238}
+.mu-badge.teal{background:#0E5238;color:#C6F26B}
+.mu-empty,.kt-empty{background:#FFFEF4;border:1.5px dashed #BFD3C2;border-radius:16px;color:#4C6A5D}
+.mu-empty b{color:#0E2A21;font-size:1.05rem;font-weight:800;letter-spacing:-.01em}
+.kt-empty h4{font-size:1.15rem;font-weight:800;letter-spacing:-.01em;color:#0E2A21}

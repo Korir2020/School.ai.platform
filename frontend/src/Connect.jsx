@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
-import { api } from "./api";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { api, upload } from "./api";
 import { Alert, Button, ConfirmDialog, EmptyState, ErrorState, Loading, Select } from "./ui";
 import "./connect.css";
 
@@ -43,8 +43,9 @@ function PostCard({ post, me, kind, acts }) {
   const roleText = ROLE_TEXT[post.author_role];
   const cls = "cn-post" + (post.is_urgent ? " urgent" : "") + (post.hidden ? " hidden" : "");
   return (
-    <article className={cls}>
+    <article className={cls + (post.mine ? " mine" : "")}>
       <header className="cn-ph">
+        <span className="cn-av" aria-hidden="true">{(post.author || "?").trim().charAt(0).toUpperCase()}</span>
         <b>{post.author}</b>
         {roleText && <span className="cn-tag">{roleText}</span>}
         {post.is_urgent && <span className="cn-tag cn-urgent">Urgent</span>}
@@ -52,7 +53,14 @@ function PostCard({ post, me, kind, acts }) {
         {post.hidden && <span className="cn-tag cn-urgent">Hidden</span>}
         <time className="cn-time" dateTime={post.created_at}>{when(post.created_at)}</time>
       </header>
-      <p className="cn-body">{post.body}</p>
+      {post.body && <p className="cn-body">{post.body}</p>}
+      {post.attachments && post.attachments.length > 0 && (
+        <div className="cn-atts">
+          {post.attachments.map((a) => (
+            <AttachmentView key={a.id} att={a} />
+          ))}
+        </div>
+      )}
       {post.event && (
         <p className="cn-event">
           <b>{post.event.title}</b> {day(post.event.start_date)}
@@ -90,49 +98,204 @@ function PostCard({ post, me, kind, acts }) {
   );
 }
 
-function Composer({ me, events, onSend, onDone }) {
-  const [text, setText] = useState("");
-  const [urgent, setUrgent] = useState(false);
-  const [pin, setPin] = useState(false);
-  const [eventId, setEventId] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState("");
+const MAX_FILES = 4;
+const MAX_BYTES = 5 * 1024 * 1024;
 
-  const send = async () => {
-    setBusy(true);
-    setErr("");
-    const payload = { body: text };
-    if (me.is_admin) {
-      payload.is_urgent = urgent;
-      payload.is_pinned = pin;
-      payload.event_id = eventId || null;
-    }
+function sizeText(n) {
+  return n < 1048576 ? Math.max(1, Math.round(n / 1024)) + " KB" : (n / 1048576).toFixed(1) + " MB";
+}
+
+function Ic({ children }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {children}
+    </svg>
+  );
+}
+
+async function shrink(file) {
+  if (file.type.indexOf("image/") !== 0 || file.type === "image/gif") return file;
+  try {
+    const bmp = await createImageBitmap(file);
+    const scale = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+    const w = Math.round(bmp.width * scale);
+    const h = Math.round(bmp.height * scale);
+    const c = document.createElement("canvas");
+    c.width = w;
+    c.height = h;
+    const g = c.getContext("2d");
+    g.fillStyle = "#fff";
+    g.fillRect(0, 0, w, h);
+    g.drawImage(bmp, 0, 0, w, h);
+    const blob = await new Promise((res) => c.toBlob(res, "image/jpeg", 0.82));
+    if (!blob || blob.size >= file.size) return file;
+    return new File([blob], file.name.replace(/\.[^.]+$/, "") + ".jpg", { type: "image/jpeg" });
+  } catch {
+    return file;
+  }
+}
+
+function AttachmentView({ att }) {
+  const isImg = att.type.indexOf("image/") === 0;
+  const path = "/api/connect/attachments/" + att.id + "/";
+  const [src, setSrc] = useState("");
+  const [big, setBig] = useState(false);
+  const [bad, setBad] = useState(false);
+
+  useEffect(() => {
+    if (!isImg) return undefined;
+    let alive = true;
+    let url = "";
+    api(path)
+      .then(async (r) => {
+        if (!r.ok) throw new Error("load");
+        url = URL.createObjectURL(await r.blob());
+        if (alive) setSrc(url);
+      })
+      .catch(() => {
+        if (alive) setBad(true);
+      });
+    return () => {
+      alive = false;
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [path, isImg]);
+
+  const download = async () => {
+    setBad(false);
     try {
-      await onSend(payload);
-      onDone();
-    } catch (e) {
-      setErr(e.message);
-      setBusy(false);
+      const r = await api(path);
+      if (!r.ok) throw new Error("load");
+      const url = URL.createObjectURL(await r.blob());
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = att.name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    } catch {
+      setBad(true);
     }
   };
 
+  if (isImg) {
+    if (bad) return <span className="cn-meta">Could not load photo.</span>;
+    if (!src) return <span className="cn-meta">Loading photo...</span>;
+    return (
+      <>
+        <button type="button" className="cn-img" onClick={() => setBig(true)} aria-label={"Open photo " + att.name}>
+          <img src={src} alt={att.name} />
+        </button>
+        {big && (
+          <button type="button" className="cn-lightbox" onClick={() => setBig(false)} aria-label="Close photo">
+            <img src={src} alt={att.name} />
+          </button>
+        )}
+      </>
+    );
+  }
   return (
-    <div className="cn-compose">
-      <label className="mu-label" htmlFor="cn-text">Your post</label>
-      <textarea
-        id="cn-text"
-        className="cn-text"
-        rows={4}
-        maxLength={MAX}
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-      />
-      <p className="cn-hint">
-        {text.length + "/" + MAX}. Please do not share phone numbers, emails or admission numbers.
-        {me.role === "parent" ? " You may mention your own child by name." : ""}
-      </p>
-      {me.is_admin && (
-        <>
+    <>
+      <button type="button" className="cn-file" onClick={download}>
+        <Ic>
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <path d="M14 2v6h6" />
+        </Ic>
+        <span>{att.name} - {sizeText(att.size)}</span>
+      </button>
+      {bad && <span className="cn-meta">Could not open file.</span>}
+    </>
+  );
+}
+
+function Thumb({ file, onRemove }) {
+  const url = useMemo(() => (file.type.indexOf("image/") === 0 ? URL.createObjectURL(file) : ""), [file]);
+  useEffect(() => {
+    return () => {
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [url]);
+  return (
+    <div className="cn-thumb">
+      {url ? <img src={url} alt={file.name} /> : <span className="cn-doc">{file.name}</span>}
+      <button type="button" className="cn-x" aria-label={"Remove " + file.name} onClick={onRemove}>x</button>
+    </div>
+  );
+}
+
+function Composer({ me, events, onSend, onDone }) {
+  const [text, setText] = useState("");
+  const [files, setFiles] = useState([]);
+  const [urgent, setUrgent] = useState(false);
+  const [pin, setPin] = useState(false);
+  const [eventId, setEventId] = useState("");
+  const [more, setMore] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const pick = useRef(null);
+  const box = useRef(null);
+
+  const add = async (list) => {
+    setErr("");
+    const chosen = Array.from(list);
+    const room = MAX_FILES - files.length;
+    if (chosen.length > room) setErr("You can attach up to " + MAX_FILES + " files to one message.");
+    const next = [];
+    for (const f of chosen.slice(0, Math.max(room, 0))) {
+      const g = await shrink(f);
+      if (g.size > MAX_BYTES) {
+        setErr(f.name + " is larger than 5 MB.");
+        continue;
+      }
+      next.push(g);
+    }
+    if (next.length) setFiles((prev) => [...prev, ...next].slice(0, MAX_FILES));
+  };
+
+  const send = async () => {
+    if (busy) return;
+    if (!text.trim() && files.length === 0) return;
+    setBusy(true);
+    setErr("");
+    const fd = new FormData();
+    fd.append("body", text);
+    if (me.is_admin) {
+      fd.append("is_urgent", urgent ? "true" : "false");
+      fd.append("is_pinned", pin ? "true" : "false");
+      if (eventId) fd.append("event_id", eventId);
+    }
+    files.forEach((f) => fd.append("files", f, f.name));
+    try {
+      const r = await onSend(fd);
+      if (!r.ok) {
+        let m = "";
+        try {
+          m = (await r.json()).message;
+        } catch {
+          m = "";
+        }
+        throw new Error(m || "Something went wrong. Please try again.");
+      }
+      setText("");
+      setFiles([]);
+      setUrgent(false);
+      setPin(false);
+      setEventId("");
+      setMore(false);
+      if (box.current) box.current.style.height = "auto";
+      onDone();
+    } catch (e) {
+      setErr(e.name === "TimeoutError" ? "The upload took too long. Check your connection and try again." : e.message);
+    }
+    setBusy(false);
+  };
+
+  return (
+    <div className="cn-bar">
+      {err && <Alert kind="err">{err}</Alert>}
+      {me.is_admin && more && (
+        <div className="cn-more">
           <label className="cn-check">
             <input type="checkbox" checked={urgent} onChange={(e) => setUrgent(e.target.checked)} />
             Mark as urgent
@@ -147,13 +310,57 @@ function Composer({ me, events, onSend, onDone }) {
               <option key={ev.id} value={ev.id}>{ev.title + " (" + day(ev.start_date) + ")"}</option>
             ))}
           </Select>
-        </>
+        </div>
       )}
-      {err && <Alert kind="err">{err}</Alert>}
-      <div className="cn-pa">
-        <Button kind="teal" busy={busy} onClick={send}>Post</Button>
-        <Button kind="secondary" onClick={onDone}>Cancel</Button>
+      {files.length > 0 && (
+        <div className="cn-files">
+          {files.map((f, i) => (
+            <Thumb key={f.name + i + f.size} file={f} onRemove={() => setFiles((prev) => prev.filter((_, j) => j !== i))} />
+          ))}
+        </div>
+      )}
+      <div className="cn-row2">
+        <input
+          ref={pick}
+          type="file"
+          multiple
+          hidden
+          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+          onChange={(e) => {
+            add(e.target.files);
+            e.target.value = "";
+          }}
+        />
+        <button type="button" className="cn-ic" aria-label="Attach files" disabled={files.length >= MAX_FILES} onClick={() => pick.current && pick.current.click()}>
+          <Ic><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" /></Ic>
+        </button>
+        {me.is_admin && (
+          <button type="button" className="cn-ic" aria-label="Post options" aria-expanded={more} onClick={() => setMore(!more)}>
+            <Ic><circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /></Ic>
+          </button>
+        )}
+        <textarea
+          ref={box}
+          className="cn-msg"
+          rows={1}
+          maxLength={MAX}
+          placeholder="Type a message..."
+          aria-label="Message"
+          value={text}
+          onChange={(e) => {
+            setText(e.target.value);
+            e.target.style.height = "auto";
+            e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
+          }}
+        />
+        <button type="button" className="cn-send" aria-label="Send" disabled={busy || (!text.trim() && files.length === 0)} onClick={send}>
+          <Ic><path d="m22 2-7 20-4-9-9-4z" /><path d="M22 2 11 13" /></Ic>
+        </button>
       </div>
+      <p className="cn-hint">
+        Please do not share phone numbers, emails or admission numbers.
+        {me.role === "parent" ? " You may mention your own child by name." : ""}
+      </p>
     </div>
   );
 }
@@ -169,7 +376,6 @@ function ChatPanel({ channel, me, onSeen }) {
   const [query, setQuery] = useState("");
   const [events, setEvents] = useState([]);
   const [pending, setPending] = useState(null);
-  const [writing, setWriting] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
 
   const base = "/api/connect/channels/" + channel.id + "/posts/";
@@ -286,6 +492,16 @@ function ChatPanel({ channel, me, onSeen }) {
     setLoadingMore(false);
   };
 
+  const newestId = feed.posts.length ? feed.posts[0].id : 0;
+  useEffect(() => {
+    if (!ready) return undefined;
+    const t = setTimeout(() => {
+      const el = document.getElementById("cn-end");
+      if (el) el.scrollIntoView({ block: "end" });
+    }, 60);
+    return () => clearTimeout(t);
+  }, [ready, newestId]);
+
   if (!ready && !err) return <Loading />;
   const pinIds = new Set(query ? [] : pinned.map((p) => p.id));
   const shown = feed.posts.filter((p) => !pinIds.has(p.id));
@@ -306,18 +522,6 @@ function ChatPanel({ channel, me, onSeen }) {
         {query && <Button kind="secondary" size="sm" onClick={clearSearch}>Clear</Button>}
       </form>
       {note && <Alert kind={note.kind}>{note.text}</Alert>}
-      {canPost && !writing && <Button kind="teal" onClick={() => setWriting(true)}>Write a post</Button>}
-      {canPost && writing && (
-        <Composer
-          me={me}
-          events={events}
-          onSend={(body) => call(base, "POST", body)}
-          onDone={() => {
-            setWriting(false);
-            refresh();
-          }}
-        />
-      )}
       {!canPost && (
         <p className="cn-hint">
           {me.muted ? "You have been muted by a school administrator." : "Only school administrators post in this channel."}
@@ -332,18 +536,22 @@ function ChatPanel({ channel, me, onSeen }) {
         </section>
       )}
       <h3 className="cn-h">{query ? "Search results" : "Latest"}</h3>
-      {shown.length === 0 && pinIds.size === 0 && (
+      {feed.hasMore && (
+          <Button kind="secondary" busy={loadingMore} onClick={loadEarlier}>Show earlier posts</Button>
+        )}
+        {shown.length === 0 && pinIds.size === 0 && (
         <EmptyState
           title={query ? "No matching posts" : "No posts yet"}
           text={query ? "Try a different word." : "Posts from the school will appear here."}
         />
       )}
-      {shown.map((p) => (
+      {[...shown].reverse().map((p) => (
         <PostCard key={p.id} post={p} me={me} kind={channel.kind} acts={acts} />
       ))}
-      {feed.hasMore && (
-        <Button kind="secondary" busy={loadingMore} onClick={loadEarlier}>Show earlier posts</Button>
-      )}
+      <div id="cn-end" />
+        {canPost && (
+          <Composer me={me} events={events} onSend={(fd) => upload(base, fd, 60000)} onDone={refresh} />
+        )}
       {pending && (
         <ConfirmDialog
           title={pending.title}

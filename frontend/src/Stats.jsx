@@ -1,12 +1,11 @@
-import { StatCard, Card, Badge } from "./ui";
+import { StatCard, Card } from "./ui";
 import "./dashboard.css";
 
 const K = ["draft", "submitted", "approved", "locked"];
-const kinds = { draft: "info", submitted: "warn", approved: "ok", locked: "teal" };
-const hues = { draft: "#3B82F6", submitted: "#F59E0B", approved: "#16A34A",
-  locked: "#0F8B8D" };
-const meter = { display: "flex", height: 10, borderRadius: 6,
-  overflow: "hidden", background: "#E2E8F0", margin: "8px 0" };
+const hues = { draft: "#8FB5A0", submitted: "#E0B84A", approved: "#1F7A55",
+  locked: "#0A3326" };
+const meter = { display: "flex", height: 10, borderRadius: 0,
+  overflow: "hidden", background: "#E2DFA8", margin: "8px 0" };
 
 export default function Stats({ d }) {
   const adm = d.role === "school_admin", x = d.exams || {};
@@ -38,7 +37,7 @@ export default function Stats({ d }) {
             background: hues[k] }} /> : null))}
         </div>
         <div>
-          {K.map((k) => <Badge key={k} kind={kinds[k]}>{k} {m[k] || 0}</Badge>)}
+          <div className="st-grid">{K.map((k) => { const n = m[k] || 0; const done = (k === "approved" || k === "locked") && n > 0; return (<div key={k} className={"st-box st-" + k + (done ? " done" : "")}><span className="st-tick"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 4.8" /></svg></span><b>{n}</b><small>{k}</small></div>); })}</div>
         </div>
         {!tot && <p>No marks entered this term yet.</p>}
       </Card>

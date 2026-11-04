@@ -13,3 +13,9 @@ urlpatterns = [
     path("members/", v.members),
     path("members/<int:user_id>/mute/", v.member_mute),
 ]
+
+
+from django.urls import path as _att_path
+from api import connect_views as _att_views
+
+urlpatterns += [_att_path("attachments/<int:pk>/", _att_views.attachment_file)]
