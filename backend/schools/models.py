@@ -1118,3 +1118,13 @@ class ConnectRead(models.Model):
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=["user", "channel"], name="connect_read_unique")]
+
+
+class ConnectAttachment(models.Model):
+    id = models.BigAutoField(primary_key=True)
+    post = models.ForeignKey(ConnectPost, on_delete=models.CASCADE, related_name="attachments")
+    name = models.CharField(max_length=200)
+    content_type = models.CharField(max_length=100)
+    size = models.PositiveIntegerField()
+    data = models.BinaryField()
+    created_at = models.DateTimeField(auto_now_add=True)
