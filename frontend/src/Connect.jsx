@@ -37,15 +37,34 @@ function mergeFeed(prev, d) {
   return { posts: d.posts.concat(older), hasMore: older.length ? prev.hasMore : true };
 }
 
-function PostCard({ post, me, kind, acts }) {
+function PostCard({ post, me, acts }) {
   const [open, setOpen] = useState(false);
+  const timer = useRef(null);
+  const pressAt = useRef({ x: 0, y: 0 });
   const admin = me.is_admin;
+  const hasMenu = !post.mine || post.can_delete || admin;
+  const pressStart = (e) => {
+    if (!hasMenu || e.target.closest("a,button,video,audio")) return;
+    pressAt.current = { x: e.clientX, y: e.clientY };
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => setOpen(true), 500);
+  };
+  const pressMove = (e) => {
+    if (Math.abs(e.clientX - pressAt.current.x) > 8 || Math.abs(e.clientY - pressAt.current.y) > 8) clearTimeout(timer.current);
+  };
+  const pressEnd = () => clearTimeout(timer.current);
+  const menuOnRight = (e) => {
+    if (!hasMenu || e.target.closest("a,video,audio")) return;
+    e.preventDefault();
+    clearTimeout(timer.current);
+    setOpen(true);
+  };
   const roleText = ROLE_TEXT[post.author_role];
   const cls = "cn-post" + (post.is_urgent ? " urgent" : "") + (post.hidden ? " hidden" : "");
   return (
-    <article className={cls + (post.mine ? " mine" : "")}>
+    <article onPointerDown={pressStart} onPointerMove={pressMove} onPointerUp={pressEnd} onPointerCancel={pressEnd} onPointerLeave={pressEnd} onContextMenu={menuOnRight} className={cls + (post.mine ? " mine" : "")}>
       <header className="cn-ph">
-        <span className="cn-av" aria-hidden="true">{(post.author || "?").trim().charAt(0).toUpperCase()}</span>
+        <span className="cn-av" aria-hidden="true" />
         <b>{post.author}</b>
         {roleText && <span className="cn-tag">{roleText}</span>}
         {post.is_urgent && <span className="cn-tag cn-urgent">Urgent</span>}
@@ -67,31 +86,25 @@ function PostCard({ post, me, kind, acts }) {
           {post.event.end_date ? " to " + day(post.event.end_date) : ""}
         </p>
       )}
-      <div className="cn-pa">
-        {kind === "notices" && (post.acknowledged
-          ? <span className="cn-ok">Acknowledged</span>
-          : <Button kind="secondary" size="sm" onClick={() => acts.ack(post)}>Acknowledge</Button>)}
-        {admin && kind === "notices" && <span className="cn-meta">Acknowledged by {post.ack_count}</span>}
-        {admin && post.report_count > 0 && (
-          <span className="cn-tag cn-urgent">{post.report_count + (post.report_count === 1 ? " report" : " reports")}</span>
-        )}
-        {!post.mine && <button type="button" className="cn-link" onClick={() => acts.report(post)}>Report</button>}
-        {post.can_delete && <button type="button" className="cn-link" onClick={() => acts.remove(post)}>Delete</button>}
-        {admin && (
-          <button type="button" className="cn-link" aria-expanded={open} onClick={() => setOpen(!open)}>Manage</button>
-        )}
-      </div>
-      {admin && open && (
+      {admin && post.report_count > 0 && (
         <div className="cn-pa">
-          <button type="button" className="cn-link" onClick={() => acts.patch(post, { is_pinned: !post.is_pinned })}>
-            {post.is_pinned ? "Unpin" : "Pin"}
-          </button>
-          <button type="button" className="cn-link" onClick={() => acts.patch(post, { is_urgent: !post.is_urgent })}>
-            {post.is_urgent ? "Clear urgent" : "Mark urgent"}
-          </button>
-          <button type="button" className="cn-link" onClick={() => acts.patch(post, { hidden: !post.hidden })}>
-            {post.hidden ? "Show again" : "Hide from members"}
-          </button>
+          <span className="cn-tag cn-urgent">
+            {post.report_count} {post.report_count === 1 ? "report" : "reports"}
+          </span>
+        </div>
+      )}
+      {open && hasMenu && (
+        <div className="cn-menu" role="menu">
+          {!post.mine && <button type="button" role="menuitem" className="cn-link" onClick={() => { setOpen(false); acts.report(post); }}>Report</button>}
+          {post.can_delete && <button type="button" role="menuitem" className="cn-link" onClick={() => { setOpen(false); acts.remove(post); }}>Delete</button>}
+          {admin && (
+            <>
+              <button type="button" role="menuitem" className="cn-link" onClick={() => { setOpen(false); acts.patch(post, { is_pinned: !post.is_pinned }); }}>{post.is_pinned ? "Unpin" : "Pin"}</button>
+              <button type="button" role="menuitem" className="cn-link" onClick={() => { setOpen(false); acts.patch(post, { is_urgent: !post.is_urgent }); }}>{post.is_urgent ? "Clear urgent" : "Mark urgent"}</button>
+              <button type="button" role="menuitem" className="cn-link" onClick={() => { setOpen(false); acts.patch(post, { hidden: !post.hidden }); }}>{post.hidden ? "Show again" : "Hide from members"}</button>
+            </>
+          )}
+          <button type="button" className="cn-link" onClick={() => setOpen(false)}>Close</button>
         </div>
       )}
     </article>
@@ -456,7 +469,7 @@ function ChatPanel({ channel, me, onSeen }) {
     remove: (p) =>
       setPending({
         title: "Delete this post?",
-        text: "It will no longer be shown to members.",
+        text: "This permanently deletes the post. It cannot be undone.",
         confirm: "Delete",
         danger: true,
         run: () => call("/api/connect/posts/" + p.id + "/", "DELETE"),
@@ -535,7 +548,7 @@ function ChatPanel({ channel, me, onSeen }) {
           ))}
         </section>
       )}
-      <h3 className="cn-h">{query ? "Search results" : "Latest"}</h3>
+      {query && <h3 className="cn-h">Search results</h3>}
       {feed.hasMore && (
           <Button kind="secondary" busy={loadingMore} onClick={loadEarlier}>Show earlier posts</Button>
         )}
