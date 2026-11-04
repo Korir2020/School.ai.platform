@@ -1136,3 +1136,34 @@ class ConnectAvatar(models.Model):
     size = models.PositiveIntegerField()
     data = models.BinaryField()
     updated_at = models.DateTimeField(auto_now=True)
+
+
+class FeedbackEntry(models.Model):
+    """Feedback from a Connect member to the Marian owner. Typed text only."""
+
+    KINDS = [
+        ("rating", "Rating"),
+        ("idea", "Idea"),
+        ("problem", "Problem"),
+        ("review", "Review"),
+    ]
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="feedback_entries")
+    school = models.ForeignKey("School", null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    role = models.CharField(max_length=20, blank=True, default="")
+    kind = models.CharField(max_length=10, choices=KINDS)
+    rating = models.PositiveSmallIntegerField(null=True, blank=True)
+    text = models.CharField(max_length=1000, blank=True, default="")
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user"],
+                condition=models.Q(kind="rating"),
+                name="feedback_one_rating_per_user",
+            ),
+        ]
