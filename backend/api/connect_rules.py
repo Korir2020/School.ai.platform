@@ -4,6 +4,7 @@ from django.db.models.functions import Lower
 
 from api import connect_guard as g
 from schools.models import (
+    StaffProfile,
     ConnectChannel,
     ConnectMute,
     Enrollment,
@@ -15,12 +16,13 @@ from schools.models import (
 )
 
 ADMIN, TEACHER, PARENT = "admin", "teacher", "parent"
+BURSAR = "bursar"
 MAX_POST = 2000
 DEFAULT_CHANNELS = [
     ("School Notices", "Official notices from the school. Only school administrators post here.", "notices"),
     ("Parents Community", "Introductions and discussion between parents and staff.", "community"),
 ]
-ROLE_LABEL = {ADMIN: "School admin", TEACHER: "Teacher", PARENT: "Parent"}
+ROLE_LABEL = {ADMIN: "School admin", TEACHER: "Teacher", PARENT: "Parent", BURSAR: "Bursar"}
 
 
 class ConnectError(Exception):
@@ -43,6 +45,9 @@ def membership(user):
     teacher = TeacherProfile.objects.filter(user=user).first()
     if teacher:
         return teacher.school_id, TEACHER
+    bursar = StaffProfile.objects.filter(user=user, role="bursar").first()
+    if bursar:
+        return bursar.school_id, BURSAR
     guardian = GuardianProfile.objects.filter(user=user).first()
     if guardian and linked_children(guardian).exists():
         return guardian.school_id, PARENT
@@ -64,7 +69,7 @@ def ensure_default_channels(school_id):
 def can_post(channel, role):
     if channel.kind == "notices":
         return role == ADMIN
-    return role in (ADMIN, TEACHER, PARENT)
+    return role in (ADMIN, TEACHER, PARENT, BURSAR)
 
 
 def is_muted(school_id, user):
@@ -76,6 +81,8 @@ def roles_for(user_ids):
     out = {}
     for uid in TeacherProfile.objects.filter(user_id__in=ids).values_list("user_id", flat=True):
         out[uid] = TEACHER
+    for uid in StaffProfile.objects.filter(user_id__in=ids, role="bursar").values_list("user_id", flat=True):
+        out[uid] = BURSAR
     for uid in SchoolAdminProfile.objects.filter(user_id__in=ids).values_list("user_id", flat=True):
         out[uid] = ADMIN
     for uid in ids:

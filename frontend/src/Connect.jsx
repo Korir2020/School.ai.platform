@@ -5,7 +5,7 @@ import "./connect.css";
 
 const MAX = 2000;
 const POLL_MS = 20000;
-const ROLE_TEXT = { admin: "School admin", teacher: "Teacher" };
+const ROLE_TEXT = { admin: "School admin", teacher: "Teacher", bursar: "Bursar" };
 
 async function call(path, method = "GET", body) {
   const r = await api(path, method, body);
