@@ -59,9 +59,6 @@ def _term_check(v):
     bad = _dates(v)
     if bad:
         return bad
-    y = v["academic_year"]
-    if v["start_date"] < y.start_date or v["end_date"] > y.end_date:
-        return "Term dates must fall inside the academic year."
 
 
 def _enrollment_check(v):

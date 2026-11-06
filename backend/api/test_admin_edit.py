@@ -92,8 +92,11 @@ class AdminEditTests(APITestCase):
         r = self.patch(self.admin_a, f"/api/academic-years/{self.year.id}/", {"end_date": "2026-02-01"})
         self.assertEqual(r.status_code, 400)
 
-    def test_term_must_stay_inside_year(self):
-        r = self.patch(self.admin_a, f"/api/terms/{self.term.id}/", {"end_date": "2027-02-01"})
+    def test_term_dates_may_extend_beyond_year(self):
+        url = f"/api/terms/{self.term.id}/"
+        r = self.patch(self.admin_a, url, {"end_date": "2027-02-01"})
+        self.assertEqual(r.status_code, 200, r.data)
+        r = self.patch(self.admin_a, url, {"end_date": "1990-01-01"})
         self.assertEqual(r.status_code, 400)
 
     def test_enrollment_rules(self):
