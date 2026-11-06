@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react";
 import { api } from "./api";
 import { useToast } from "./toastctx";
-import { Alert, Badge, Button, Card, ErrorState, Input, Loading, Select } from "./ui";
+import { Alert, Button, ErrorState, Input, Loading, Select } from "./ui";
 
 const STEPS = [
-  ["profile", "School profile"],
-  ["academic_year", "Academic year"],
-  ["term", "Term"],
-  ["stream", "Class stream"],
-  ["subject", "Subject"],
+  ["profile", "School profile", "setup-progress"],
+  ["academic_year", "Academic year", "setup-terms"],
+  ["term", "Term", "setup-add-term"],
+  ["stream", "Class stream", "setup-classes"],
+  ["subject", "Subject", "setup-classes"],
 ];
 const TYPES = ["primary", "junior", "secondary", "combined"];
 
@@ -33,6 +33,11 @@ export default function SetupWizard({ go }) {
     } catch { setBad(true); }
   };
   useEffect(() => { load(); }, []);
+  useEffect(() => {
+    const h = () => load();
+    window.addEventListener("marian:dashboard-refresh", h);
+    return () => window.removeEventListener("marian:dashboard-refresh", h);
+  }, []);
 
   const call = async (path, method, body) => {
     setErr(""); setBusy(true);
@@ -51,40 +56,47 @@ export default function SetupWizard({ go }) {
 
   if (bad) return <ErrorState text="Could not load setup." onRetry={load} />;
   if (!st) return <Loading />;
+  const done = STEPS.filter(([k]) => st.checklist[k]).length;
+  const pct = Math.round((done / STEPS.length) * 100);
 
   return (
-    <div>
-      <Card title="Set up your school">
-        {st.setup_complete
-          ? <Alert kind="ok">Setup is complete.</Alert>
-          : <Alert kind="info">Finish the steps below, then press Finish setup.</Alert>}
-        {STEPS.map(([k, label]) => (
-          <p key={k}>
-            <Badge kind={st.checklist[k] ? "ok" : "warn"}>{st.checklist[k] ? "Done" : "To do"}</Badge> {label}
-            {!st.checklist[k] && k !== "profile" && go && (
-              <> <Button size="sm" kind="ghost" onClick={() => go("Setup")}>Open Setup</Button></>
-            )}
-          </p>
-        ))}
-      </Card>
-      <Card title="School profile">
-        <Input label="Location" value={f.location} onChange={set("location")} />
-        <Input label="County" value={f.county} onChange={set("county")} />
-        <Select label="School type" value={f.school_type} onChange={set("school_type")}>
-          <option value="primary">Primary</option>
-          <option value="junior">Junior school</option>
-          <option value="secondary">Senior / Secondary</option>
-          <option value="combined">Combined</option>
-        </Select>
-        {err && <Alert kind="err">{err}</Alert>}
-        <Button kind="teal" busy={busy} onClick={saveProfile}>Save profile</Button>
-      </Card>
-      {!st.setup_complete && (
-        <Card title="Finish">
-          <Button kind="teal" busy={busy} disabled={st.missing.length > 0} onClick={finish}>Finish setup</Button>
-          {st.missing.length > 0 && <p className="sub">Still missing: {st.missing.join(", ")}</p>}
-        </Card>
-      )}
-    </div>
+    <section className="s2-sec" id="setup-progress">
+      <div className="s2-cols">
+        <div className="s2-panel">
+          <div className="s2-ph"><h4>Setup progress</h4><span className="s2-mut">{done} of {STEPS.length} · {pct}%</span></div>
+          <div className="s2-prog"><i style={{ width: pct + "%" }} /></div>
+          <ol className="s2-steps">
+            {STEPS.map(([k, label, target], i) => (
+              <li key={k} className={st.checklist[k] ? "ok" : ""}>
+                <span className="s2-num">{st.checklist[k] ? "✓" : i + 1}</span>
+                <b>{label}</b>
+                {!st.checklist[k] && go && <button type="button" className="s2-chip" onClick={() => go(target)}>Go</button>}
+              </li>
+            ))}
+          </ol>
+          {st.setup_complete
+            ? <Alert kind="ok">Setup is complete.</Alert>
+            : <>
+              <Button kind="teal" busy={busy} disabled={st.missing.length > 0} onClick={finish}>Finish setup</Button>
+              {st.missing.length > 0 && <p className="s2-hint">Still missing: {st.missing.join(", ")}</p>}
+            </>}
+        </div>
+        <div className="s2-panel">
+          <h4>School profile</h4>
+          <div className="s2-two">
+            <Input label="Location" value={f.location} onChange={set("location")} />
+            <Input label="County" value={f.county} onChange={set("county")} />
+          </div>
+          <Select label="School type" value={f.school_type} onChange={set("school_type")}>
+            <option value="primary">Primary</option>
+            <option value="junior">Junior school</option>
+            <option value="secondary">Senior / Secondary</option>
+            <option value="combined">Combined</option>
+          </Select>
+          {err && <Alert kind="err">{err}</Alert>}
+          <Button kind="teal" busy={busy} onClick={saveProfile}>Save profile</Button>
+        </div>
+      </div>
+    </section>
   );
 }

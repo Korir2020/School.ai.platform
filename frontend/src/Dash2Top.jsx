@@ -32,18 +32,16 @@ export default function Dash2Top({ me, d, go, tabs, children }) {
 
   return (
     <div className="dash2">
-      <section className="d2-banner" aria-label="Welcome">
-        <div className="d2-photo" style={{ backgroundImage: "url(/school-banner.jpg)" }} />
-        <div className="d2-hello">
-          <h2>Welcome back,</h2>
-          <h1>{name}</h1>
-          <p>{school}</p>
-          <div className="d2-period">
-            <span>Academic Year: <b>{t ? t.academic_year : "\u2014"}</b></span>
-            <span>Term: <b>{t ? t.name : "No active term"}</b></span>
-          </div>
+      <header className="d2-header" aria-label="Welcome">
+        <div>
+          <p className="d2-eyebrow">{school || "School overview"}</p>
+          <h1>Welcome back, {name}</h1>
         </div>
-      </section>
+        <div className="d2-period">
+          <span>Academic year <b>{t ? t.academic_year : "\u2014"}</b></span>
+          <span>Term <b>{t ? t.name : "No active term"}</b></span>
+        </div>
+      </header>
       <section className="d2-stats" aria-label="School statistics">
         {cards.map(([label, value, note, tint, icon, tab]) => {
           const inner = (

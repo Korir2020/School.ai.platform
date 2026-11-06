@@ -55,17 +55,19 @@ export default function Setup() {
     else { const j = await r.json().catch(() => ({})); toast(j.detail || "Not saved", "err"); }
   };
   return (
-    <div>
-      <Card title="School identity">
+    <div className="s2-wrap">
+      <section className="s2-sec" id="setup-identity"><div className="s2-sh"><div><h3>School identity</h3><p>Shown on report cards and fee receipts.</p></div></div><div className="s2-panel s2-ident"><div>
         <Input id="su-motto" label="School motto" value={idt.motto ?? (branding && branding.motto) ?? ""} onChange={(e) => setIdt({ ...idt, motto: e.target.value })} />
         <Input id="su-principal" label="Principal's name" value={idt.principal_name ?? (branding && branding.principal_name) ?? ""} onChange={(e) => setIdt({ ...idt, principal_name: e.target.value })} />
         <p><Button kind="teal" busy={busy} disabled={busy || !Object.keys(idt).length} onClick={saveIdentity}>Save motto and principal</Button></p>
+        </div><div>
         <p className="sub">Upload a PNG, JPG, JPEG, or WEBP logo up to 2 MB. It will appear on report cards and fee receipts.</p>
         {branding && <div className="branding-preview">{branding.logo_url ? <img src={branding.logo_url} alt={`${branding.name} logo`} /> : <span>No logo uploaded</span>}<b>{branding.name}</b></div>}
         <Input id="su-logo" label="School logo" type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => setLogo(e.target.files[0] || null)} />
         <Button kind="teal" busy={busy} disabled={!logo} onClick={async () => { setBusy(true); const fd = new FormData(); fd.append("logo", logo); const r = await upload("/api/school/branding/", fd); setBusy(false); if (r.ok) { toast("Logo uploaded", "ok"); load(); setLogo(null); } else toast("Logo upload failed", "err"); }}>Upload logo</Button>
-      </Card>
-      <h2>Classes and subjects</h2>
+      </div></div></section>
+      <section className="s2-sec" id="setup-classes"><div className="s2-sh"><div><h3>Classes and subjects</h3><p>{x.sm.length} streams · {x.sj.length} subjects</p></div></div>
+      <div className="s2-cols even"><div className="s2-stack">
       <Card title="Streams">
         <DataTable cols={scols} rows={x.sm} search="Search streams"
           empty="No streams yet" />
@@ -83,7 +85,7 @@ export default function Setup() {
             const b = { class_level: lvl, name: sn, is_active: true };
             if (await post("/api/streams/", b, "Stream added")) setSn("");
           }}>Add stream</Button>
-      </Card>
+      </Card></div><div className="s2-stack">
       <Card title="Subjects">
         <DataTable cols={jcols} rows={x.sj} search="Search subjects"
           empty="No subjects yet" />
@@ -101,7 +103,8 @@ export default function Setup() {
             }
           }}>Add subject</Button>
       </Card>
-      <PaperSetup />
+      </div></div></section>
+      <section className="s2-sec" id="setup-papers"><PaperSetup /></section>
     </div>
   );
 }
