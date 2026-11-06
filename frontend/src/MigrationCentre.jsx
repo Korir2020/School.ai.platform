@@ -7,16 +7,16 @@ const COMMIT_PATH = CHECK_PATH.replace("/check/", "/commit/");
 const PHOTO_PATH = CHECK_PATH.replace("/check/", "/read-photo/");
 const PAGE = 100;
 const WIDE = typeof window !== "undefined" && !!window.matchMedia && window.matchMedia("(min-width: 900px)").matches;
-const LINE = "1px solid rgba(128,128,128,.4)";
+const LINE = "1px solid rgba(100,116,139,.28)";
 const TONE = {
-  ready: ["#16a34a", "Ready"],
-  needs_confirmation: ["#d97706", "Confirm"],
-  blocked: ["#dc2626", "Blocked"],
+  ready: ["#15803d", "Ready"],
+  needs_confirmation: ["#b45309", "Confirm"],
+  blocked: ["#b91c1c", "Blocked"],
 };
-const SEV = { block: "#dc2626", confirm: "#d97706", notice: "#6b7280" };
-const btn = { minHeight: 44, padding: "0 16px", borderRadius: 10, border: LINE, background: "transparent", color: "inherit", font: "inherit", cursor: "pointer" };
-const btnMain = { ...btn, background: "#0B5D44", borderColor: "#0B5D44", color: "#fff", fontWeight: 600 };
-const card = { border: LINE, borderRadius: 12, padding: 12, marginBottom: 10 };
+const SEV = { block: "#b91c1c", confirm: "#b45309", notice: "#64748b" };
+const btn = { minHeight: 44, padding: "0 16px", borderRadius: 10, border: LINE, background: "transparent", color: "inherit", font: "inherit", fontWeight: 600, fontSize: 14, cursor: "pointer", transition: "background .15s, border-color .15s, box-shadow .15s" };
+const btnMain = { ...btn, background: "linear-gradient(135deg,#0f2a44,#1f4e79)", borderColor: "#0f2a44", color: "#fff", fontWeight: 600, boxShadow: "0 4px 12px -4px rgba(15,42,68,.45)" };
+const card = { border: LINE, borderRadius: 14, padding: 16, marginBottom: 12, background: "var(--card, transparent)", boxShadow: "0 1px 2px rgba(15,23,42,.05), 0 6px 18px -10px rgba(15,23,42,.18)" };
 const inp = { display: "block", width: "100%", boxSizing: "border-box", minHeight: 44, marginTop: 4, padding: "0 10px", borderRadius: 10, border: LINE, background: "transparent", color: "inherit", font: "inherit", fontSize: 16 };
 const FIX_LABELS = [
   ["first_name", "First name"],
@@ -351,7 +351,7 @@ export default function MigrationCentre() {
       )}
       {step === 3 && !canAdd && <div style={{ ...card, fontSize: 14 }}><b>Next:</b> fix the file or the marked learners, then press "2. Check the list" again.</div>}
       <div className="mc-grid">
-      <div style={card}>
+      <div className="mc-card" style={card}>
         <label style={{ display: "block", fontWeight: 600, marginBottom: 6 }}>1. Choose a file (.xlsx, .csv or typed .pdf)</label>
         <label
           className={"mc-drop" + (drag ? " is-over" : "")}
@@ -359,13 +359,13 @@ export default function MigrationCentre() {
           onDragLeave={() => setDrag(false)}
           onDrop={(e) => { e.preventDefault(); setDrag(false); takeFile(e.dataTransfer.files && e.dataTransfer.files[0]); }}
         >
-          <svg className="mc-cloud" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#0B5D44" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ display: "block", margin: "0 auto 8px" }}>
+          <svg className="mc-cloud" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#1f4e79" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ display: "block", margin: "0 auto 8px" }}>
             <path d="M12 13v8" />
             <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" />
             <path d="m8 17 4-4 4 4" />
           </svg>
           <div style={{ fontWeight: 700 }}>Drag and drop your file here</div>
-          <div style={{ fontSize: 13, color: "#0B5D44", marginTop: 2 }}>or click to browse</div>
+          <div style={{ fontSize: 13, color: "#1f4e79", marginTop: 2 }}>or click to browse</div>
           <div style={{ fontSize: 13, opacity: 0.85, margin: "4px 0 10px" }}>Excel, CSV, TSV, TXT or typed PDF</div>
           <span style={{ ...btnMain, display: "inline-block", padding: "10px 16px", borderRadius: 10 }}>Choose File</span>
           <input type="file" accept=".csv,.xlsx,.pdf,.tsv,.txt,image/*" style={{ display: "none" }} onChange={(e) => { takeFile(e.target.files && e.target.files[0]); e.target.value = ""; }} />
@@ -405,7 +405,7 @@ export default function MigrationCentre() {
                     <b>Page {i + 1}</b>{" · "}
                     {p.status === "waiting" ? "waiting" : p.status === "reading" ? "reading..." : p.status === "done" ? p.rows.length + " lines read, " + p.unreadable + " unreadable, " + p.to_check + " to check" : "failed"}
                     {p.notes ? <div style={{ opacity: 0.8 }}>Reader's note: {p.notes}</div> : null}
-                    {p.status === "failed" && <div role="alert" style={{ color: "#dc2626", marginTop: 4 }}>{p.msg}</div>}
+                    {p.status === "failed" && <div role="alert" style={{ color: "#b91c1c", marginTop: 4 }}>{p.msg}</div>}
                     {!reading && <div><button style={{ ...btn, minHeight: 36, padding: "0 10px", marginTop: 6 }} onClick={() => removePage(i)}>Remove</button></div>}
                   </div>
                 ))}
@@ -428,7 +428,7 @@ export default function MigrationCentre() {
         <details open={WIDE} style={{ ...card, marginBottom: 0 }}>
           <summary style={{ fontWeight: 700, cursor: "pointer", minHeight: 28 }}>How it works</summary>
           <div style={{ fontSize: 14, marginTop: 8 }}>
-            <div style={{ ...card, borderColor: "#0B5D44", marginBottom: 8 }}>
+            <div style={{ ...card, borderColor: "#1f4e79", marginBottom: 8 }}>
               <b>Before you start:</b> add your classes in Setup. Learners can only be added to classes that already exist.
               <a href={SETUP.hash} target="_blank" rel="noopener noreferrer" style={{ ...btn, display: "inline-block", marginTop: 6, minHeight: 36, lineHeight: "36px", padding: "0 12px", textDecoration: "none" }}>{SETUP.label}</a>
             </div>
@@ -444,7 +444,7 @@ export default function MigrationCentre() {
     </div>
 
       {done && (
-        <div role="status" style={{ ...card, borderColor: "#16a34a", background: "rgba(22,163,74,.1)" }}>
+        <div role="status" style={{ ...card, borderColor: "#15803d", background: "rgba(22,163,74,.1)" }}>
           <b>Done.</b> {done.created} learner(s) added{done.skipped ? ", " + done.skipped + " left out" : ""}. Find them under Students. To add the left-out ones, fix your file and check it again.
         <a href="#Students" style={{ ...btnMain, display: "block", textAlign: "center", textDecoration: "none", marginTop: 8, boxSizing: "border-box" }}>Open the Students list</a>
       
@@ -452,7 +452,7 @@ export default function MigrationCentre() {
       )}
 
       {err && (
-        <div role="alert" style={{ ...card, borderColor: "#dc2626", background: "rgba(220,38,38,.1)" }}>{err}</div>
+        <div role="alert" style={{ ...card, borderColor: "#b91c1c", background: "rgba(220,38,38,.1)" }}>{err}</div>
       )}
 
       {res && (
@@ -485,12 +485,12 @@ export default function MigrationCentre() {
             <>
               <div role="tablist" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
           <Tab n={sum.total} label="All" active={tab === "all"} onClick={() => { setTab("all"); setLimit(PAGE); }} />
-          <Tab n={sum.ready} label="Ready" color="#16a34a" active={tab === "ready"} onClick={() => { setTab("ready"); setLimit(PAGE); }} />
-          <Tab n={sum.needs_confirmation} label="To confirm" color="#d97706" active={tab === "needs_confirmation"} onClick={() => { setTab("needs_confirmation"); setLimit(PAGE); }} />
-          <Tab n={sum.blocked} label="Blocked" color="#dc2626" active={tab === "blocked"} onClick={() => { setTab("blocked"); setLimit(PAGE); }} />
+          <Tab n={sum.ready} label="Ready" color="#15803d" active={tab === "ready"} onClick={() => { setTab("ready"); setLimit(PAGE); }} />
+          <Tab n={sum.needs_confirmation} label="To confirm" color="#b45309" active={tab === "needs_confirmation"} onClick={() => { setTab("needs_confirmation"); setLimit(PAGE); }} />
+          <Tab n={sum.blocked} label="Blocked" color="#b91c1c" active={tab === "blocked"} onClick={() => { setTab("blocked"); setLimit(PAGE); }} />
         </div>
         {blockedGroups.length > 0 && (
-          <div style={{ ...card, borderColor: "#dc2626" }}>
+          <div style={{ ...card, borderColor: "#b91c1c" }}>
             <b>Why learners are blocked</b>
             {blockedGroups.slice(0, 5).map((g) => (
               <div key={g.key} style={{ marginTop: 8, fontSize: 14 }}>
@@ -523,7 +523,7 @@ export default function MigrationCentre() {
               )}
               
               {sum.blocked > 0 && (
-                <div style={{ ...card, borderColor: "#dc2626", fontSize: 14 }}>
+                <div style={{ ...card, borderColor: "#b91c1c", fontSize: 14 }}>
                   Blocked learners can't be added until you fix them in your file. Correct the file, choose it again, and check again.
                 </div>
               )}
@@ -532,7 +532,7 @@ export default function MigrationCentre() {
 
           {sum && sum.ready > 0 && !(res.file_issues || []).some((i) => i.severity === "block") && (
             ask ? (
-              <div id="add-confirm" style={{ ...card, borderColor: "#0B5D44" }}>
+              <div id="add-confirm" style={{ ...card, borderColor: "#1f4e79" }}>
                 <b>Add {sum.ready} learner(s) now?</b>
                 <div style={{ fontSize: 14, margin: "6px 0 10px" }}>
                   {sum.needs_confirmation + sum.blocked > 0 ? (sum.needs_confirmation + sum.blocked) + " will be left out (blocked, or not yet accepted). " : ""}
@@ -551,7 +551,7 @@ export default function MigrationCentre() {
           )}
 
           {total === 0 && rows.length > 0 && tab !== "all" && (
-            <div style={{ ...card, borderColor: "#16a34a" }}>No learners in this tab.</div>
+            <div style={{ ...card, borderColor: "#15803d" }}>No learners in this tab.</div>
           )}
 
           {shown.map((r) => {

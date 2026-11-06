@@ -16,8 +16,6 @@ import MigrationCentre from "./MigrationCentre";
 import TeacherTodo from "./TeacherTodo";
 import Students from "./Students";
 import Setup from "./Setup";
-import SetupWizard from "./SetupWizard";
-import Terms from "./Terms";
 import Password from "./Password";
 import Deputies from "./Deputies";
 import Intro from "./Intro";
@@ -50,8 +48,10 @@ import Dash2Mid from "./Dash2Mid";
 import Dash2Low from "./Dash2Low";
 import Dash2Act from "./Dash2Act";
 import Help from "./Help";
+import SuperHome from "./SuperHome";
+import SetupPage from "./SetupPage";
 import Announcements from "./Announcements";
-import Backups, { SchoolExport } from "./Backups";
+import Backups from "./Backups";
 import { useHashTab } from "./hashtab";
 import "./app.css";
 import "./light.css";
@@ -68,11 +68,12 @@ function Dash({ onOut }) {
     if (m.role === "parent") { setD({ role: "parent" }); return; }
     const b = await api("/api/dashboard/"); if (b.ok) setD(await b.json());
   })(); }, []);
+  useEffect(() => { const h = async () => { if (!d || !["school_admin", "teacher"].includes(d.role)) return; const b = await api("/api/dashboard/"); if (b.ok) setD(await b.json()); }; window.addEventListener("marian:dashboard-refresh", h); return () => window.removeEventListener("marian:dashboard-refresh", h); }, [d]);
   const role = d && d.role;
   const need = (el) => (d.active_term ? el : <p className="plain">No active term yet. Create one in Setup first.</p>);
-  const home = d && <>{role === "school_admin" ? <Dash2Top me={me} d={d} go={setTab} tabs={{ Students: 1, Teachers: 1, Exams: 1, Approve: 1, Fees: 1 }}><Dash2Mid d={d} go={setTab} /><Dash2Low d={d} go={setTab} tabs={{ Approve: 1, Exams: 1, Reports: 1, Students: 1, Analytics: 1, Fees: 1 }} /></Dash2Top> : <Home me={me} d={d} />}{role === "teacher" && <TeacherTodo d={d} go={setTab} />}{role === "teacher" && <Mine d={d} />}{role === "school_admin" && <Dash2Act go={setTab} />}<Password /></>;
+  const home = d && <>{role === "school_admin" ? <Dash2Top me={me} d={d} go={setTab} tabs={{ Students: 1, Teachers: 1, Exams: 1, Approve: 1, Fees: 1 }}><Dash2Low d={d} go={setTab} tabs={{ Approve: 1, Exams: 1, Reports: 1, Students: 1, Analytics: 1, Fees: 1 }} /><Dash2Mid d={d} go={setTab} /></Dash2Top> : role === "superadmin" ? <SuperHome me={me} d={d} go={setTab} /> : <Home me={me} d={d} />}{role === "teacher" && <TeacherTodo d={d} go={setTab} />}{role === "teacher" && <Mine d={d} />}{role === "school_admin" && <Dash2Act go={setTab} />}<Password /></>;
   const baseTabs = role === "teacher" ? { Home: home, Announcements: <Announcements />, Connect: <Connect />, Feedback: <Feedback />, Calendar: <Calendar />, Marks: need(<Marks d={d} />), Levels: need(<LevelEntry d={d} />), Attendance: <Attendance />, ...(me && me.is_class_teacher ? { 'Report Cards': <ReportModule /> } : {}) }
-    : role === "school_admin" ? { Home: home, Announcements: <Announcements />, Connect: <Connect />, Feedback: <Feedback />, Calendar: <Calendar />, Approve: <Approvals />, Exams: need(<Exams d={d} />), Reports: need(<ReportCards d={d} />), 'Report Cards': <ReportModule />, Analytics: need(<Analytics d={d} />), Attendance: <Attendance />, Fees: <Fees admin />, Documents: <BulkDocuments admin />, 'Migration Centre': <MigrationCentre />, Students: need(<Students d={d} />), Parents: <ParentAccounts />, Promotion: <Promotion />, Transfers: <TeacherTransfers />, Teachers: need(<><Teachers />{me && !me.is_deputy && <Deputies />}</>), Staff: <Staff />, Audit: <AuditLog />, Setup: <><SetupWizard /><Terms /><Setup />{me && !me.is_deputy && <SchoolExport />}</> }
+    : role === "school_admin" ? { Home: home, Announcements: <Announcements />, Connect: <Connect />, Feedback: <Feedback />, Calendar: <Calendar />, Approve: <Approvals />, Exams: need(<Exams d={d} />), Reports: need(<ReportCards d={d} />), 'Report Cards': <ReportModule />, Analytics: need(<Analytics d={d} />), Attendance: <Attendance />, Fees: <Fees admin />, Documents: <BulkDocuments admin />, 'Migration Centre': <MigrationCentre />, Students: need(<Students d={d} />), Parents: <ParentAccounts />, Promotion: <Promotion />, Transfers: <TeacherTransfers />, Teachers: need(<><Teachers />{me && !me.is_deputy && <Deputies />}</>), Staff: <Staff />, Audit: <AuditLog />, Setup: <SetupPage me={me} d={d} go={setTab} /> }
     : role === "bursar" ? { Fees: <Fees admin />, Announcements: <Announcements />, Connect: <Connect />, Documents: <BulkDocuments />, Calendar: <Calendar /> }
     : role === "parent" ? { Home: <Parent />, Announcements: <Announcements />, Connect: <Connect />, Feedback: <Feedback /> }
     : role === "superadmin" ? { Home: home, Schools: <Platform d={d} />, Registrations: <RegistrationReview />, Transfers: <TeacherTransfers />, Admins: <Accounts />, Backups: <Backups />, Audit: <AuditLog />, Feedback: <Feedback owner /> }

@@ -125,9 +125,9 @@ export default function Dash2Low({ d, go, tabs }) {
   return (
     <div className="dash2">
       <section className="d2-grid d2-three">
-        <FeePanel d={d} go={go} />
         <AttentionPanel d={d} go={go} />
         <QuickPanel go={go} tabs={tabs} />
+        <FeePanel d={d} go={go} />
       </section>
     </div>
   );

@@ -1,21 +1,57 @@
-.mc-page{max-width:1040px;margin:0 auto;padding:12px}
-.mc-steps{display:flex;gap:6px;margin:12px 0}
-.mc-step{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:8px 6px;border-radius:10px;border:1px solid rgba(128,128,128,.4);font-size:13px;min-width:0}
-.mc-dot{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:rgba(128,128,128,.25);font-size:12px;font-weight:700;flex:none}
-.mc-step.is-current{background:#0B5D44;border-color:#0B5D44;color:#fff;font-weight:700}
-.mc-step.is-current .mc-dot{background:#fff;color:#0B5D44}
-.mc-step.is-done{background:rgba(22,163,74,.15);border-color:rgba(22,163,74,.5)}
-.mc-step.is-done .mc-dot{background:#16a34a;color:#fff}
-@media (max-width:560px){.mc-step:not(.is-current) .mc-label{display:none}.mc-step{padding:8px 4px}.mc-step.is-current{flex:3}}
-.mc-grid{display:grid;grid-template-columns:1fr;gap:12px;align-items:start}
-.mc-help{display:none}
-@media (min-width:900px){.mc-grid{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}.mc-help{display:block}}
-.mc-drop{display:block;text-align:center;border:2px dashed rgba(128,128,128,.6);border-radius:12px;padding:20px 12px;cursor:pointer;margin-bottom:8px}
-.mc-drop.is-over{border-color:#0B5D44;background:rgba(11,93,68,.1)}
-.mc-help{display:block;order:-1}
-@media (min-width:900px){.mc-help{order:0}}
-.mc-banner{position:relative;overflow:hidden;display:flex;align-items:center;gap:14px;padding:16px;margin-bottom:12px;border:1px solid rgba(128,128,128,.35);border-radius:16px}
-.mc-banner-photo{position:absolute;top:0;right:0;bottom:0;width:100%;background-size:cover;background-position:center 40%;opacity:.18;pointer-events:none}
+/* ===== Marian Migration Centre — premium redesign (styles only; logic unchanged) ===== */
+.mc-page{--mc-ink:#0f2a44;--mc-accent:#1f4e79;--mc-gold:#b8893b;--mc-ok:#15803d;--mc-warn:#b45309;--mc-err:#b91c1c;
+  --mc-line:rgba(100,116,139,.28);--mc-mute:#64748b;
+  max-width:1080px;margin:0 auto;padding:14px 12px 28px;font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.mc-page b{font-weight:650}
+/* Banner */
+.mc-banner{position:relative;overflow:hidden;display:flex;align-items:center;gap:16px;padding:20px;margin-bottom:16px;border:0;border-radius:18px;
+  background:linear-gradient(135deg,#0b1f33 0%,var(--mc-ink) 50%,var(--mc-accent) 100%);color:#fff;box-shadow:0 10px 30px -14px rgba(15,42,68,.6)}
+.mc-banner h2{font-size:1.35rem;font-weight:700;letter-spacing:.005em;color:#fff}
+.mc-banner p{color:rgba(255,255,255,.82)}
+.mc-banner-photo{position:absolute;top:0;right:0;bottom:0;width:100%;background-size:cover;background-position:center 40%;opacity:.12;pointer-events:none;mix-blend-mode:luminosity}
 .mc-banner-icon,.mc-banner-text{position:relative}
-.mc-banner-icon{flex:none;width:56px;height:56px;border-radius:14px;background:#0B5D44;display:flex;align-items:center;justify-content:center}
-@media (min-width:700px){.mc-banner{min-height:130px}.mc-banner-photo{width:55%;opacity:1;-webkit-mask-image:linear-gradient(to right,transparent,#000 70%);mask-image:linear-gradient(to right,transparent,#000 70%)}.mc-banner-text{max-width:55%}}
+.mc-banner-icon{flex:none;width:56px;height:56px;border-radius:14px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center}
+@media (min-width:700px){.mc-banner{min-height:140px;padding:26px}.mc-banner h2{font-size:1.6rem}
+  .mc-banner-photo{width:50%;opacity:.55;-webkit-mask-image:linear-gradient(to right,transparent,#000 75%);mask-image:linear-gradient(to right,transparent,#000 75%)}.mc-banner-text{max-width:58%}}
+
+/* Stage stepper */
+.mc-steps{display:flex;gap:0;margin:0 0 16px;padding:12px;border:1px solid var(--mc-line);border-radius:14px;background:var(--card,transparent);counter-reset:s}
+.mc-step{position:relative;flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;padding:4px 2px;border:0;font-size:12.5px;font-weight:600;color:var(--mc-mute);min-width:0;text-align:center}
+.mc-step:not(:last-child)::after{content:"";position:absolute;top:17px;left:calc(50% + 20px);right:calc(-50% + 20px);height:2px;border-radius:2px;background:var(--mc-line)}
+.mc-step.is-done:not(:last-child)::after{background:var(--mc-ok)}
+.mc-dot{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:transparent;border:2px solid var(--mc-line);font-size:12.5px;font-weight:700;flex:none;transition:all .2s}
+.mc-step.is-current{color:var(--mc-ink);background:none}
+.mc-step.is-current .mc-dot{background:var(--mc-ink);border-color:var(--mc-ink);color:#fff;box-shadow:0 0 0 4px rgba(31,78,121,.18)}
+.mc-step.is-done{color:var(--mc-ok);background:none}
+.mc-step.is-done .mc-dot{background:var(--mc-ok);border-color:var(--mc-ok);color:#fff}
+.mc-label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+@media (max-width:420px){.mc-step{font-size:11px}.mc-dot{width:26px;height:26px}.mc-step:not(:last-child)::after{top:15px}}
+
+/* Layout */
+.mc-grid{display:grid;grid-template-columns:1fr;gap:14px;align-items:start;margin-bottom:6px}
+.mc-help{display:block;order:-1}
+.mc-help details>summary{list-style:none;display:flex;align-items:center;justify-content:space-between}
+.mc-help details>summary::after{content:"+";font-size:1.2rem;color:var(--mc-mute)}
+.mc-help details[open]>summary::after{content:"\2013"}
+.mc-help ol li::marker{color:var(--mc-accent);font-weight:700}
+@media (min-width:900px){.mc-grid{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}.mc-help{order:0;position:sticky;top:12px}}
+
+/* Upload zone */
+.mc-drop{display:block;text-align:center;border:2px dashed rgba(31,78,121,.35);border-radius:14px;padding:26px 14px;cursor:pointer;margin-bottom:8px;
+  background:linear-gradient(180deg,rgba(31,78,121,.04),rgba(31,78,121,.01));transition:border-color .15s,background .15s}
+.mc-drop:hover{border-color:var(--mc-accent)}
+.mc-drop.is-over{border-color:var(--mc-accent);background:rgba(31,78,121,.1)}
+
+/* Controls */
+.mc-page textarea,.mc-page select{border-radius:10px!important;transition:border-color .15s,box-shadow .15s}
+.mc-page textarea{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace!important;font-size:13px!important}
+.mc-page textarea:focus,.mc-page select:focus,.mc-page button:focus-visible,.mc-page a:focus-visible{outline:none;border-color:var(--mc-accent)!important;box-shadow:0 0 0 3px rgba(31,78,121,.2)!important}
+.mc-page button:not(:disabled):hover{filter:brightness(1.06)}
+.mc-page button:disabled{opacity:.5;cursor:not-allowed}
+.mc-page [role="tablist"] button[aria-selected="true"]{box-shadow:0 0 0 3px rgba(31,78,121,.15)}
+.mc-page [role="tablist"] button>div:first-child{font-variant-numeric:tabular-nums;font-size:22px!important}
+.mc-page [role="tablist"] button>div:last-child{text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--mc-mute)}
+.mc-page [role="alert"]{border-left:4px solid var(--mc-err)!important}
+.mc-page [role="status"]{border-left:4px solid var(--mc-ok)!important}
+#add-confirm{border-width:2px!important;background:rgba(31,78,121,.05)!important}
+@media (max-width:560px){.mc-page{padding:10px 8px 24px}.mc-banner{padding:16px;gap:12px}.mc-banner-icon{width:46px;height:46px}}
