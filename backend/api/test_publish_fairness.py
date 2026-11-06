@@ -1,7 +1,7 @@
 from rest_framework.test import APITestCase
 
 from schools.models import (
-    ExamResult, MarkAuditLog, Performance, Subject, TeacherAssignment,
+    ExamResult, MarkAuditLog, Performance, Subject, SubjectRegistration, TeacherAssignment,
     TeacherProfile,
 )
 from . import tests as base
@@ -18,6 +18,10 @@ class PublishFairnessTests(APITestCase):
             teacher=TeacherProfile.objects.get(user=self.good),
             school=self.school, subject=self.science, stream=self.stream)
         self.s2 = base.ExamPublishTests.add_student(self, "S-2")
+        for learner in (self.student, self.s2):
+            SubjectRegistration.objects.create(
+                student=learner, academic_year=self.year, subject=self.science,
+                category="compulsory")
 
     def sci(self, student, marks):
         return Performance.objects.create(

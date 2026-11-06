@@ -74,6 +74,7 @@ export default function LevelEntry({ d }) {
   const rows = cur && cur.rows ? cur.rows : [];
   const levels = cur && cur.levels ? cur.levels : [];
   const lab = (k) => (levels.find((l) => l.key === k) || {}).label || k;
+  const desc = (k) => (levels.find((l) => l.key === k) || {}).description || "";
   const editable = (r) => !r.status || r.status === "draft";
   const mine = (r) => edits[r.student_id] || {};
   const levelOf = (r) => mine(r).level ?? r.level;
@@ -155,12 +156,14 @@ export default function LevelEntry({ d }) {
                         onClick={() => setE(r, { level: l.key })}>{l.label}</Button>
                     ))}
                   </div>
+                  {desc(levelOf(r)) && <p className="sub">{desc(levelOf(r))}</p>}
                   <p><input type="text" style={box} value={commentOf(r)} aria-label={"Comment for " + r.name}
                     placeholder="Comment (optional)" onChange={(e) => setE(r, { comment: e.target.value })} /></p>
                 </div>
               ) : (
                 <div>
                   <p>Level: {lab(r.level)}</p>
+                  {desc(r.level) && <p className="sub">{desc(r.level)}</p>}
                   {r.comment && <p>{r.comment}</p>}
                   <p>Already {r.status}. It can no longer be changed here.</p>
                 </div>

@@ -52,6 +52,11 @@ def create_version(school, framework_key, curriculum, min_level, max_level, user
         raise FrameworkError("Unknown framework: " + str(framework_key))
     if min_level > max_level:
         raise FrameworkError("The first level must not be above the last level.")
+    if framework_key == "cbe_primary":
+        if curriculum.code.upper() != "CBC":
+            raise FrameworkError("CBC Primary applies only to the CBC curriculum.")
+        if min_level < 1 or max_level > 6:
+            raise FrameworkError("CBC Primary applies only to Grades 1–6.")
     return FrameworkVersion.objects.create(
         school=school, framework_key=framework_key, version=next_version(school.id, framework_key),
         curriculum=curriculum, min_level=min_level, max_level=max_level,

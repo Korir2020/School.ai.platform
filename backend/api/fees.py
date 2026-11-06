@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from api.fee_billing import (
     apply_structure, bill_student, carry_forward, drop_other_category_bills,
     parse_scope, previous_term, scope_data)
+from api.pagination import paginated_mapped_response, paginated_response
 
 from schools.models import (
     AcademicYear, FeePayment, FeeStructure, MarkAuditLog,
@@ -112,7 +113,9 @@ def fee_structures(request):
         qs = FeeStructure.objects.select_related("academic_year")
         if school_id is not None:
             qs = qs.filter(school_id=school_id)
-        return Response([_structure_data(x) for x in qs])
+        return paginated_mapped_response(
+            request, qs.order_by("name", "id"), _structure_data,
+        )
     data = request.data
     year = AcademicYear.objects.filter(id=data.get("academic_year")).first()
     if not year or school_id is not None and year.school_id != school_id:
@@ -188,7 +191,17 @@ def fee_invoices(request):
         status = request.GET.get("status")
         if status:
             qs = qs.filter(status=status)
-        return Response([_invoice_data(x) for x in qs[:500]])
+        student_id = request.GET.get("student")
+        if student_id:
+            qs = qs.filter(student_id=student_id)
+        structure_id = request.GET.get("fee_structure")
+        if structure_id:
+            qs = qs.filter(fee_structure_id=structure_id)
+        return paginated_mapped_response(
+            request,
+            qs.order_by("student__last_name", "student__first_name", "id"),
+            _invoice_data,
+        )
     data = request.data
     student = Student.objects.filter(id=data.get("student")).first()
     structure = FeeStructure.objects.filter(id=data.get("fee_structure")).first()
@@ -260,7 +273,9 @@ def fee_payments(request):
         qs = qs.filter(student_fee__student__school_id=school_id)
     if request.GET.get("student_fee"):
         qs = qs.filter(student_fee_id=request.GET["student_fee"])
-    return Response([_payment_data(x) for x in qs[:500]])
+    return paginated_mapped_response(
+        request, qs.order_by("-paid_at", "-id"), _payment_data,
+    )
 
 
 @api_view(["POST"])
@@ -571,7 +586,9 @@ def fee_years(request):
     qs = AcademicYear.objects.all()
     if school_id is not None:
         qs = qs.filter(school_id=school_id)
-    return Response(AcademicYearSerializer(qs.order_by("-start_date"), many=True).data)
+    return paginated_response(
+        request, qs.order_by("-start_date", "-id"), AcademicYearSerializer,
+    )
 
 
 @api_view(["GET"])
@@ -584,7 +601,9 @@ def fee_terms(request):
     qs = Term.objects.all()
     if school_id is not None:
         qs = qs.filter(academic_year__school_id=school_id)
-    return Response(TermSerializer(qs.order_by("start_date"), many=True).data)
+    return paginated_response(
+        request, qs.order_by("start_date", "id"), TermSerializer,
+    )
 
 
 @api_view(["GET"])
@@ -597,4 +616,6 @@ def fee_students(request):
     qs = Student.objects.all()
     if school_id is not None:
         qs = qs.filter(school_id=school_id)
-    return Response(StudentSerializer(qs.order_by("last_name", "first_name"), many=True).data)
+    return paginated_response(
+        request, qs.order_by("last_name", "first_name", "id"), StudentSerializer,
+    )

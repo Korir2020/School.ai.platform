@@ -17,16 +17,23 @@ def _dist(labels, grades):
 
 
 def subject_stats(snap: Snapshot, scheme, subject: str, stream=None) -> dict:
-    rows, pending = [], 0
+    rows, pending, not_assessed, absent, exempted = [], 0, 0, 0, 0
     for sid, st in snap.students.items():
         if st.status != "active" or (stream and st.stream != stream): continue
         r = next((x for x in snap.summaries[sid].subjects if x.subject == subject), None)
-        if r is None or r.status in ("exempt", "withdrawn"): continue
+        if r is None: continue
+        if r.status == "not_assessed": not_assessed += 1; continue
+        if r.status == "absent": absent += 1
+        if r.status in ("exempt", "withdrawn"):
+            exempted += 1
+            continue
         if r.counted: rows.append(r)
-        else: pending += 1
+        elif r.status in ("missing", "pending"): pending += 1
     labels = [b.label for b in sorted(scheme.bands, key=lambda b: -b.min_pct)]
     out = {"population": f"{snap.class_name}{' ' + stream if stream else ''} · {subject} · {snap.exam.name}",
-           "assessed": len(rows), "pending": pending}
+           "assessed": len(rows), "pending": pending,
+           "absent": absent, "exempted": exempted,
+           "not_assessed": not_assessed}
     if rows:
         tot, mx = sum(r.score for r in rows), sum(r.max_mark for r in rows)
         scores = [r.score for r in rows]
@@ -54,7 +61,9 @@ def group_stats(snap: Snapshot, scheme, stream=None) -> dict:
                    grade_distribution=_dist(labels, [d.mean_points_grade for d in done]))
         subs = sorted({r.subject for d in done for r in d.subjects})
         out["subjects"] = [{"subject": s, **{k: v for k, v in subject_stats(snap, scheme, s, stream).items()
-                                              if k in ("assessed", "pending", "mean_weighted_pct", "highest", "lowest", "pass_rate")}}
+                                              if k in ("assessed", "pending", "absent", "exempted",
+                                                       "not_assessed", "mean_weighted_pct", "highest",
+                                                       "lowest", "pass_rate")}}
                            for s in subs]
     return out
 

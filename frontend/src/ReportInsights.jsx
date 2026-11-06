@@ -20,7 +20,7 @@ function Table({ head, rows }) {
   );
 }
 
-export default function ReportInsights({ exam, cls, stream, prov }) {
+export default function ReportInsights({ exam, cls, stream, prov, rankEnabled = true }) {
   const [data, setData] = useState(null);
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
@@ -39,12 +39,13 @@ export default function ReportInsights({ exam, cls, stream, prov }) {
       const scope = own && stream ? "stream" : "overall";
       const rs = await Promise.all([
         api(P + "analytics/?" + qs({})),
-        api(P + "rankings/?" + qs({ scope })),
+        ...(rankEnabled ? [api(P + "rankings/?" + qs({ scope }))] : []),
         api(P + "support-list/?" + qs({})),
       ]);
       const bad = rs.find((x) => !x.ok);
       if (bad) setMsg(await errText(bad));
-      else setData({ a: await rs[0].json(), r: await rs[1].json(), s: await rs[2].json() });
+      else setData({ a: await rs[0].json(), r: rankEnabled ? await rs[1].json() : null,
+        s: await rs[rankEnabled ? 2 : 1].json() });
     } catch { setMsg("Could not reach the server."); }
     finally { setBusy(false); }
   };
@@ -72,6 +73,7 @@ export default function ReportInsights({ exam, cls, stream, prov }) {
         <Button onClick={() => save("xlsx")}>Export Excel</Button>
       </p>
       {msg && <Alert>{msg}</Alert>}
+      {!rankEnabled && data && <p>Rankings are disabled by this school's Primary report policy.</p>}
       {g && (
         <div>
           <p><b>{g.population}</b></p>

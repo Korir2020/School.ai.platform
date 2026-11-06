@@ -7,6 +7,7 @@ from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiTypes
 
 from schools.models import AttendanceRecord, Enrollment, SchoolAdminProfile, Student, StudentIntervention, TeacherProfile
 from .permissions import get_user_school_id, restrict_for_teacher
+from .pagination import StandardPagination
 from .views import _scope
 
 
@@ -30,18 +31,81 @@ def attendance_collection(request):
     if error: return error
     if request.method == "GET":
         day = request.GET.get("date") or date.today().isoformat()
+        try:
+            day = date.fromisoformat(day)
+        except (TypeError, ValueError):
+            return Response({"detail": "Use a valid YYYY-MM-DD date."}, status=400)
         students = _students(request, school_id)
-        records = {r.student_id: r for r in AttendanceRecord.objects.filter(student__in=students, date=day)}
-        return Response({"date": day, "students": [{"id": s.id, "name": str(s), "admission_number": s.admission_number, "status": records[s.id].status if s.id in records else "present", "notes": records[s.id].notes if s.id in records else ""} for s in students]})
+        paginator = StandardPagination()
+        page = paginator.paginate_queryset(students, request)
+        page_ids = [s.id for s in page]
+        records = {
+            r.student_id: r for r in AttendanceRecord.objects.filter(
+                student_id__in=page_ids, date=day,
+            )
+        }
+        roster = [{
+            "id": s.id, "name": str(s), "admission_number": s.admission_number,
+            "status": records[s.id].status if s.id in records else "present",
+            "notes": records[s.id].notes if s.id in records else "",
+        } for s in page]
+        response = paginator.get_paginated_response(roster)
+        response.data["date"] = day.isoformat()
+        # Retain the legacy key for older clients while exposing standard pages.
+        response.data["students"] = roster
+        return response
     if not _can_write(request.user): return Response({"detail": "You cannot record attendance."}, status=403)
     day, rows = request.data.get("date"), request.data.get("records", [])
-    if not day or not isinstance(rows, list): return Response({"detail": "Date and records are required."}, status=400)
-    allowed = set(_students(request, school_id).values_list("id", flat=True))
+    if not isinstance(day, str) or not isinstance(rows, list):
+        return Response({"detail": "Date and records are required."}, status=400)
+    try:
+        day = date.fromisoformat(day)
+    except ValueError:
+        return Response({"detail": "Use a valid YYYY-MM-DD date."}, status=400)
+    if len(rows) > 5000:
+        return Response({"detail": "Save at most 5,000 attendance records per batch."}, status=400)
+
+    normalized, seen = [], set()
+    allowed_statuses = dict(AttendanceRecord.STATUSES)
+    for index, row in enumerate(rows):
+        if not isinstance(row, dict):
+            return Response({"detail": f"Record {index + 1} must be an object."}, status=400)
+        raw_id = row.get("student_id")
+        if isinstance(raw_id, bool) or not (
+            isinstance(raw_id, int)
+            or isinstance(raw_id, str) and raw_id.isdigit()
+        ):
+            return Response({"detail": f"Record {index + 1} has an invalid learner id."}, status=400)
+        try:
+            student_id = int(raw_id)
+        except (TypeError, ValueError):
+            return Response({"detail": f"Record {index + 1} has an invalid learner id."}, status=400)
+        if student_id <= 0 or student_id in seen:
+            return Response({"detail": f"Record {index + 1} has a duplicate or invalid learner id."}, status=400)
+        seen.add(student_id)
+        status = row.get("status")
+        notes = row.get("notes", "")
+        if not isinstance(status, str) or status not in allowed_statuses:
+            return Response({"detail": f"Record {index + 1} has an invalid attendance status."}, status=400)
+        if not isinstance(notes, str) or len(notes) > 255:
+            return Response({"detail": f"Record {index + 1} notes must be 255 characters or fewer."}, status=400)
+        normalized.append(AttendanceRecord(
+            student_id=student_id, date=day, status=status, notes=notes,
+            recorded_by=request.user,
+        ))
+
+    allowed = set(_students(request, school_id).filter(
+        id__in=seen,
+    ).values_list("id", flat=True))
+    if allowed != seen:
+        return Response({"detail": "One or more learners are outside your authorized school or class scope."}, status=403)
     with transaction.atomic():
-        for row in rows:
-            if int(row.get("student_id", 0)) not in allowed or row.get("status") not in dict(AttendanceRecord.STATUSES): continue
-            AttendanceRecord.objects.update_or_create(student_id=row["student_id"], date=day, defaults={"status": row["status"], "notes": row.get("notes", ""), "recorded_by": request.user})
-    return Response({"saved": len(rows), "date": day})
+        AttendanceRecord.objects.bulk_create(
+            normalized, batch_size=500, update_conflicts=True,
+            update_fields=["status", "notes", "recorded_by"],
+            unique_fields=["student", "date"],
+        )
+    return Response({"saved": len(normalized), "date": day.isoformat()})
 
 
 @extend_schema(request=OpenApiTypes.OBJECT, responses={200: OpenApiResponse(description="School-scoped intervention records or update result."), 201: OpenApiResponse(description="Intervention created."), 400: OpenApiResponse(description="Invalid intervention payload."), 403: OpenApiResponse(description="Intervention permission denied."), 404: OpenApiResponse(description="Student or intervention not found.")})

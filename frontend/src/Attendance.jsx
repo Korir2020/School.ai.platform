@@ -5,7 +5,7 @@ import { Button, Card, Input, Loading, Select, Badge } from "./ui";
 
 export default function Attendance() {
   const toast = useToast(); const [date, setDate] = useState(new Date().toISOString().slice(0, 10)); const [classId, setClassId] = useState(""); const [streamId, setStreamId] = useState(""); const [classes, setClasses] = useState([]), [streams, setStreams] = useState([]), [rows, setRows] = useState(null), [busy, setBusy] = useState(false);
-  const load = async () => { const qs = new URLSearchParams({ date, ...(classId && { class_level_id: classId }), ...(streamId && { stream_id: streamId }) }); const r = await api(`/api/attendance/?${qs}`); if (r.ok) setRows((await r.json()).students); };
+  const load = async () => { setRows(null); const qs = new URLSearchParams({ date, ...(classId && { class_level_id: classId }), ...(streamId && { stream_id: streamId }) }); const pageRows = await listAll(`/api/attendance/?${qs}`); setRows(pageRows); };
   useEffect(() => { Promise.all([listAll("/api/class-levels/"), listAll("/api/streams/")]).then(([c, s]) => { setClasses(c); setStreams(s); }); }, []);
   useEffect(() => { load(); }, [date, classId, streamId]);
   const setStatus = (id, status) => setRows(rows.map(x => x.id === id ? { ...x, status } : x));

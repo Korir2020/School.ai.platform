@@ -1,6 +1,6 @@
 from django.contrib.auth.models import User
 from django.db import transaction
-from django.db.models import Sum
+from django.db.models import F, Prefetch, Sum
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
@@ -19,12 +19,19 @@ def _parent(request):
 
 
 def _child(x):
-    fees = StudentFee.objects.filter(student=x)
-    totals = fees.aggregate(due=Sum("amount_due"), paid=Sum("amount_paid"))
+    prefetched = getattr(x, "_prefetched_objects_cache", {}).get("fees")
+    if prefetched is None:
+        totals = StudentFee.objects.filter(student=x).aggregate(
+            due=Sum("amount_due"), paid=Sum("amount_paid"),
+        )
+        due, paid = totals["due"] or 0, totals["paid"] or 0
+    else:
+        due = sum((fee.amount_due for fee in prefetched), 0)
+        paid = sum((fee.amount_paid for fee in prefetched), 0)
     return {"id": x.id, "name": str(x), "admission_number": x.admission_number,
             "date_of_birth": x.date_of_birth,
-            "fees": {"due": str(totals["due"] or 0), "paid": str(totals["paid"] or 0),
-                     "balance": str((totals["due"] or 0) - (totals["paid"] or 0))}}
+            "fees": {"due": str(due), "paid": str(paid),
+                     "balance": str(due - paid)}}
 
 
 @api_view(["GET"])
@@ -32,7 +39,13 @@ def parent_children(request):
     profile, error = _parent(request)
     if error:
         return error
-    children = Student.objects.filter(guardians__guardian=profile).distinct()
+    children = Student.objects.filter(
+        guardians__guardian=profile, school_id=profile.school_id,
+    ).distinct().order_by("last_name", "first_name", "id").prefetch_related(
+        Prefetch("fees", queryset=StudentFee.objects.only(
+            "student_id", "amount_due", "amount_paid",
+        )),
+    )
     terms = Term.objects.filter(academic_year__school_id=profile.school_id).select_related(
         "academic_year").order_by("-start_date")
     return Response({"children": [_child(x) for x in children], "terms": [
@@ -45,9 +58,14 @@ def parent_fees(request, student_id):
     profile, error = _parent(request)
     if error:
         return error
-    if not StudentGuardian.objects.filter(guardian=profile, student_id=student_id).exists():
+    if not StudentGuardian.objects.filter(
+        guardian=profile, student_id=student_id,
+        student__school_id=profile.school_id,
+    ).exists():
         return Response({"detail": "Not found."}, status=404)
-    rows = StudentFee.objects.filter(student_id=student_id).select_related("fee_structure")
+    rows = StudentFee.objects.filter(
+        student_id=student_id, student__school_id=profile.school_id,
+    ).select_related("fee_structure")
     return Response([{"id": x.id, "fee": x.fee_structure.name,
                       "amount_due": str(x.amount_due), "amount_paid": str(x.amount_paid),
                       "balance": str(x.balance), "status": x.status,
@@ -62,9 +80,18 @@ def parent_accounts(request):
     if not request.user.is_superuser and not SchoolAdminProfile.objects.filter(user=request.user).exists():
         return Response({"detail": "Only school admins can manage parents."}, status=403)
     if request.method == "GET":
-        rows = GuardianProfile.objects.filter(school_id=school_id).select_related("user")
+        rows = list(GuardianProfile.objects.filter(
+            school_id=school_id,
+        ).select_related("user"))
+        linked = StudentGuardian.objects.filter(
+            guardian_id__in=[row.id for row in rows],
+            student__school_id=F("guardian__school_id"),
+        ).values_list("guardian_id", "student_id")
+        students_by_guardian = {}
+        for guardian_id, student_id in linked:
+            students_by_guardian.setdefault(guardian_id, []).append(student_id)
         return Response([{"id": x.id, "username": x.user.username,
-                          "students": [s.id for s in Student.objects.filter(guardians__guardian=x)]}
+                          "students": students_by_guardian.get(x.id, [])}
                          for x in rows])
     data = request.data
     students = Student.objects.filter(id__in=data.get("student_ids", []))
@@ -72,6 +99,8 @@ def parent_accounts(request):
         return Response({"detail": "Students must belong to your school."}, status=403)
     if not data.get("username") or not data.get("password") or not students.exists():
         return Response({"detail": "Username, password, and at least one student are required."}, status=400)
+    if school_id is None and students.exclude(school_id=students.order_by("id").values_list("school_id", flat=True).first()).exists():
+        return Response({"detail": "A guardian account cannot link students from multiple schools."}, status=400)
     if User.objects.filter(username=data["username"]).exists():
         return Response({"detail": "Username already exists."}, status=400)
     with transaction.atomic():

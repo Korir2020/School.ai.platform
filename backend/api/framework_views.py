@@ -55,7 +55,8 @@ def framework_overview(request):
     return Response({
         "frameworks": [{"key": f.key, "name": f.name, "stage": f.stage} for f in FRAMEWORKS.values()],
         "class_levels": [{"id": c.id, "name": c.name, "level_number": c.level_number,
-                          "curriculum_id": c.curriculum_id, "curriculum_name": c.curriculum.name}
+                          "curriculum_id": c.curriculum_id, "curriculum_name": c.curriculum.name,
+                          "curriculum_code": c.curriculum.code}
                          for c in levels],
         "versions": [{"id": v.id, "framework_key": v.framework_key, "version": v.version,
                       "curriculum_id": v.curriculum_id, "curriculum_name": v.curriculum.name,

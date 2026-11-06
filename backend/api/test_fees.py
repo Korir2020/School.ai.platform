@@ -43,7 +43,33 @@ class FeeApiTests(APITestCase):
         self.client.force_authenticate(self.bursar)
         result = self.client.get("/api/fees/invoices/")
         self.assertEqual(result.status_code, 200)
-        self.assertEqual(result.json()[0]["balance"], "10000.00")
+        self.assertEqual(result.json()["results"][0]["balance"], "10000.00")
+
+    def test_fee_lists_are_bounded_and_all_pages_are_reachable(self):
+        for index in range(55):
+            student = Student.objects.create(
+                school=self.school, first_name=f"Learner{index}",
+                last_name="Page", admission_number=f"PAGE{index}",
+            )
+            StudentFee.objects.create(
+                student=student, fee_structure=self.invoice.fee_structure,
+                amount_due=Decimal("10000.00"),
+            )
+        self.client.force_authenticate(self.bursar)
+        students = self.client.get("/api/fees/students/?page_size=50")
+        self.assertEqual(students.status_code, 200)
+        self.assertEqual(students.json()["count"], 56)
+        self.assertEqual(len(students.json()["results"]), 50)
+        self.assertIsNotNone(students.json()["next"])
+        students_page_two = self.client.get("/api/fees/students/?page=2&page_size=50")
+        self.assertEqual(len(students_page_two.json()["results"]), 6)
+
+        invoices = self.client.get("/api/fees/invoices/?page_size=50")
+        self.assertEqual(invoices.json()["count"], 56)
+        self.assertEqual(len(invoices.json()["results"]), 50)
+        self.assertIsNotNone(invoices.json()["next"])
+        invoice_page_two = self.client.get("/api/fees/invoices/?page=2&page_size=50")
+        self.assertEqual(len(invoice_page_two.json()["results"]), 6)
 
     def test_bursar_payment_updates_balance(self):
         self.client.force_authenticate(self.bursar)

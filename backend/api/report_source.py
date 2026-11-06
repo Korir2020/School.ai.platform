@@ -4,8 +4,9 @@ Maps Marian's own models onto the marian_reports DataSource interface.
 Rules:
   * Every method is scoped to one school; a record from another school is
     reported as NotFound, never returned.
-  * Only approved or locked marks count as scored. Draft, submitted and
-    never-entered marks are MISSING (pending). A missing mark is never 0.
+  * Only approved or locked marks count. Draft/submitted entries map to PENDING;
+    a missing database row maps to MISSING. Zero remains a genuine scored mark.
+    Absent, exempted, not-assessed and pending dispositions remain distinct.
   * Paper weights come from SubjectPaper. A subject with no SubjectPaper rows
     is a simple single-mark subject using paper 1 (as exam_publish does).
   * Performance marks are capped at 100 in Marian, so max_mark is always 100.
@@ -34,9 +35,9 @@ from marian_reports.grading import (
 from marian_reports.section_setup import apply_sections
 
 from schools.models import (
-    AttendanceRecord, Enrollment, Exam, Performance, ReportAuditEntry,
+    AttendanceRecord, Enrollment, Exam, LevelResult, Performance, ReportAuditEntry,
     ReportComment, ReportRemark, ReportSettings, School, Student,
-    SubjectPaper, TeacherAssignment, Term,
+    SubjectPaper, SubjectRegistration, TeacherAssignment, Term,
 )
 
 OFFICIAL = ("approved", "locked")
@@ -52,11 +53,22 @@ def _pk(value):
 
 
 def _score(perf):
-    return perf.marks if perf is not None and perf.status in OFFICIAL else None
+    return (perf.marks if perf is not None and perf.status in OFFICIAL
+            and perf.mark_status == "scored" else None)
 
 
 def _status(perf):
-    return MarkStatus.SCORED if _score(perf) is not None else MarkStatus.MISSING
+    if perf is None:
+        return MarkStatus.MISSING
+    if perf.status not in OFFICIAL:
+        return MarkStatus.PENDING
+    return {
+        "scored": MarkStatus.SCORED,
+        "absent": MarkStatus.ABSENT,
+        "exempted": MarkStatus.EXEMPT,
+        "not_assessed": MarkStatus.NOT_ASSESSED,
+        "pending": MarkStatus.PENDING,
+    }.get(perf.mark_status, MarkStatus.PENDING)
 
 
 def _term_number(term, same_year_terms):
@@ -90,7 +102,7 @@ class DjangoDataSource(DataSource):
     def _exam_row(self, school_id, exam_id):
         row = Exam.objects.filter(
             pk=_pk(exam_id), school_id=_pk(school_id),
-        ).select_related("term__academic_year", "class_level").first()
+        ).select_related("term__academic_year", "class_level__curriculum").first()
         if row is None:
             raise NotFound("not found")
         return row
@@ -179,55 +191,149 @@ class DjangoDataSource(DataSource):
             out.append(item)
         return out
 
+    def list_exam_students(self, school_id, exam_id, class_name):
+        """Primary-only exact roster; legacy and other frameworks keep their old population."""
+        exam = self._exam_row(school_id, exam_id)
+        framework_key = exam.framework_key
+        if not framework_key and exam.class_level.curriculum.code.upper() == "CBC":
+            from api.framework_rules import resolve
+            version = resolve(exam.school_id, exam.class_level, exam.term.academic_year)
+            framework_key = version.framework_key if version is not None else None
+        if framework_key != "cbe_primary":
+            return None
+        if exam.class_level.name != class_name:
+            return []
+        enrollments = Enrollment.objects.filter(
+            student__school_id=_pk(school_id), student__status="active",
+            academic_year_id=exam.term.academic_year_id,
+            class_level_id=exam.class_level_id, is_active=True,
+        ).select_related("student", "class_level", "stream").order_by(
+            "student__admission_number", "-id")
+        seen, out = set(), []
+        for enrollment in enrollments:
+            if enrollment.student_id in seen:
+                continue
+            seen.add(enrollment.student_id)
+            out.append(self._to_student(enrollment.student, enrollment))
+        return out
+
     def get_entries(self, school_id, exam_id, student_id):
         exam = self._exam_row(school_id, exam_id)
         student = self._student_row(school_id, student_id)
-        marks = Performance.objects.filter(
-            student=student, term=exam.term, assessment_type=exam.assessment_type,
-        ).select_related("subject")
-        by_subject, subjects = defaultdict(dict), {}
-        for m in marks:
-            by_subject[m.subject_id][m.paper_number] = m
-            subjects[m.subject_id] = m.subject
-        # Subjects assigned to the student's stream are expected even when
-        # nothing has been entered yet: they show as pending, not omitted.
-        enrollment = Enrollment.objects.filter(
-            student=student, academic_year=exam.term.academic_year,
-        ).order_by("-id").first()
-        teacher_of = {}
-        if enrollment and enrollment.stream_id:
-            assigned = TeacherAssignment.objects.filter(
-                school_id=exam.school_id, stream_id=enrollment.stream_id,
-            ).select_related("subject", "teacher__user")
-            for a in assigned:
-                subjects.setdefault(a.subject_id, a.subject)
-                teacher_of.setdefault(
-                    a.subject_id, a.teacher.user.get_full_name().strip())
-        papers = defaultdict(list)
-        for sp in SubjectPaper.objects.filter(
-                subject_id__in=subjects).order_by("paper_number"):
-            papers[sp.subject_id].append(sp)
-        entries = []
-        for subject_id, subject in sorted(
-                subjects.items(), key=lambda kv: kv[1].name):
-            got = by_subject.get(subject_id, {})
-            teacher = teacher_of.get(subject_id, "")
-            if papers.get(subject_id):
-                components = tuple(
-                    Component(
-                        score=_score(got.get(p.paper_number)), max_mark=p.max_marks,
-                        weight=p.weight, status=_status(got.get(p.paper_number)),
-                        name=f"Paper {p.paper_number}")
-                    for p in papers[subject_id])
-                entries.append(SubjectEntry(
-                    subject=subject.name, max_mark=HUNDRED,
-                    components=components, teacher=teacher))
-            else:
-                perf = got.get(1)
-                entries.append(SubjectEntry(
-                    subject=subject.name, max_mark=HUNDRED, score=_score(perf),
-                    status=_status(perf), teacher=teacher))
-        return entries
+        return self.get_entries_for_students(
+            school_id, exam_id, [student.pk], exam_row=exam,
+        ).get(str(student.pk), [])
+
+    def get_entries_for_students(self, school_id, exam_id, student_ids, exam_row=None):
+        """Build a report-entry map with a bounded set of cohort-wide queries."""
+        exam = exam_row or self._exam_row(school_id, exam_id)
+        sid = _pk(school_id)
+        ids = [_pk(student_id) for student_id in student_ids]
+        students = list(Student.objects.filter(school_id=sid, pk__in=ids))
+        if not students:
+            return {}
+        ids = [student.pk for student in students]
+
+        enrollments = {}
+        for enrollment in Enrollment.objects.filter(
+            student_id__in=ids, academic_year_id=exam.term.academic_year_id,
+        ).select_related("stream").order_by("-id"):
+            enrollments.setdefault(enrollment.student_id, enrollment)
+
+        subjects_by_student = defaultdict(dict)
+        for registration in SubjectRegistration.objects.filter(
+            student_id__in=ids, academic_year_id=exam.term.academic_year_id,
+            subject__school_id=exam.school_id,
+        ).select_related("subject"):
+            subjects_by_student[registration.student_id][registration.subject_id] = registration.subject
+
+        marks_by_student = defaultdict(lambda: defaultdict(dict))
+        for mark in Performance.objects.filter(
+            student_id__in=ids, term=exam.term,
+            assessment_type=exam.assessment_type,
+        ).select_related("subject"):
+            marks_by_student[mark.student_id][mark.subject_id][mark.paper_number] = mark
+
+        subject_ids = {
+            subject_id for subjects in subjects_by_student.values()
+            for subject_id in subjects
+        }
+        assignments_by_stream_subject = defaultdict(dict)
+        stream_ids = {e.stream_id for e in enrollments.values() if e.stream_id}
+        for assignment in TeacherAssignment.objects.filter(
+            school_id=exam.school_id, stream_id__in=stream_ids,
+            subject_id__in=subject_ids,
+        ).select_related("teacher__user"):
+            assignments_by_stream_subject[(assignment.stream_id, assignment.subject_id)].setdefault(
+                assignment.subject_id,
+                assignment.teacher.user.get_full_name().strip(),
+            )
+
+        papers_by_subject = defaultdict(list)
+        for paper in SubjectPaper.objects.filter(
+            subject_id__in=subject_ids,
+        ).order_by("paper_number"):
+            papers_by_subject[paper.subject_id].append(paper)
+
+        achievement_by_student_subject = {}
+        is_primary = exam.framework_key == "cbe_primary"
+        if is_primary and subject_ids:
+            for level in LevelResult.objects.filter(
+                student_id__in=ids, subject_id__in=subject_ids,
+                academic_year_id=exam.term.academic_year_id, term=exam.term,
+                assessment_type=exam.assessment_type, status__in=OFFICIAL,
+            ).select_related("scale"):
+                descriptor = next((item for item in level.scale.levels
+                                   if item.get("key") == level.level_key), None)
+                if descriptor is None:
+                    continue
+                label = descriptor.get("label", level.level_key)
+                description = descriptor.get("description", "").strip()
+                text = "Achievement: " + label
+                if description:
+                    text += " — " + description
+                if level.comment:
+                    text += " | " + level.comment
+                achievement_by_student_subject[(level.student_id, level.subject_id)] = text
+
+        result = {}
+        for student in students:
+            subjects = subjects_by_student.get(student.pk, {})
+            enrollment = enrollments.get(student.pk)
+            stream_id = enrollment.stream_id if enrollment else None
+            entries = []
+            for subject_id, subject in sorted(
+                subjects.items(), key=lambda item: item[1].name,
+            ):
+                got = marks_by_student[student.pk].get(subject_id, {})
+                teacher = assignments_by_stream_subject.get(
+                    (stream_id, subject_id), {},
+                ).get(subject_id, "")
+                achievement = achievement_by_student_subject.get(
+                    (student.pk, subject_id), "")
+                subject_papers = papers_by_subject.get(subject_id, [])
+                if subject_papers:
+                    components = tuple(
+                        Component(
+                            score=_score(got.get(paper.paper_number)),
+                            max_mark=paper.max_marks, weight=paper.weight,
+                            status=_status(got.get(paper.paper_number)),
+                            name=f"Paper {paper.paper_number}",
+                        ) for paper in subject_papers
+                    )
+                    entries.append(SubjectEntry(
+                        subject=subject.name, max_mark=HUNDRED,
+                        components=components, teacher=teacher, remarks=achievement,
+                    ))
+                else:
+                    mark = got.get(1)
+                    entries.append(SubjectEntry(
+                        subject=subject.name, max_mark=HUNDRED,
+                        score=_score(mark), status=_status(mark), teacher=teacher,
+                        remarks=achievement,
+                    ))
+            result[str(student.pk)] = entries
+        return result
 
     def get_remarks(self, school_id, exam_id, student_id):
         # Only teacher-approved text is ever stored (see DjangoRemarkStore).

@@ -61,12 +61,32 @@ export default function Exams({ d }) {
   const pos = (r) => (isStream ? r.stream_rank : r.class_rank);
   const other = (r) => (isStream ? r.class_rank : r.stream_rank);
   const rk = (v) => (v == null ? "No rank" : v);
+  const showRanks = res?.result_mode !== "achievement_levels" && res?.rankings_enabled !== false;
   const rcols = [
-    { label: isStream ? "Stream position" : "Class position", key: isStream ? "stream_rank" : "class_rank", sort: true, render: (r) => rk(pos(r)) },
+    ...(showRanks ? [
+      { label: isStream ? "Stream position" : "Class position", key: isStream ? "stream_rank" : "class_rank", sort: true, render: (r) => rk(pos(r)) },
+    ] : []),
     { label: "Student", key: "name", sort: true },
     { label: "Admission no.", key: "admission_number", sort: true },
-    { label: "Average", key: "overall_average", sort: true, render: (r) => r.overall_average + "%" },
-    { label: isStream ? "Class position" : "Stream position", key: isStream ? "class_rank" : "stream_rank", sort: true, render: (r) => rk(other(r)) },
+    { label: res?.result_mode === "achievement_levels" ? "Overall progress summary" : "Average", key: "overall_average", sort: true,
+      render: (r) => res?.result_mode === "achievement_levels" ? (r.overall_summary || "—") : r.overall_average + "%" },
+    ...(res?.result_mode === "achievement_levels" ? [{
+      label: "School-defined subject levels", get: (r) => Object.entries(r.subject_scores || {}).map(([subject, level]) => `${subject}: ${level.label}`).join("; "),
+      render: (r) => Object.entries(r.subject_scores || {}).map(([subject, level]) => `${subject}: ${level.label}`).join("; ") || "—",
+    }] : []),
+    ...(res?.result_mode === "achievement_levels" ? [] : [{
+      label: "Paper dispositions", get: (r) => Object.entries(r.subject_statuses || {}).map(
+        ([subjectName, papers]) => `${subjectName} ${Object.entries(papers).map(([paper, status]) => `P${paper}: ${status.replaceAll("_", " ")}`).join(", ")}`,
+      ).join("; "), render: (r) => {
+        const text = Object.entries(r.subject_statuses || {}).map(
+          ([subjectName, papers]) => `${subjectName}: ${Object.entries(papers).map(([paper, status]) => `P${paper} ${status.replaceAll("_", " ")}`).join(", ")}`,
+        ).join("; ");
+        return text || "—";
+      },
+    }]),
+    ...(showRanks ? [
+      { label: isStream ? "Class position" : "Stream position", key: isStream ? "class_rank" : "stream_rank", sort: true, render: (r) => rk(other(r)) },
+    ] : []),
   ];
   const byScope = (a, b) => (pos(a) ?? 1e9) - (pos(b) ?? 1e9);
   return (
@@ -88,11 +108,17 @@ export default function Exams({ d }) {
           disabled={!name || !lvl}>Create exam</Button>
       </Card>
       {res && <Card title={"Results: " + res.exam}>
-        <p className="sub">Official published results for this exam only. Positions are not comparable with other exams. {res.results.length} student{res.results.length === 1 ? "" : "s"} listed.</p>
-        <Select id="rank-scope" label="Ranking scope" value={scope} onChange={(e) => setScope(e.target.value)}>
+        <p className="sub">{res.result_mode === "achievement_levels"
+          ? res.notice
+          : `Internal school assessment results for this examination; positions are not comparable with other exams. ${res.results.length} learner${res.results.length === 1 ? "" : "s"} listed.`}</p>
+        {showRanks && <Select id="rank-scope" label="Ranking scope" value={scope} onChange={(e) => setScope(e.target.value)}>
           <option value="class">Class position</option>
           <option value="stream">Stream position</option>
-        </Select>
+        </Select>}
+        {res.result_mode === "achievement_levels" && res.performance_summary && <div>
+          <p><b>Class descriptor distribution:</b> {Object.entries(res.performance_summary.class || {}).map(([label, n]) => `${label}: ${n}`).join(" · ") || "No approved descriptor outcomes."}</p>
+          {Object.entries(res.performance_summary.streams || {}).map(([stream, counts]) => <p key={stream}><b>{stream || "No stream"}:</b> {Object.entries(counts).map(([label, n]) => `${label}: ${n}`).join(" · ")}</p>)}
+        </div>}
         <DataTable cols={rcols} rows={[...res.results].sort(byScope)} search="Search students"
           empty="No results" />
         <Button kind="ghost" size="sm" onClick={() => setRes(null)}>Close</Button>

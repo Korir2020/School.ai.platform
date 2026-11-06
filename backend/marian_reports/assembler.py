@@ -138,12 +138,22 @@ class ReportService:
     def snapshot(self, user: User, exam_id: str, class_name: str) -> Snapshot:
         sid = user.school_id                      # tenant comes from the session, not the request
         exam = self.ds.get_exam(sid, exam_id)
-        pop = self.ds.list_students(sid, class_name=class_name)
+        exam_cohort = getattr(self.ds, "list_exam_students", None)
+        pop = (exam_cohort(sid, exam_id, class_name) if exam_cohort
+               else None)
+        if pop is None:
+            pop = self.ds.list_students(sid, class_name=class_name)
         if not pop:
             raise ReportNotReady("no_students", f"No students found in {class_name}.")
         summaries, cands, h = {}, [], hashlib.sha256()
+        cohort_loader = getattr(self.ds, "get_entries_for_students", None)
+        entries_by_student = (
+            cohort_loader(sid, exam_id, [student.id for student in pop])
+            if cohort_loader else None
+        )
         for s in pop:
-            ents = self.ds.get_entries(sid, exam_id, s.id)
+            ents = (entries_by_student.get(str(s.id), []) if entries_by_student is not None
+                    else self.ds.get_entries(sid, exam_id, s.id))
             summ = evaluate_student(ents, self.scheme)
             summaries[s.id] = summ
             for r in summ.subjects:
@@ -226,7 +236,10 @@ class ReportService:
 
     def _build_report_core(self, user: User, snap: Snapshot, student_id: str,
                      provisional_ok: Optional[bool] = None, today: Optional[date] = None) -> ReportData:
-        student = self.ds.get_student(user.school_id, student_id)
+        # Prefer the report snapshot's roster row. CBC Primary snapshots use
+        # the exact active enrollment for the exam year; reloading the latest
+        # enrollment here would otherwise mislabel a historical report.
+        student = snap.students.get(str(student_id)) or self.ds.get_student(user.school_id, student_id)
         self.authorize_student(user, student)
         provisional = self.check_ready(snap, student, provisional_ok)
         summ = snap.summaries[student.id]
@@ -240,8 +253,9 @@ class ReportService:
             if res and r.counted:
                 pos = f"{res.ranks.get(sid, '—')}/{res.population_size}"
             remark = r.remarks or (self.cfg.remark_for_pct(r.pct) if r.pct is not None else "")
-            label = {"scored": "", "missing": "Pending", "absent": "Absent", "exempt": "Exempt",
-                     "withdrawn": "Withdrawn"}[r.status]
+            label = {"scored": "", "missing": "Pending", "pending": "Pending",
+                     "absent": "Absent", "exempt": "Exempt",
+                     "withdrawn": "Withdrawn", "not_assessed": "Not assessed"}[r.status]
             lines.append(SubjectLine(r.subject, r.status, r.score, r.max_mark, r.pct,
                                      r.grade or label or "—", r.points, pos, remark if r.counted else label, r.teacher))
         positions = {"stream": _pos(snap.stream[student.stream], sid),

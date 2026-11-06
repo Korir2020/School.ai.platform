@@ -5,6 +5,7 @@ from rest_framework.response import Response
 
 from schools.models import Enrollment, Exam, ExamResult, GuardianProfile, Performance, SchoolAdminProfile, Student, Term
 from .permissions import get_user_school_id, restrict_for_teacher
+from .subject_registration_rules import registered_marks
 
 
 def _avg(values):
@@ -18,12 +19,21 @@ def _did_not_sit(student, term):
     ).values_list("class_level_id", flat=True)
     exams = Exam.objects.filter(
         term=term, status="published", class_level_id__in=list(levels)
-    ).exclude(results__student=student).order_by("published_at", "id")
-    return [
-        {"exam": e.name, "assessment_type": e.assessment_type,
-         "note": "Did not sit this exam"}
-        for e in exams
-    ]
+    ).filter(term__academic_year__subject_registrations__student=student).distinct()
+    exams = exams.exclude(results__student=student).order_by("published_at", "id")
+    out = []
+    for exam in exams:
+        finalized = registered_marks(Performance.objects.filter(
+            student=student, term=term, assessment_type=exam.assessment_type,
+            status__in=["approved", "locked"],
+        ), term.academic_year)
+        if finalized.exists():
+            # Disposition-only results (for example, all papers not assessed)
+            # are visible in the subject rows and are not a no-show.
+            continue
+        out.append({"exam": exam.name, "assessment_type": exam.assessment_type,
+                    "note": "Did not sit this exam"})
+    return out
 
 
 @api_view(["GET"])
@@ -33,7 +43,9 @@ def report_card(request, student_id, term_id):
         school_id = get_user_school_id(request.user)
         guardian = GuardianProfile.objects.filter(user=request.user).first()
         if guardian:
-            students = students.filter(guardians__guardian=guardian)
+            students = students.filter(
+                guardians__guardian=guardian, school_id=guardian.school_id,
+            ).distinct()
         elif school_id is None:
             return Response({"detail": "School access not assigned."}, status=403)
         else:
@@ -49,24 +61,46 @@ def report_card(request, student_id, term_id):
     if term is None:
         return Response({"detail": "Not found."}, status=404)
 
-    marks = Performance.objects.filter(student=student, term=term)
+    primary_class_ids = Enrollment.objects.filter(
+        student=student, academic_year=term.academic_year, is_active=True,
+    ).values_list("class_level_id", flat=True)
+    primary_exam = Exam.objects.filter(
+        school_id=student.school_id, term=term, status="published",
+        framework_key="cbe_primary", class_level_id__in=primary_class_ids,
+    ).exists()
+    if primary_exam:
+        return Response({
+            "error": "cbc_primary_report_module_required",
+            "detail": "CBC Primary report cards must be generated from Report Cards → select the published examination. That report applies this school's configured paper weights, grading rules, and approved achievement descriptors.",
+        }, status=409)
+
+    marks = registered_marks(Performance.objects.filter(student=student, term=term), term.academic_year)
     final = marks.filter(status__in=["approved", "locked"]).select_related("subject")
-    pending = marks.count() - final.count()
+    pending = marks.exclude(status__in=["approved", "locked"]).count() + final.filter(
+        mark_status="pending",
+    ).count()
 
     by_subject = {}
     for p in final.order_by("subject__name", "assessment_type"):
-        by_subject.setdefault(p.subject.name, []).append(
-            (p.assessment_type, Decimal(p.marks))
-        )
+        by_subject.setdefault(p.subject.name, []).append({
+            "type": p.assessment_type,
+            "marks": str(p.marks) if p.mark_status == "scored" else None,
+            "status": p.mark_status,
+            "_score": Decimal(p.marks) if p.mark_status == "scored" else None,
+        })
 
     subjects = []
     for name, items in by_subject.items():
+        scores = [item["_score"] for item in items if item["_score"] is not None]
         subjects.append({
             "subject": name,
-            "assessments": [{"type": t, "marks": str(m)} for t, m in items],
-            "average": str(_avg([m for _, m in items])),
+            "assessments": [
+                {key: value for key, value in item.items() if not key.startswith("_")}
+                for item in items
+            ],
+            "average": str(_avg(scores)) if scores else None,
         })
-    overall = _avg([Decimal(s["average"]) for s in subjects])
+    overall = _avg([Decimal(s["average"]) for s in subjects if s["average"] is not None])
 
     data = {
         "student": {
@@ -79,6 +113,10 @@ def report_card(request, student_id, term_id):
         "subjects": subjects,
         "overall_average": str(overall) if overall is not None else None,
         "pending_marks": pending,
+        "mark_status_counts": {
+            value: final.filter(mark_status=value).count()
+            for value, _ in Performance.MARK_STATUS_CHOICES
+        },
         "did_not_sit": _did_not_sit(student, term),
     }
 

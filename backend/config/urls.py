@@ -13,11 +13,15 @@ from api.views import (
     class_level_list,
     stream_list,
     enrollment_list, subject_list,
+    primary_subject_catalog,
 )
 
 from api import setup_views
 from api import profile_views
 from api import resend_views
+from api.subject_registrations import subject_registration_collection
+from api.performance_batch import performance_batch, performance_batch_submit
+from api.job_views import background_job_status, background_job_download
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -30,7 +34,13 @@ urlpatterns = [
     path('api/streams/', stream_collection),
     path('api/enrollments/', enrollment_collection),
     path('api/subjects/', subject_collection),
+    path('api/subject-definitions/primary/', primary_subject_catalog),
+    path('api/subject-registrations/', subject_registration_collection),
     path('api/performance/', performance_list),
+    path('api/performance/batch/', performance_batch),
+    path('api/performance/batch/submit/', performance_batch_submit),
+    path('api/jobs/<uuid:pk>/', background_job_status),
+    path('api/jobs/<uuid:pk>/download/', background_job_download),
 ]
 
 
@@ -138,9 +148,11 @@ urlpatterns += [
 ]
 
 from api.dashboard import dashboard
+from api.admin_exam_dashboard import admin_exam_dashboard
 
 urlpatterns += [
     path('api/dashboard/', dashboard),
+    path('api/dashboard/exams/', admin_exam_dashboard),
 ]
 
 from api.health import health
