@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.contrib.auth.models import User
 from rest_framework.test import APITestCase
 
@@ -47,7 +49,7 @@ class SchoolIsolationTests(APITestCase):
 from datetime import date
 from schools.models import (
     AcademicYear, Term, Curriculum, ClassLevel, Stream,
-    Enrollment, Subject, TeacherAssignment,
+    Enrollment, Subject, SubjectRegistration, TeacherAssignment,
 )
 
 
@@ -77,6 +79,10 @@ class MarksEntryTests(APITestCase):
             class_level=level, stream=self.stream,
         )
         self.subject = Subject.objects.create(school=self.school, name="Maths", code="M")
+        SubjectRegistration.objects.create(
+            student=self.student, academic_year=self.year, subject=self.subject,
+            category="compulsory",
+        )
         self.good = User.objects.create_user("good", password="pass12345")
         good_profile = TeacherProfile.objects.create(user=self.good, school=self.school)
         TeacherAssignment.objects.create(
@@ -110,6 +116,12 @@ class MarksEntryTests(APITestCase):
         self.client.force_authenticate(self.good)
         r = self.client.post("/api/performance/", self.payload(marks=101), format="json")
         self.assertEqual(r.status_code, 400)
+
+    def test_zero_is_a_valid_scored_mark(self):
+        self.client.force_authenticate(self.good)
+        r = self.client.post("/api/performance/", self.payload(marks=0), format="json")
+        self.assertEqual(r.status_code, 201)
+        self.assertEqual(Performance.objects.get(pk=r.json()["id"]).marks, 0)
 
     def test_cross_school_student_blocked(self):
         self.client.force_authenticate(self.good)
@@ -164,7 +176,8 @@ class WorkflowTests(APITestCase):
 
     def act(self, user, pk, action):
         self.client.force_authenticate(user)
-        return self.client.post(f"/api/performance/{pk}/{action}/")
+        payload = {"reason": "Reviewed and verified"} if action in ("approve", "reject") else {}
+        return self.client.post(f"/api/performance/{pk}/{action}/", payload, format="json")
 
     def test_new_mark_is_draft_and_cannot_force_status(self):
         self.client.force_authenticate(self.good)
@@ -198,6 +211,28 @@ class WorkflowTests(APITestCase):
         self.assertEqual(self.act(self.admin, pk, "reject").status_code, 409)
         actions = set(MarkAuditLog.objects.values_list("action", flat=True))
         self.assertTrue({"created", "submit", "approve", "lock"} <= actions)
+
+    def test_approval_requires_reason_and_audits_it(self):
+        pk = self.make_mark()
+        self.act(self.good, pk, "submit")
+        self.client.force_authenticate(self.admin)
+        missing = self.client.post(f"/api/performance/{pk}/approve/", {}, format="json")
+        self.assertEqual(missing.status_code, 400)
+        approved = self.client.post(f"/api/performance/{pk}/approve/",
+                                    {"reason": "Verified source register"}, format="json")
+        self.assertEqual(approved.status_code, 200)
+        log = MarkAuditLog.objects.get(action="approve", performance_id=pk)
+        self.assertEqual(log.details["reason"], "Verified source register")
+
+    def test_pending_mark_cannot_be_approved(self):
+        self.client.force_authenticate(self.good)
+        payload = {**self.payload(), "marks": None, "mark_status": "pending"}
+        created = self.client.post("/api/performance/", payload, format="json")
+        self.assertEqual(created.status_code, 201)
+        pk = created.json()["id"]
+        self.act(self.good, pk, "submit")
+        result = self.act(self.admin, pk, "approve")
+        self.assertEqual(result.status_code, 409)
 
     def test_other_school_admin_gets_404(self):
         pk = self.make_mark()
@@ -270,6 +305,51 @@ class MarkEditTests(APITestCase):
 
     def test_other_school_admin_gets_404(self):
         self.assertEqual(self.edit(self.other_admin, "55").status_code, 404)
+
+    def test_admin_correction_requires_reason_and_preserves_before_after(self):
+        WorkflowTests.act(self, self.good, self.pk, "submit")
+        self.client.force_authenticate(self.admin)
+        missing = self.client.patch(f"/api/performance/{self.pk}/", {
+            "marks": None, "mark_status": "absent",
+        }, format="json")
+        self.assertEqual(missing.status_code, 400)
+        corrected = self.client.patch(f"/api/performance/{self.pk}/", {
+            "marks": None, "mark_status": "absent",
+            "reason": "Verified learner was absent",
+        }, format="json")
+        self.assertEqual(corrected.status_code, 200, corrected.content)
+        mark = Performance.objects.get(pk=self.pk)
+        self.assertEqual((mark.marks, mark.mark_status, mark.status), (None, "absent", "submitted"))
+        log = MarkAuditLog.objects.get(action="corrected", performance=mark)
+        self.assertEqual(log.details["reason"], "Verified learner was absent")
+        self.assertEqual(log.details["before"]["marks"], "70.00")
+        self.assertEqual(log.details["after"]["mark_status"], "absent")
+
+    def test_approved_correction_returns_to_submission_queue_and_zero_is_valid(self):
+        WorkflowTests.act(self, self.good, self.pk, "submit")
+        WorkflowTests.act(self, self.admin, self.pk, "approve")
+        self.client.force_authenticate(self.admin)
+        corrected = self.client.patch(f"/api/performance/{self.pk}/", {
+            "marks": "0", "mark_status": "scored", "reason": "Rechecked the answer sheet",
+        }, format="json")
+        self.assertEqual(corrected.status_code, 200, corrected.content)
+        mark = Performance.objects.get(pk=self.pk)
+        self.assertEqual((mark.marks, mark.mark_status, mark.status), (Decimal("0"), "scored", "submitted"))
+        self.assertEqual(WorkflowTests.act(self, self.admin, self.pk, "approve").status_code, 200)
+
+    def test_return_requires_reason_and_returns_mark_to_draft(self):
+        WorkflowTests.act(self, self.good, self.pk, "submit")
+        self.client.force_authenticate(self.admin)
+        missing = self.client.post(f"/api/performance/{self.pk}/reject/", {}, format="json")
+        self.assertEqual(missing.status_code, 400)
+        returned = self.client.post(f"/api/performance/{self.pk}/reject/", {
+            "reason": "Correct the paper total",
+        }, format="json")
+        self.assertEqual(returned.status_code, 200)
+        mark = Performance.objects.get(pk=self.pk)
+        self.assertEqual(mark.status, "draft")
+        self.assertEqual(MarkAuditLog.objects.get(action="return", performance=mark).details["reason"],
+                         "Correct the paper total")
 
 
 class AuditLogTests(APITestCase):
@@ -552,6 +632,10 @@ class ExamPublishTests(APITestCase):
         Enrollment.objects.create(
             student=s, academic_year=self.year,
             class_level=self.stream.class_level, stream=self.stream,
+        )
+        SubjectRegistration.objects.create(
+            student=s, academic_year=self.year, subject=self.subject,
+            category="compulsory",
         )
         return s
 

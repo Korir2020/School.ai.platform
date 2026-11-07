@@ -4,7 +4,7 @@ Every result is an internal school calculation, never an official KNEC result.""
 from dataclasses import dataclass
 from typing import Callable
 
-from .grading import GradingScheme, make_scheme
+from .grading import GradingError, GradingScheme, make_scheme
 from .schemes import kcse_scheme
 
 INTERNAL_NOTE = "Internal school result - not an official KNEC result."
@@ -24,6 +24,16 @@ def kjsea_scheme(**overrides) -> GradingScheme:
     return make_scheme(KJSEA_BANDS, **kw)
 
 
+def primary_school_scheme() -> GradingScheme:
+    """CBC Primary has no built-in national percentage bands in Marian.
+
+    Report APIs must supply the school's saved or exam-frozen grading scheme;
+    this callable intentionally prevents a framework preset being mistaken for
+    an official Primary grading rule.
+    """
+    raise GradingError("CBC Primary requires a school-configured grading scale.")
+
+
 @dataclass(frozen=True)
 class Framework:
     key: str
@@ -37,6 +47,8 @@ class Framework:
 
 
 FRAMEWORKS = {
+    "cbe_primary": Framework("cbe_primary", "CBC Primary (Grades 1–6; school-configured)",
+                             "primary", primary_school_scheme),
     "kcse_844": Framework("kcse_844", "8-4-4 secondary (12-point scale, best 7)",
                           "secondary_844", kcse_scheme),
     "cbe_junior_levels": Framework("cbe_junior_levels",
@@ -53,6 +65,13 @@ def get_framework(key: str) -> Framework:
 
 # Stage presets: named bundles of report settings. Wording/visibility only; no grading rules here.
 STAGE_PRESETS = {
+    "cbe_primary": {
+        # School ranking policy is opt-in for Primary; schools can switch these
+        # report sections on after reviewing their own policy.
+        "sections": {"positions": False, "subject_position": False,
+                     "gender_position": False, "kcpe": False},
+        "labels": {"subject": "LEARNING AREA"},
+    },
     "kcse_844": {"sections": {}, "labels": {}},
     "cbe_junior_levels": {
         "sections": {"positions": False, "subject_position": False,

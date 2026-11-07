@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { api } from "./api";
 import Ic from "./icons";
+import ExamOperations from "./ExamOperations";
 import "./dash2.css";
 
 const K = [
@@ -118,6 +119,7 @@ export default function Dash2Mid({ d, go }) {
         <Performance termId={t ? t.id : null} go={go} />
         <Workflow d={d} go={go} />
       </section>
+      {d.role === "school_admin" && <ExamOperations go={go} />}
     </div>
   );
 }

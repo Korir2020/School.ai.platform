@@ -7,7 +7,8 @@ from django.db import transaction
 
 from api.workflow import TRANSITIONS, _is_admin_of
 from schools.models import (
-    Enrollment, LevelResult, LevelScale, MarkAuditLog, TeacherAssignment,
+    Enrollment, LevelResult, LevelScale, MarkAuditLog, SubjectRegistration,
+    TeacherAssignment,
 )
 
 ASSESSMENT_TYPES = ("opener", "mid", "end")
@@ -98,6 +99,15 @@ def save_level(user, student, subject, year, term, atype, level_key, comment="")
     enr = _enrollment(student, year)
     if enr is None:
         raise LevelError("This learner is not enrolled for that year.")
+    if (enr.class_level.curriculum.code.upper() == "CBC"
+            and 1 <= enr.class_level.level_number <= 6):
+        if not enr.is_active:
+            raise LevelError("This learner does not have an active Primary enrollment.")
+        if not SubjectRegistration.objects.filter(
+            student=student, academic_year=year, subject=subject,
+            subject__school_id=student.school_id,
+        ).exists():
+            raise LevelError("This learning area is not registered for this learner and academic year.")
     if not (_is_admin_of(user, student.school_id) or _teacher_ok(user, subject, enr.stream_id)):
         raise LevelError("You are not assigned to this subject and class.")
     scale = scale_for(student.school_id, enr.class_level)
@@ -155,7 +165,17 @@ def roster(user, subject, stream, year, term, atype):
     if not (_is_admin_of(user, subject.school_id) or _teacher_ok(user, subject, stream.id)):
         raise LevelError("You are not assigned to this subject and class.")
     enrolled = list(Enrollment.objects.filter(
-        stream=stream, academic_year=year, is_active=True).select_related("student"))
+        stream=stream, academic_year=year, is_active=True,
+        student__school_id=subject.school_id,
+    ).select_related("student", "class_level__curriculum"))
+    if (stream.class_level.curriculum.code.upper() == "CBC"
+            and 1 <= stream.class_level.level_number <= 6):
+        registered_ids = set(SubjectRegistration.objects.filter(
+            subject=subject, academic_year=year,
+            student_id__in=[e.student_id for e in enrolled],
+            subject__school_id=subject.school_id,
+        ).values_list("student_id", flat=True))
+        enrolled = [e for e in enrolled if e.student_id in registered_ids]
     got = {r.student_id: r for r in LevelResult.objects.filter(
         subject=subject, academic_year=year, term=term, assessment_type=atype,
         student_id__in=[e.student_id for e in enrolled])}

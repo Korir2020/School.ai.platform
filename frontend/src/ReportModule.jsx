@@ -7,6 +7,7 @@ import ReportComments from "./ReportComments";
 import ReportAdmin from "./ReportAdmin";
 import FrameworkAdmin from "./FrameworkAdmin";
 import ClassTeacherAdmin from "./ClassTeacherAdmin";
+import PrimaryAchievementSettings from "./PrimaryAchievementSettings";
 
 const P = "/api/report-module/";
 
@@ -87,7 +88,11 @@ export default function ReportModule() {
   if (bad) return <ErrorState text={bad} onRetry={() => { setBad(""); setTries(tries + 1); }} />;
   if (!meta) return <Loading />;
 
-  const students = meta.students.filter((s) => (s.class ?? s.class_name) === cls && (!stream || s.stream === stream));
+  const selectedExam = meta.exams.find((row) => String(row.id) === String(exam));
+  const descriptorOnly = selectedExam?.result_mode === "achievement_levels";
+  const students = meta.students.filter((s) => (s.class ?? s.class_name) === cls
+    && (!stream || s.stream === stream)
+    && (!sel?.cohort_ids || sel.cohort_ids.includes(String(s.id))));
   const why = {};
   ((sel && sel.excluded) || []).forEach((x) => { why[x.student_id] = x.reason; });
   const ready = students.filter((s) => !why[s.id]);
@@ -156,6 +161,7 @@ export default function ReportModule() {
       {msg && <Alert>{msg}</Alert>}
       {sel && (
         <Card title={sel.population}>
+          {descriptorOnly && <p>School-defined CBC Primary achievement levels. This is an internal school assessment, not an official KNEC result; numeric averages and rankings are not generated.</p>}
           <p><Badge>{sel.selected} selected</Badge> <Badge>{sel.eligible} ready</Badge> <Badge kind="warn">{sel.pending} pending</Badge></p>
           {sel.excluded.length > 0 && <p>{sel.excluded.length} student(s) cannot be printed yet. The reason is shown beside each name.</p>}
         </Card>
@@ -167,9 +173,10 @@ export default function ReportModule() {
             {bulk && <p>{bulk}</p>}
           </Card>
         )}
-        {exam && cls && meta.role !== "teacher" && <ReportInsights exam={exam} cls={cls} stream={stream} prov={prov} />}
-        {exam && cls && meta.role !== "teacher" && <ReportComments key={exam + "|" + cls} exam={exam} cls={cls} students={students} />}
+        {exam && cls && meta.role !== "teacher" && !descriptorOnly && <ReportInsights exam={exam} cls={cls} stream={stream} prov={prov} rankEnabled={selectedExam?.rankings_enabled !== false} />}
+        {exam && cls && meta.role !== "teacher" && !descriptorOnly && <ReportComments key={exam + "|" + cls} exam={exam} cls={cls} students={students} />}
         {meta.role !== "teacher" && <ReportAdmin />}
+        {meta.role !== "teacher" && <PrimaryAchievementSettings />}
         {meta.role !== "teacher" && <FrameworkAdmin />}
         {meta.role !== "teacher" && <ClassTeacherAdmin />}
     {cls && students.length === 0 && <EmptyState title="No students" text="No students in this class." />}

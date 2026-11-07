@@ -31,6 +31,51 @@ class ParentPortalTests(APITestCase):
         self.assertEqual(self.client.get(f"/api/parent/children/{self.student.id}/fees/").status_code, 200)
         self.assertEqual(self.client.get(f"/api/parent/children/{self.other_student.id}/fees/").status_code, 404)
 
+    def test_cross_school_guardian_link_cannot_expose_student_data(self):
+        foreign_year = AcademicYear.objects.create(
+            school=self.other, name="2026", start_date=date(2026, 1, 1),
+            end_date=date(2026, 12, 31),
+        )
+        foreign_term = Term.objects.create(
+            academic_year=foreign_year, name="Term 1",
+            start_date=date(2026, 1, 1), end_date=date(2026, 4, 1),
+        )
+        foreign_structure = FeeStructure.objects.create(
+            school=self.other, academic_year=foreign_year, name="Foreign tuition",
+            amount=Decimal("5000.00"),
+        )
+        StudentFee.objects.create(
+            student=self.other_student, fee_structure=foreign_structure,
+            amount_due=Decimal("5000.00"),
+        )
+        StudentGuardian.objects.create(student=self.other_student, guardian=self.guardian)
+        self.client.force_authenticate(self.parent_user)
+
+        children = self.client.get("/api/parent/children/")
+        self.assertEqual(children.status_code, 200)
+        self.assertEqual([x["id"] for x in children.json()["children"]], [self.student.id])
+        self.assertEqual(
+            self.client.get(f"/api/parent/children/{self.other_student.id}/fees/").status_code,
+            404,
+        )
+        self.assertEqual(
+            self.client.get(
+                f"/api/report-card/{self.other_student.id}/{foreign_term.id}/"
+            ).status_code,
+            404,
+        )
+
+    def test_superuser_cannot_create_guardian_with_cross_school_students(self):
+        root = User.objects.create_superuser(
+            "rootparent", "root@example.test", "pass12345",
+        )
+        self.client.force_authenticate(root)
+        response = self.client.post("/api/parents/", {
+            "username": "mixedparent", "password": "pass12345",
+            "student_ids": [self.student.id, self.other_student.id],
+        }, format="json")
+        self.assertEqual(response.status_code, 400)
+
     def test_admin_can_create_parent_account(self):
         self.client.force_authenticate(self.admin)
         result = self.client.post("/api/parents/", {"username": "newparent", "password": "pass12345", "student_ids": [self.student.id]}, format="json")

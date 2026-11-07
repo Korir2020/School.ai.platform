@@ -1,176 +1,613 @@
-import { useState, useEffect, useRef } from "react";
-import { api, listAll as list } from "./api";
+import { useEffect, useMemo, useState } from "react";
+import { api } from "./api";
 import { useToast } from "./toastctx";
-import { Button, Select, Card, Badge, DataTable } from "./ui";
-import { ConfirmDialog, EmptyState, Loading, ErrorState, Alert } from "./ui";
+import { Button, Select, Card, Badge, EmptyState, Loading, ErrorState, Alert, ConfirmDialog } from "./ui";
 import PasteMarks from "./PasteMarks";
 
-const names = ["teacher-assignments", "enrollments", "students", "terms",
-  "performance"];
-const extra = ["subjects", "streams", "class-levels", "subject-papers"];
-const kindNames = { opener: "Opener", mid: "Mid-term", end: "End-term" };
-const kinds = { draft: "info", submitted: "warn", approved: "ok", locked: "teal" };
+const ASSESSMENTS = { opener: "Opener", mid: "Mid-term", end: "End-term" };
+const STATUSES = { draft: "info", submitted: "warn", approved: "ok", locked: "teal" };
+const MARK_STATUSES = [
+  ["scored", "Scored"], ["absent", "Absent"], ["exempted", "Exempted"],
+  ["not_assessed", "Not assessed"], ["pending", "Pending"],
+];
+const MARK_STATUS_LABELS = Object.fromEntries(MARK_STATUSES);
+const API_LISTS = {
+  exams: "/api/exams/",
+  assignments: "/api/teacher-assignments/",
+  enrollments: "/api/enrollments/",
+  students: "/api/students/",
+  terms: "/api/terms/",
+  subjects: "/api/subjects/",
+  streams: "/api/streams/",
+  classes: "/api/class-levels/",
+  papers: "/api/subject-papers/",
+};
+
+const same = (a, b) => String(a ?? "") === String(b ?? "");
+const active = (x) => x === true || x === 1 || x === "1" || x === "true";
+const cellKey = (student, paper) => `${student}:${paper}`;
+
+async function listChecked(path) {
+  const sep = path.includes("?") ? "&" : "?";
+  let url = `${path}${sep}page_size=200`;
+  const out = [];
+  for (let page = 0; page < 200 && url; page += 1) {
+    const response = await api(url);
+    if (!response.ok) throw new Error(await responseMessage(response));
+    const body = await response.json();
+    if (Array.isArray(body)) return body;
+    out.push(...(body.results || []));
+    if (!body.next) break;
+    const next = new URL(body.next, window.location.origin);
+    url = `${next.pathname}${next.search}`;
+  }
+  return out;
+}
+
+async function responseMessage(response) {
+  try {
+    const body = await response.json();
+    if (typeof body === "string") return body;
+    if (body.detail) return body.detail;
+    if (body.message) return body.message;
+    if (body.errors?.length) {
+      return body.errors.map((item) => item.detail || item.errors?.marks?.[0] || "Invalid entry").join("; ");
+    }
+    return Object.entries(body).map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(" ") : String(value)}`).join(" ")
+      || `Request failed (${response.status}).`;
+  } catch {
+    return `Request failed (${response.status}).`;
+  }
+}
+
+function examGroupKey(exam) {
+  return `${exam.term}:${exam.assessment_type}:${exam.name}`;
+}
+
+function makeName(student) {
+  return [student?.first_name, student?.middle_name, student?.last_name].filter(Boolean).join(" ")
+    || student?.full_name || student?.admission_number || `Learner ${student?.id ?? ""}`;
+}
+
+const styles = {
+  selectors: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: 10 },
+  table: { minWidth: 920 },
+  input: { minWidth: 94, maxWidth: 130 },
+  number: { textAlign: "right" },
+  nowrap: { whiteSpace: "nowrap" },
+  small: { display: "block", color: "#64748b", fontSize: 12, fontWeight: 400, whiteSpace: "nowrap" },
+  total: { fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap", fontWeight: 600 },
+  action: { minWidth: 130 },
+};
 
 export default function Marks({ d }) {
   const toast = useToast();
-  const [data, setData] = useState(null), [bad, setBad] = useState(false);
-  const [sel, setSel] = useState(""), [vals, setVals] = useState({});
-  const [kind, setKind] = useState("end"), [paper, setPaper] = useState("1");
-  const [ask, setAsk] = useState(null), [busy, setBusy] = useState(false);
+  const [data, setData] = useState(null);
+  const [markRows, setMarkRows] = useState([]);
+  const [marksError, setMarksError] = useState("");
+  const [marksLoading, setMarksLoading] = useState(false);
+  const [registrationRows, setRegistrationRows] = useState([]);
+  const [registrationsError, setRegistrationsError] = useState("");
+  const [registrationsLoading, setRegistrationsLoading] = useState(false);
+  const [loadingError, setLoadingError] = useState("");
+  const [retry, setRetry] = useState(0);
+  const [marksReload, setMarksReload] = useState(0);
+  const [registrationsReload, setRegistrationsReload] = useState(0);
+  const [examGroupId, setExamGroupId] = useState("");
+  const [classId, setClassId] = useState("");
+  const [streamId, setStreamId] = useState("");
+  const [subjectId, setSubjectId] = useState("");
+  const [values, setValues] = useState({});
+  const [dispositions, setDispositions] = useState({});
+  const [saveError, setSaveError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [ask, setAsk] = useState(null);
+
   const load = async () => {
+    setLoadingError("");
     try {
-      const get = (p) => list("/api/" + p + "/");
-      const soft = (p) => get(p).catch(() => []);
-      const [ta, en, st, tm, pf] = await Promise.all(names.map(get));
-      const [sj, sm, cl, sp] = await Promise.all(extra.map(soft));
-      setData({ ta, en, st, tm, pf, sj, sm, cl, sp });
-      setBad(false);
-    } catch { setBad(true); }
-  };
-  useEffect(() => { load(); }, []);
-  const dk = d.active_term ? "mk:" + d.active_term.id + ":" + sel + ":" + kind
-    + ":" + paper : "";
-  const skip = useRef(false);
-  useEffect(() => {
-    if (!sel) return;
-    skip.current = true;
-    try {
-      const t = localStorage.getItem(dk);
-      setVals(t ? JSON.parse(t) : {});
-    } catch { setVals({}); }
-  }, [dk]);
-  useEffect(() => {
-    if (!sel) return;
-    if (skip.current) { skip.current = false; return; }
-    try {
-      if (Object.values(vals).some((v) => v !== "")) {
-        localStorage.setItem(dk, JSON.stringify(vals));
-      } else localStorage.removeItem(dk);
-    } catch {}
-  }, [vals, dk]);
-  if (bad) return <ErrorState text="Could not load marks." onRetry={load} />;
-  if (!data) return <Loading />;
-  if (!d.active_term) return <EmptyState title="No active term"
-    text="Ask the school admin to set the active term." />;
-  const term = data.tm.find((t) => t.id === d.active_term.id);
-  if (!term) return <ErrorState text="Active term not found." onRetry={load} />;
-  const a = data.ta.find((x) => String(x.id) === sel);
-  const rows = a ? data.en.filter((e) => e.stream === a.stream && e.is_active) : [];
-  const pick = (arr, id) => arr.find((z) => z.id === id) || {};
-  const nameOf = (id) => {
-    const s = data.st.find((x) => x.id === id);
-    return s ? s.first_name + " " + s.last_name : "Student " + id;
-  };
-  const label = (x) => (pick(data.sj, x.subject).name || "Subject " + x.subject)
-    + " - " + (pick(data.cl, x.class_level).name || x.class_level)
-    + " " + (pick(data.sm, x.stream).name || x.stream);
-  const nums = a ? data.sp.filter((x) => x.subject === a.subject)
-    .map((x) => x.paper_number).sort((x, y) => x - y) : [];
-  const papers = nums.length ? nums : [1];
-  const pn = papers.includes(Number(paper)) ? Number(paper) : papers[0];
-  const old = (sid) => a && data.pf.find((p) => p.student === sid
-    && p.subject === a.subject && p.term === term.id && p.paper_number === pn
-    && p.assessment_type === kind);
-  const maxFor = (() => {
-    const sp = a ? data.sp.find((x) => x.subject === a.subject && x.paper_number === pn) : null;
-    const n = sp ? Number(sp.max_marks) : 100;
-    return Number.isFinite(n) && n > 0 ? n : 100;
-  })();
-  const badVal = (v) => v !== "" && !(Number(v) >= 1 && Number(v) <= maxFor);
-  const nBad = Object.values(vals).filter(badVal).length;
-  const nNew = Object.values(vals).filter((v) => v !== "").length;
-  const save = async () => {
-    setBusy(true);
-    let ok = 0, fail = 0;
-    for (const e of rows) {
-      const m = vals[e.student];
-      if (m === undefined || m === "" || old(e.student)) continue;
-      const r = await api("/api/performance/", "POST", { student: e.student,
-        subject: a.subject, academic_year: term.academic_year, term: term.id,
-        assessment_type: kind, paper_number: pn, marks: m });
-      if (r.ok) ok++; else fail++;
+      const pairs = Object.entries(API_LISTS);
+      const loaded = await Promise.all(pairs.map(([, path]) => listChecked(path)));
+      setData(Object.fromEntries(pairs.map(([key], index) => [key, loaded[index]])));
+    } catch (error) {
+      setLoadingError(error?.message || "Could not load marks-entry data. Check your connection and try again.");
     }
-    setBusy(false);
-    toast("Saved " + ok + ", failed " + fail, fail ? "err" : "ok");
-    setVals({}); load();
   };
-  const submit = async (p) => {
+
+  useEffect(() => { load(); }, [retry]);
+
+  const examGroups = useMemo(() => {
+    if (!data) return [];
+    const classAssignmentPairs = new Set();
+    data.assignments.forEach((assignment) => {
+      const stream = data.streams.find((item) => same(item.id, assignment.stream));
+      if (!stream) return;
+      if (data.enrollments.some((enrollment) =>
+        active(enrollment.is_active) && same(enrollment.stream, stream.id))) {
+        classAssignmentPairs.add(String(stream.class_level));
+      }
+    });
+    const groups = new Map();
+    data.exams.filter((exam) => exam.status === "draft").forEach((exam) => {
+      const term = data.terms.find((item) => same(item.id, exam.term));
+      if (!term || !classAssignmentPairs.has(String(exam.class_level))) return;
+      const activeAssignedStream = data.streams.some((stream) =>
+        same(stream.class_level, exam.class_level)
+        && data.enrollments.some((enrollment) => active(enrollment.is_active)
+          && same(enrollment.class_level, exam.class_level)
+          && same(enrollment.academic_year, term.academic_year)
+          && same(enrollment.stream, stream.id))
+        && data.assignments.some((assignment) => same(assignment.stream, stream.id)));
+      if (!activeAssignedStream) return;
+      const key = examGroupKey(exam);
+      if (!groups.has(key)) groups.set(key, { id: key, name: exam.name, term, type: exam.assessment_type, exams: [] });
+      groups.get(key).exams.push(exam);
+    });
+    return [...groups.values()].sort((a, b) => {
+      const byDate = String(a.term.start_date || "").localeCompare(String(b.term.start_date || ""));
+      return byDate || a.name.localeCompare(b.name);
+    });
+  }, [data]);
+
+  const selectedGroup = examGroups.find((group) => group.id === examGroupId);
+  const classOptions = useMemo(() => {
+    if (!data || !selectedGroup) return [];
+    const ids = [...new Set(selectedGroup.exams.map((exam) => String(exam.class_level)))];
+    return ids.map((id) => data.classes.find((item) => same(item.id, id)))
+      .filter(Boolean).sort((a, b) => a.name.localeCompare(b.name));
+  }, [data, selectedGroup]);
+  const selectedExam = selectedGroup?.exams.find((exam) => same(exam.class_level, classId));
+  const selectedTerm = selectedExam ? data.terms.find((term) => same(term.id, selectedExam.term)) : null;
+
+  const streamOptions = useMemo(() => {
+    if (!data || !selectedExam || !selectedTerm) return [];
+    const ids = new Set(data.enrollments.filter((enrollment) => active(enrollment.is_active)
+      && same(enrollment.academic_year, selectedTerm.academic_year)
+      && same(enrollment.class_level, selectedExam.class_level)
+      && data.assignments.some((assignment) => same(assignment.stream, enrollment.stream)))
+      .map((enrollment) => String(enrollment.stream)));
+    return data.streams.filter((stream) => same(stream.class_level, selectedExam.class_level)
+      && ids.has(String(stream.id))).sort((a, b) => a.name.localeCompare(b.name));
+  }, [data, selectedExam, selectedTerm]);
+
+  const assignments = useMemo(() => {
+    if (!data || !streamId) return [];
+    const ids = [...new Set(data.assignments.filter((assignment) => same(assignment.stream, streamId))
+      .map((assignment) => String(assignment.subject)))];
+    return ids.map((id) => data.subjects.find((subject) => same(subject.id, id)))
+      .filter((subject) => subject && active(subject.is_active))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [data, streamId]);
+  const subject = data?.subjects.find((item) => same(item.id, subjectId));
+
+  useEffect(() => {
+    if (!data || !selectedExam || !selectedTerm || !subject) {
+      setMarkRows([]);
+      setMarksError("");
+      setMarksLoading(false);
+      return undefined;
+    }
+    let current = true;
+    const query = new URLSearchParams({
+      term: selectedExam.term,
+      academic_year: selectedTerm.academic_year,
+      subject: subject.id,
+      assessment_type: selectedExam.assessment_type,
+      class_level: selectedExam.class_level,
+      stream: streamId,
+    });
+    setMarksLoading(true);
+    setMarksError("");
+    listChecked(`/api/performance/?${query.toString()}`)
+      .then((rows) => { if (current) setMarkRows(rows); })
+      .catch((error) => { if (current) setMarksError(error?.message || "Could not load saved marks."); })
+      .finally(() => { if (current) setMarksLoading(false); });
+    return () => { current = false; };
+  }, [data, selectedExam?.id, selectedTerm?.academic_year, selectedExam?.class_level,
+    streamId, subject?.id, marksReload]);
+
+  useEffect(() => {
+    if (!data || !selectedTerm || !subject) {
+      setRegistrationRows([]);
+      setRegistrationsError("");
+      setRegistrationsLoading(false);
+      return undefined;
+    }
+    let current = true;
+    const query = new URLSearchParams({
+      academic_year: selectedTerm.academic_year,
+      subject: subject.id,
+    });
+    setRegistrationsLoading(true);
+    setRegistrationsError("");
+    listChecked(`/api/subject-registrations/?${query.toString()}`)
+      .then((rows) => { if (current) setRegistrationRows(rows); })
+      .catch((error) => { if (current) setRegistrationsError(error?.message || "Could not load registered learners."); })
+      .finally(() => { if (current) setRegistrationsLoading(false); });
+    return () => { current = false; };
+  }, [data, selectedTerm?.academic_year, subject?.id, registrationsReload]);
+
+  const paperDefinitions = useMemo(() => {
+    if (!data || !subject) return [];
+    return data.papers.filter((paper) => same(paper.subject, subject.id))
+      .sort((a, b) => Number(a.paper_number) - Number(b.paper_number));
+  }, [data, subject]);
+  const papers = paperDefinitions.length ? paperDefinitions : [{
+    paper_number: 1, max_marks: "100", weight: "100",
+  }];
+  const tooManyPapers = papers.some((paper) => Number(paper.paper_number) > 3);
+  const visiblePapers = papers.filter((paper) => Number(paper.paper_number) <= 3);
+  const expectedWeight = paperDefinitions.reduce((sum, item) => sum + Number(item.weight || 0), 0);
+  const badWeight = paperDefinitions.length > 0 && Math.abs(expectedWeight - 100) > 0.01;
+
+  const registeredIds = useMemo(() => {
+    if (!data || !subject || !selectedTerm) return new Set();
+    return new Set(registrationRows.filter((row) => same(row.subject, subject.id)
+      && same(row.academic_year, selectedTerm.academic_year)).map((row) => String(row.student)));
+  }, [data, subject, selectedTerm, registrationRows]);
+
+  const learners = useMemo(() => {
+    if (!data || !selectedExam || !selectedTerm || !streamId || !subject) return [];
+    return data.enrollments.filter((enrollment) => active(enrollment.is_active)
+      && same(enrollment.academic_year, selectedTerm.academic_year)
+      && same(enrollment.class_level, selectedExam.class_level)
+      && same(enrollment.stream, streamId)
+      && registeredIds.has(String(enrollment.student)))
+      .map((enrollment) => data.students.find((student) => same(student.id, enrollment.student)))
+      .filter(Boolean)
+      .sort((a, b) => String(a.admission_number || "").localeCompare(String(b.admission_number || ""))
+        || makeName(a).localeCompare(makeName(b)));
+  }, [data, selectedExam, selectedTerm, streamId, subject, registeredIds]);
+
+  const oldMark = (student, paperNumber) => {
+    if (!data || !selectedExam || !subject) return null;
+    return markRows.find((mark) => same(mark.student, student)
+      && same(mark.subject, subject.id)
+      && same(mark.term, selectedExam.term)
+      && same(mark.academic_year, selectedTerm?.academic_year)
+      && same(mark.assessment_type, selectedExam.assessment_type)
+      && Number(mark.paper_number) === Number(paperNumber)) || null;
+  };
+  const markStatus = (studentId, paperNumber) => {
+    const key = cellKey(studentId, Number(paperNumber));
+    return dispositions[key] ?? oldMark(studentId, paperNumber)?.mark_status ?? "pending";
+  };
+
+  const selectionKey = `${selectedExam?.id || ""}:${subject?.id || ""}`;
+  useEffect(() => {
+    if (!data || !selectedExam || !subject) {
+      setValues({});
+      setSaveError("");
+      return;
+    }
+    const initial = {};
+    const initialDispositions = {};
+    const numbers = paperDefinitions.length
+      ? paperDefinitions.map((paper) => Number(paper.paper_number)) : [1];
+    for (const learner of learners) {
+      for (const number of numbers) {
+        const mark = oldMark(learner.id, number);
+        const key = cellKey(learner.id, number);
+        initialDispositions[key] = mark?.mark_status || "";
+        if (mark?.mark_status === "scored" && mark.marks !== null) {
+          initial[key] = String(mark.marks);
+        }
+      }
+    }
+    setValues(initial);
+    setDispositions(initialDispositions);
+    setSaveError("");
+  }, [data, selectionKey, learners, markRows]);
+
+  const editable = (mark) => !mark || mark.status === "draft";
+  const markValue = (studentId, paper) => values[cellKey(studentId, Number(paper.paper_number))] ?? "";
+  const maxFor = (paper) => Number(paper.max_marks) > 0 ? Number(paper.max_marks) : 100;
+  const weightFor = (paper) => paperDefinitions.length ? Number(paper.weight || 0) : 100;
+  const cellError = (studentId, paper) => {
+    const value = markValue(studentId, paper);
+    if (markStatus(studentId, paper.paper_number) !== "scored") return value !== "";
+    return value === "" || !(Number.isFinite(Number(value)) && Number(value) >= 0 && Number(value) <= maxFor(paper));
+  };
+  const countInvalid = learners.reduce((count, learner) => count + visiblePapers.filter((paper) =>
+    editable(oldMark(learner.id, paper.paper_number)) && cellError(learner.id, paper)).length, 0);
+
+  const pendingEntries = [];
+  if (selectedExam && subject) {
+    for (const learner of learners) {
+      for (const paper of visiblePapers) {
+        const paperNumber = Number(paper.paper_number);
+        const previous = oldMark(learner.id, paperNumber);
+        if (previous && previous.status !== "draft") continue;
+        const next = markValue(learner.id, paper);
+        const nextStatus = markStatus(learner.id, paperNumber);
+        const numeric = nextStatus === "scored" ? next : null;
+        const previousStatus = previous?.mark_status || "";
+        const previousNumeric = previous?.marks === null || previous?.marks === undefined
+          ? null : String(previous.marks);
+        if (previous && nextStatus === previousStatus
+          && (numeric === null ? previousNumeric === null
+            : previousNumeric !== null && Number(numeric) === Number(previousNumeric))) continue;
+        if (!previous && nextStatus === "") continue;
+        if (!previous && nextStatus === "scored" && next === "") continue;
+        pendingEntries.push({ student: learner.id, paper_number: paperNumber,
+          marks: numeric, mark_status: nextStatus });
+      }
+    }
+  }
+
+  const updateCell = (studentId, paperNumber, value) => {
+    setValues((current) => ({ ...current, [cellKey(studentId, Number(paperNumber))]: value }));
+    setSaveError("");
+  };
+  const updateDisposition = (studentId, paperNumber, status) => {
+    const key = cellKey(studentId, Number(paperNumber));
+    setDispositions((current) => ({ ...current, [key]: status }));
+    if (status !== "scored") {
+      setValues((current) => ({ ...current, [key]: "" }));
+    }
+    setSaveError("");
+  };
+
+  const save = async () => {
+    if (!selectedExam || !subject || pendingEntries.length === 0 || countInvalid > 0 || busy || tooManyPapers) return;
+    setBusy(true);
+    setSaveError("");
+    try {
+      const response = await api("/api/performance/batch/", "POST", {
+        exam: selectedExam.id,
+        subject: subject.id,
+        entries: pendingEntries,
+      });
+      if (!response.ok) {
+        const message = await responseMessage(response);
+        setSaveError(message);
+        toast(`Could not save the batch: ${message}`, "err");
+        return;
+      }
+      const result = await response.json();
+      toast(`Drafts saved: ${result.created} new, ${result.updated} updated${result.deleted ? `, ${result.deleted} cleared` : ""}.`, "ok");
+      window.dispatchEvent(new CustomEvent("marian:dashboard-refresh"));
+      setMarksReload((count) => count + 1);
+    } catch (error) {
+      const message = error?.message || "Could not save the marks. Check your connection and try again.";
+      setSaveError(message);
+      toast(message, "err");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const submitDrafts = async () => {
     setAsk(null);
-    const r = await api("/api/performance/" + p.id + "/submit/", "POST");
-    toast(r.ok ? "Marks submitted" : "Could not submit", r.ok ? "ok" : "err");
-    load();
+    if (!selectedExam || !subject || !streamId || pendingEntries.length) return;
+    setBusy(true);
+    try {
+      const response = await api("/api/performance/batch/submit/", "POST", {
+        exam: selectedExam.id, subject: subject.id, stream: streamId,
+      });
+      if (!response.ok) {
+        const message = await responseMessage(response);
+        toast(`Could not submit drafts: ${message}`, "err");
+        return;
+      }
+      const result = await response.json();
+      toast(result.submitted
+        ? `${result.submitted} draft mark${result.submitted === 1 ? "" : "s"} submitted${result.pending ? `; ${result.pending} pending entries remain` : ""}.`
+        : "No resolved draft marks to submit; pending entries remain in draft.", "ok");
+      setMarksReload((count) => count + 1);
+      window.dispatchEvent(new CustomEvent("marian:dashboard-refresh"));
+    } catch (error) {
+      toast(error?.message || "Could not submit the batch. Check your connection and try again.", "err");
+    } finally {
+      setBusy(false);
+    }
   };
-  const table = rows.map((e) => { const o = old(e.student);
-    return { id: e.id, student: e.student, name: nameOf(e.student), o,
-      status: o ? o.status : "not entered" }; });
-  const cols = [
-    { label: "Student", key: "name", sort: true },
-    { label: "Marks (out of " + maxFor + ")", render: (r) => (r.o ? r.o.marks :
-      <><MarkInput type="number" min="1" max={maxFor} value={vals[r.student] ?? ""}
-        aria-label={"Marks for " + r.name}
-        onChange={(ev) => setVals({ ...vals, [r.student]: ev.target.value })} />{vals[r.student] === "1" && <Badge kind="warn">Abs</Badge>}</>) },
-    { label: "Status", key: "status", sort: true, render: (r) => (r.o
-      ? <Badge kind={kinds[r.o.status] || "info"}>{r.o.status}</Badge>
-      : "Not entered") },
-    { label: "Action", render: (r) => (r.o && r.o.status === "draft"
-      ? <Button kind="teal" size="sm" onClick={() => setAsk(r.o)}>Submit</Button>
-      : (r.o ? null : <Button kind="ghost" size="sm" onClick={() => setVals({
-        ...vals, [r.student]: "1" })}>Absent</Button>)) },
-  ];
+
+  const pasteRows = learners.map((learner) => ({
+    id: learner.id,
+    student: learner.id,
+    name: makeName(learner),
+    o: editable(oldMark(learner.id, visiblePapers[0]?.paper_number)) ? null : oldMark(learner.id, visiblePapers[0]?.paper_number),
+  }));
+  const pasteValues = Object.fromEntries(learners.map((learner) => [
+    learner.id, markStatus(learner.id, visiblePapers[0]?.paper_number || 1) === "scored"
+      ? markValue(learner.id, visiblePapers[0] || { paper_number: 1 }) : "",
+  ]));
+  const applyPasted = (next) => {
+    setValues((current) => {
+      const updated = { ...current };
+      Object.entries(next).forEach(([student, value]) => {
+        updated[cellKey(student, Number(visiblePapers[0]?.paper_number || 1))] = value;
+      });
+      return updated;
+    });
+    setDispositions((current) => {
+      const updated = { ...current };
+      Object.entries(next).forEach(([student, value]) => {
+        if (value !== "") updated[cellKey(student, Number(visiblePapers[0]?.paper_number || 1))] = "scored";
+      });
+      return updated;
+    });
+    setSaveError("");
+  };
+
+  if (loadingError) return <ErrorState text={`Could not load marks-entry data: ${loadingError}`} onRetry={() => setRetry((count) => count + 1)} />;
+  if (!data) return <Loading />;
+
+  const groupLabel = (group) => `${group.term.name} — ${group.name} (${ASSESSMENTS[group.type] || group.type})`;
+  const className = data.classes.find((item) => same(item.id, classId))?.name || "";
+  const streamName = data.streams.find((item) => same(item.id, streamId))?.name || "";
+  const rosterIds = new Set(learners.map((learner) => String(learner.id)));
+  const readyDraftCount = markRows.filter((mark) =>
+    rosterIds.has(String(mark.student)) && mark.status === "draft"
+    && mark.mark_status !== "pending").length;
+  const pendingDraftCount = markRows.filter((mark) =>
+    rosterIds.has(String(mark.student)) && mark.status === "draft"
+    && mark.mark_status === "pending").length;
+  const rowTotals = (learner) => {
+    let total = 0, maxTotal = 0, weighted = 0, activeWeight = 0, hasValue = false;
+    visiblePapers.forEach((paper) => {
+      const value = markValue(learner.id, paper);
+      const status = markStatus(learner.id, paper.paper_number);
+      if (status === "scored" && value !== "" && !cellError(learner.id, paper)) {
+        hasValue = true;
+        total += Number(value);
+        maxTotal += maxFor(paper);
+        weighted += Number(value) / maxFor(paper) * weightFor(paper);
+        activeWeight += weightFor(paper);
+      } else if (status === "absent") {
+        hasValue = true;
+        maxTotal += maxFor(paper);
+        activeWeight += weightFor(paper);
+      }
+    });
+    return { total, maxTotal, weighted, activeWeight, hasValue,
+      percentage: activeWeight ? weighted * 100 / activeWeight : null };
+  };
+
   return (
     <div>
-      <h2>Enter marks</h2>
-      <p>{kindNames[kind]}, Paper {pn}</p>
-      <Card>
-        <Select id="mk-sel" label="Class and subject" value={sel}
-          onChange={(e) => { setSel(e.target.value); setVals({}); setPaper("1"); }}>
-          <option value="">Choose class and subject</option>
-          {(d.assignments || data.ta).map((x) => (
-            <option key={x.id} value={x.id}>{label(x)}</option>))}
-        </Select>
-        {a && <Select id="mk-kind" label="Assessment" value={kind}
-          onChange={(e) => { setKind(e.target.value); setVals({}); }}>
-          {Object.keys(kindNames).map((k) => (
-            <option key={k} value={k}>{kindNames[k]}</option>))}
-        </Select>}
-        {a && <Select id="mk-paper" label="Paper" value={String(pn)}
-          onChange={(e) => { setPaper(e.target.value); setVals({}); }}>
-          {papers.map((n) => <option key={n} value={n}>Paper {n}</option>)}
-        </Select>}
-      </Card>
-      {a && <Card>
-        <PasteMarks rows={table} st={data.st} vals={vals} setVals={setVals} />
-        <DataTable cols={cols} rows={table} search="Search students"
-          empty="No students in this class" />
-        <p>Absent? Tap Absent to enter 1. Missed every exam? Leave the row empty.</p>
-        {nNew > 0 && <p>Unsaved marks are kept on this device until you press
-          Save marks.</p>}
-        {nBad > 0 && <Alert kind="err">Marks must be numbers from 1 to {maxFor}.</Alert>}
-        <Button kind="teal" busy={busy} onClick={save}
-          disabled={nNew === 0 || nBad > 0}>
-          Save marks{nNew ? " (" + nNew + ")" : ""}</Button>
-      </Card>}
-      {ask && <ConfirmDialog title="Submit these marks?" confirm="Submit"
-        text="Submitted marks go to the admin for approval."
-        onYes={() => submit(ask)} onNo={() => setAsk(null)} />}
-    </div>
-  );
-}
+      <h2>Teacher marks entry</h2>
+      <p>Select a draft examination, class, stream, and your assigned subject. Registered learners appear automatically. Zero is a valid scored mark; choose Absent explicitly. Blank entries remain Pending.</p>
 
-function MarkInput(props) {
-  const v = props.value;
-  const nextCell = (ev) => {
-    if (ev.key !== "Enter") return;
-    ev.preventDefault();
-    const all = Array.from(document.querySelectorAll('input[aria-label^="Marks for"]'));
-    const nxt = all[all.indexOf(ev.target) + 1];
-    if (nxt) { nxt.focus(); nxt.select(); }
-  };
-  const bad = v !== "" && v != null && !(Number(v) >= 1 && Number(v) <= (Number(props.max) || 100));
-  return (
-    <span>
-      <input enterKeyHint="next" onKeyDown={nextCell} {...props} aria-invalid={bad || undefined} />
-      {bad && <small style={{ display: "block", color: "#B91C1C" }}>Use 1 to {Number(props.max) || 100}</small>}
-    </span>
+      <Card title="Choose examination and teaching group">
+        {examGroups.length === 0 ? (
+          <EmptyState title="No draft examinations available" text="A school admin must create a draft examination for a class where you have an active teaching assignment." />
+        ) : (
+          <div style={styles.selectors}>
+            <Select id="mk-exam" label="Examination" value={examGroupId}
+              onChange={(event) => { setExamGroupId(event.target.value); setClassId(""); setStreamId(""); setSubjectId(""); setValues({}); }}>
+              <option value="">Choose examination</option>
+              {examGroups.map((group) => <option key={group.id} value={group.id}>{groupLabel(group)}</option>)}
+            </Select>
+            <Select id="mk-class" label="Class" value={classId} disabled={!selectedGroup}
+              onChange={(event) => { setClassId(event.target.value); setStreamId(""); setSubjectId(""); setValues({}); }}>
+              <option value="">{selectedGroup ? "Choose class" : "Choose an examination first"}</option>
+              {classOptions.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+            </Select>
+            <Select id="mk-stream" label="Stream" value={streamId} disabled={!selectedExam}
+              onChange={(event) => { setStreamId(event.target.value); setSubjectId(""); setValues({}); }}>
+              <option value="">{selectedExam ? "Choose stream" : "Choose a class first"}</option>
+              {streamOptions.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+            </Select>
+            <Select id="mk-subject" label="Assigned subject" value={subjectId} disabled={!streamId}
+              onChange={(event) => { setSubjectId(event.target.value); setValues({}); }}>
+              <option value="">{streamId ? "Choose assigned subject" : "Choose a stream first"}</option>
+              {assignments.map((item) => <option key={item.id} value={item.id}>{item.code ? `${item.name} (${item.code})` : item.name}</option>)}
+            </Select>
+          </div>
+        )}
+        {selectedExam && selectedTerm && <Alert kind="info">
+          Draft examination: <strong>{selectedExam.name}</strong> · {selectedTerm.name} {selectedTerm.academic_year_name || ""} · {ASSESSMENTS[selectedExam.assessment_type] || selectedExam.assessment_type}
+        </Alert>}
+      </Card>
+
+      {subject && selectedExam && <Card title={`${subject.name} — ${className}${streamName ? ` / ${streamName}` : ""}`}>
+        {tooManyPapers && <Alert kind="err">This subject has a paper numbered above Paper 3. This entry grid supports Paper 1, Paper 2, and optional Paper 3; update the subject paper setup before entering these marks.</Alert>}
+        {badWeight && <Alert kind="warn">Configured paper weights total {expectedWeight.toFixed(2)}%, not 100%. Marks can be saved as drafts, but the examination cannot be published until the weights are corrected.</Alert>}
+        {registrationsError && <Alert kind="err">Could not load registered learners: {registrationsError}</Alert>}
+        {marksError && <Alert kind="err">Could not load saved marks: {marksError}</Alert>}
+        {registrationsLoading && <Alert kind="info">Loading registered learners for this subject and academic year…</Alert>}
+        {marksLoading && <Alert kind="info">Loading saved draft marks…</Alert>}
+        {learners.length === 0 ? (
+          registrationsError || registrationsLoading || marksError || marksLoading
+            ? null
+            : <EmptyState title="No registered learners in this stream" text="Subject registration is required for a learner to appear in marks entry." />
+        ) : (
+          <>
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12, marginBottom: 12 }}>
+              <Badge kind="info">{learners.length} registered learner{learners.length === 1 ? "" : "s"}</Badge>
+              <span>Enter 0 to each paper's maximum, or select Absent, Exempted, Not assessed, or Pending.</span>
+            </div>
+            {visiblePapers.length > 0 && <PasteMarks rows={pasteRows} st={learners} vals={pasteValues} setVals={applyPasted} />}
+            <div style={{ overflowX: "auto", marginTop: 12, border: "1px solid #e2e8f0", borderRadius: 12 }}>
+              <table className="mu-table" style={styles.table}>
+                <thead><tr>
+                  <th scope="col">Learner</th>
+                  {visiblePapers.map((paper) => <th key={paper.paper_number} scope="col" style={styles.nowrap}>
+                    Paper {paper.paper_number}<span style={styles.small}>Max {maxFor(paper)}{paperDefinitions.length ? ` · Weight ${weightFor(paper)}%` : ""}</span>
+                  </th>)}
+                  <th scope="col">Total</th>
+                  <th scope="col">Percentage</th>
+                  <th scope="col">Status</th>
+                </tr></thead>
+                <tbody>{learners.map((learner) => {
+                  const totals = rowTotals(learner);
+                  const savedStatuses = visiblePapers.map((paper) => ({
+                    paper, mark: oldMark(learner.id, paper.paper_number),
+                  })).filter((item) => item.mark);
+                  const hasPendingChange = pendingEntries.some((entry) => same(entry.student, learner.id));
+                  return <tr key={learner.id}>
+                    <td>
+                      <strong>{makeName(learner)}</strong>
+                      {learner.admission_number && <span style={styles.small}>{learner.admission_number}</span>}
+                    </td>
+                    {visiblePapers.map((paper) => {
+                      const previous = oldMark(learner.id, paper.paper_number);
+                      const canEdit = editable(previous);
+                      const value = markValue(learner.id, paper);
+                      const outcome = markStatus(learner.id, paper.paper_number);
+                      const invalid = canEdit && cellError(learner.id, paper);
+                      return <td key={paper.paper_number}>
+                        {canEdit ? <>
+                          <select className="mu-input" style={styles.input}
+                            value={outcome} aria-label={`${makeName(learner)} Paper ${paper.paper_number} status`}
+                            disabled={marksLoading || registrationsLoading || !!registrationsError || !!marksError || busy}
+                            onChange={(event) => updateDisposition(learner.id, paper.paper_number, event.target.value)}>
+                            <option value="">Not entered — pending</option>
+                            {MARK_STATUSES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                          </select>
+                          {outcome === "scored" && <input className="mu-input" style={{ ...styles.input, ...(invalid ? { borderColor: "#dc2626" } : {}) }}
+                            type="number" min="0" max={maxFor(paper)} step="0.01" inputMode="decimal"
+                            value={value} aria-label={`${makeName(learner)} Paper ${paper.paper_number} score`}
+                            aria-invalid={invalid || undefined}
+                            disabled={marksLoading || registrationsLoading || !!registrationsError || !!marksError || busy}
+                            onChange={(event) => updateCell(learner.id, paper.paper_number, event.target.value)} />}
+                          {invalid && <span style={{ ...styles.small, color: "#b91c1c" }}>Enter 0–{maxFor(paper)}</span>}
+                        </> : <div>
+                          <Badge kind={outcome === "scored" ? "info" : outcome === "absent" ? "warn" : "teal"}>
+                            {MARK_STATUS_LABELS[outcome] || outcome}
+                          </Badge>
+                          {outcome === "scored" && <span style={styles.small}>{previous?.marks}</span>}
+                        </div>}
+                      </td>;
+                    })}
+                    <td style={styles.total}>{totals.hasValue ? `${totals.total.toFixed(2)} / ${totals.maxTotal.toFixed(2)}` : "—"}</td>
+                    <td style={styles.total}>{totals.hasValue ? `${totals.weighted.toFixed(2)}%` : "—"}</td>
+                    <td>
+                      {savedStatuses.length > 0 ? <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                        {savedStatuses.map(({ paper, mark }) => <Badge key={mark.id} kind={STATUSES[mark.status] || "info"}>
+                          P{paper.paper_number}: {MARK_STATUS_LABELS[mark.mark_status] || mark.mark_status} · {mark.status}
+                        </Badge>)}
+                      </div> : <Badge kind="info">Not saved</Badge>}
+                    </td>
+                  </tr>;
+                })}</tbody>
+              </table>
+            </div>
+            <p>Totals include scored marks and count an explicit absence as zero. Exempted and not-assessed papers are excluded from the percentage denominator. Pending papers contribute nothing until resolved. A scored zero remains a scored zero.</p>
+            {saveError && <Alert kind="err">{saveError}</Alert>}
+            {countInvalid > 0 && <Alert kind="err">Fix {countInvalid} invalid cell{countInvalid === 1 ? "" : "s"} before saving. Each paper has its own maximum mark.</Alert>}
+            <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 12, marginTop: 14 }}>
+              <Button kind="teal" busy={busy} onClick={save}
+                disabled={pendingEntries.length === 0 || countInvalid > 0 || tooManyPapers || marksLoading || registrationsLoading || !!marksError || !!registrationsError}>
+                Save draft batch{pendingEntries.length ? ` (${pendingEntries.length} cell${pendingEntries.length === 1 ? "" : "s"})` : ""}
+              </Button>
+              <Button kind="secondary" disabled={busy || marksLoading || registrationsLoading || !!marksError || !!registrationsError || pendingEntries.length > 0 || readyDraftCount === 0}
+                onClick={() => setAsk(true)}>
+                Submit resolved drafts{readyDraftCount ? ` (${readyDraftCount})` : ""}
+              </Button>
+              <Button kind="secondary" disabled={busy} onClick={() => { setMarksReload((count) => count + 1); setRegistrationsReload((count) => count + 1); }}>Refresh saved marks</Button>
+              {pendingEntries.length > 0 && <span>{pendingEntries.length} changed mark cell{pendingEntries.length === 1 ? "" : "s"} ready to save.</span>}
+              {pendingDraftCount > 0 && <span>{pendingDraftCount} explicitly pending draft cell{pendingDraftCount === 1 ? "" : "s"} will stay in draft.</span>}
+            </div>
+          </>
+        )}
+      </Card>}
+
+      {ask && <ConfirmDialog title="Submit resolved marks for approval?" confirm="Submit batch"
+        text={`This submits ${readyDraftCount} resolved draft cell${readyDraftCount === 1 ? "" : "s"} for ${subject?.name || "the selected subject"} in ${className}${streamName ? ` / ${streamName}` : ""}. Pending cells remain drafts${pendingDraftCount ? ` (${pendingDraftCount} saved as pending)` : ""}. Submitted marks can be corrected only by an administrator or returned for changes.`}
+        onYes={submitDrafts} onNo={() => setAsk(null)} />}
+    </div>
   );
 }

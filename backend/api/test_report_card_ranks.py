@@ -8,6 +8,7 @@ from schools.models import (
     Enrollment, Stream, Subject, TeacherAssignment,
     AcademicYear, ClassLevel, Curriculum, Exam, ExamResult, School,
     SchoolAdminProfile, Student, TeacherProfile, Term,
+    SubjectRegistration,
 )
 
 
@@ -45,6 +46,9 @@ class ReportCardRankTests(APITestCase):
         Enrollment.objects.create(
             student=self.student, academic_year=year, class_level=level, stream=stream)
         subj = Subject.objects.create(school=self.school, name="M", code="M")
+        SubjectRegistration.objects.create(
+            student=self.student, academic_year=year, subject=subj,
+            category="compulsory")
         TeacherAssignment.objects.create(
             teacher=tp, school=self.school, subject=subj, stream=stream)
         self.other_admin = User.objects.create_user("other", password="pass12345")

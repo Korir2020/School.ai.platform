@@ -15,3 +15,12 @@ def paginated_response(request, queryset, serializer_class):
     page = paginator.paginate_queryset(queryset, request)
     data = serializer_class(page, many=True).data
     return paginator.get_paginated_response(data)
+
+
+def paginated_mapped_response(request, queryset, mapper):
+    """Paginate a queryset before mapping rows to API dictionaries."""
+    if not queryset.ordered:
+        queryset = queryset.order_by("pk")
+    paginator = StandardPagination()
+    page = paginator.paginate_queryset(queryset, request)
+    return paginator.get_paginated_response([mapper(row) for row in page])

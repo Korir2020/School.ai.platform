@@ -124,6 +124,9 @@ USE_TZ = True
 STATIC_URL = "static/"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+BACKGROUND_JOB_ROOT = Path(os.environ.get(
+    "DJANGO_BACKGROUND_JOB_ROOT", str(BASE_DIR / "private_jobs"),
+))
 FRONTEND_URL = os.environ.get("DJANGO_FRONTEND_URL", "http://localhost:5173")
 
 

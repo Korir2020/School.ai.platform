@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework.test import APITestCase
 
-from schools.models import AcademicYear, Performance, School, SchoolAdminProfile, Student, Subject, Term
+from schools.models import AcademicYear, Performance, School, SchoolAdminProfile, Student, Subject, SubjectRegistration, Term
 
 
 class BrandingAndAcademicReportTests(APITestCase):
@@ -18,6 +18,9 @@ class BrandingAndAcademicReportTests(APITestCase):
         year = AcademicYear.objects.create(school=self.school, name="2026", start_date=date(2026, 1, 1), end_date=date(2026, 12, 31))
         self.term = Term.objects.create(academic_year=year, name="Term 1", start_date=date(2026, 1, 1), end_date=date(2026, 4, 1), is_active=True)
         subject = Subject.objects.create(school=self.school, name="English")
+        SubjectRegistration.objects.create(
+            student=self.student, academic_year=year, subject=subject,
+            category="compulsory")
         Performance.objects.create(student=self.student, subject=subject, academic_year=year, term=self.term, marks=Decimal("70"), status="approved")
 
     def test_admin_can_upload_valid_logo_and_reject_large_file(self):

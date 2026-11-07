@@ -93,10 +93,10 @@ class FeeAdjustTests(APITestCase):
         other_year = AcademicYear.objects.create(
             school=self.other, name="2026",
             start_date=date(2026, 1, 1), end_date=date(2026, 12, 31))
-        years = {y["id"] for y in self.client.get("/api/fees/years/").data}
+        years = {y["id"] for y in self.client.get("/api/fees/years/").data["results"]}
         self.assertIn(self.year.id, years)
         self.assertNotIn(other_year.id, years)
-        ids = {s["id"] for s in self.client.get("/api/fees/students/").data}
+        ids = {s["id"] for s in self.client.get("/api/fees/students/").data["results"]}
         self.assertIn(self.day3.id, ids)
         self.assertNotIn(self.outsider.id, ids)
         self.assertEqual(self.client.get("/api/fees/terms/").status_code, 200)

@@ -13,7 +13,7 @@ from marian_reports.grading import make_scheme
 from schools.models import (
     AcademicYear, ClassLevel, Curriculum, Enrollment, Exam, GuardianProfile,
     Performance, School, SchoolAdminProfile, Stream, Student, StudentGuardian,
-    Subject, TeacherAssignment, TeacherProfile, Term,
+    Subject, SubjectRegistration, TeacherAssignment, TeacherProfile, Term,
 )
 from api.report_access import build_report_user
 from api.report_source import DjangoConfigStore
@@ -47,6 +47,8 @@ class ApiCase(TestCase):
             s = Student.objects.create(school=self.school, first_name=first, last_name="Test", admission_number=adm)
             Enrollment.objects.create(student=s, academic_year=year, class_level=self.level, stream=east)
             for sub, m in ((maths, 70), (sci, 55)):
+                SubjectRegistration.objects.create(
+                    student=s, academic_year=year, subject=sub, category="compulsory")
                 Performance.objects.create(student=s, subject=sub, academic_year=year, term=term,
                                            assessment_type="end", paper_number=1, marks=m, status="approved")
             return s

@@ -12,6 +12,9 @@ export default function Setup() {
   const [x, setX] = useState(null), [bad, setBad] = useState(false);
   const [lvl, setLvl] = useState(""), [sn, setSn] = useState("");
   const [bn, setBn] = useState(""), [bc, setBc] = useState("");
+  const [subjectLevel, setSubjectLevel] = useState("");
+  const [primaryDefs, setPrimaryDefs] = useState([]);
+  const [definitionId, setDefinitionId] = useState("");
   const [busy, setBusy] = useState(false);
   const [branding, setBranding] = useState(null), [logo, setLogo] = useState(null);
   const [idt, setIdt] = useState({});
@@ -22,13 +25,28 @@ export default function Setup() {
       const code = (c) => (cu.find((u) => u.id === c.curriculum) || {}).code || "";
       const lab = (c) => (code(c) + " " + (c.name || "")).trim();
       const level = (s) => cl.find((c) => c.id === s.class_level) || {};
-      setX({ sj, cl: cl.map((c) => ({ id: c.id, label: lab(c) })),
+      setX({ sj, cl: cl.map((c) => ({ ...c, curriculum_code: code(c.curriculum), label: lab(c) })),
         sm: sm.map((s) => ({ ...s, label: lab(level(s)) + " " + s.name })) });
       if (br.ok) setBranding(await br.json());
       setBad(false);
     } catch { setBad(true); }
   };
   useEffect(() => { load(); }, []);
+  useEffect(() => {
+    let live = true;
+    const selected = x && x.cl.find((row) => String(row.id) === String(subjectLevel));
+    if (!selected || selected.curriculum_code !== "CBC" || selected.level_number < 1 || selected.level_number > 6) {
+      setPrimaryDefs([]); setDefinitionId("");
+      return undefined;
+    }
+    api("/api/subject-definitions/primary/?class_level=" + selected.id)
+      .then(async (r) => {
+        if (!r.ok) throw new Error("Could not load CBC Primary learning areas.");
+        const rows = await r.json();
+        if (live) setPrimaryDefs(rows);
+      }).catch(() => { if (live) setPrimaryDefs([]); });
+    return () => { live = false; };
+  }, [x, subjectLevel]);
   const post = async (path, body, ok) => {
     setBusy(true);
     const r = await api(path, "POST", body);
@@ -44,6 +62,7 @@ export default function Setup() {
   const jcols = [
     { label: "Subject", key: "name", sort: true },
     { label: "Code", key: "code", sort: true },
+    { label: "Curriculum learning area", key: "definition_name", render: (row) => row.definition_name || "School-created" },
   ];
   const saveIdentity = async () => {
     setBusy(true);
@@ -89,6 +108,40 @@ export default function Setup() {
       <Card title="Subjects">
         <DataTable cols={jcols} rows={x.sj} search="Search subjects"
           empty="No subjects yet" />
+      </Card>
+      <Card title="Add CBC Primary learning area by grade">
+        <p>Select a grade and a school-curriculum learning-area definition. The grade-specific subject record lets paper maxima and weights be set separately for each grade.</p>
+        <Select id="su-primary-grade" label="CBC Primary grade" value={subjectLevel}
+          onChange={(e) => { setSubjectLevel(e.target.value); setDefinitionId(""); }}>
+          <option value="">Choose Grade 1–6</option>
+          {x.cl.filter((c) => c.curriculum_code === "CBC" && c.level_number >= 1 && c.level_number <= 6)
+            .map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </Select>
+        {subjectLevel && <Select id="su-primary-definition" label="Learning area" value={definitionId}
+          onChange={(e) => {
+            const item = primaryDefs.find((row) => String(row.id) === e.target.value);
+            setDefinitionId(e.target.value);
+            if (item) {
+              const level = x.cl.find((row) => String(row.id) === String(subjectLevel));
+              setBn(`${item.name} — ${level.name}`);
+              setBc(`${item.code}-G${level.level_number}`.slice(0, 20));
+            }
+          }}>
+          <option value="">Choose learning area</option>
+          {primaryDefs.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+        </Select>}
+        {subjectLevel && primaryDefs.length === 0 && <p>No catalogued learning areas were found for this grade.</p>}
+        {subjectLevel && definitionId && <>
+          <Input id="su-primary-name" label="Grade-specific subject name" value={bn} onChange={(e) => setBn(e.target.value)} />
+          <Input id="su-primary-code" label="Grade-specific subject code" value={bc} onChange={(e) => setBc(e.target.value)} />
+          <Button kind="teal" busy={busy} disabled={!bn || !bc || x.sj.some((s) => s.definition === Number(definitionId) && s.code === bc)}
+            onClick={async () => {
+              const b = { name: bn, code: bc, definition: Number(definitionId), is_active: true };
+              if (await post("/api/subjects/", b, "CBC Primary learning area added")) {
+                setBn(""); setBc(""); setDefinitionId("");
+              }
+            }}>Add learning area for this grade</Button>
+        </>}
       </Card>
       <Card title="Add subject">
         <Input id="su-bn" label="Subject name" value={bn}

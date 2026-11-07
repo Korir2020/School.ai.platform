@@ -14,15 +14,17 @@ except ImportError:
     raise unittest.SkipTest("marian_reports is not installed")
 
 from django.contrib.auth import get_user_model
+from django.db import connection
 from django.test import TestCase
+from django.test.utils import CaptureQueriesContext
 
 from marian_reports.domain import NotFound
-from marian_reports.grading import MarkStatus
+from marian_reports.grading import MarkStatus, evaluate_student, make_scheme
 
 from schools.models import (
     AcademicYear, AttendanceRecord, ClassLevel, Curriculum, Enrollment, Exam,
     Performance, School, Stream, Student, Subject, SubjectPaper,
-    TeacherAssignment, TeacherProfile, Term,
+    SubjectRegistration, TeacherAssignment, TeacherProfile, Term,
 )
 from api.report_source import DjangoDataSource
 
@@ -62,11 +64,16 @@ class SourceCase(TestCase):
             assessment_type="end", class_level=self.level, status="published")
 
     def mark(self, subject, marks, status="approved", paper=1, term=None,
-             kind="end", student=None):
+             kind="end", student=None, mark_status="scored"):
+        SubjectRegistration.objects.get_or_create(
+            student=student or self.student, academic_year=self.year,
+            subject=subject, defaults={"category": "compulsory"},
+        )
         return Performance.objects.create(
             student=student or self.student, subject=subject,
             academic_year=self.year, term=term or self.t3,
-            assessment_type=kind, paper_number=paper, marks=marks, status=status)
+            assessment_type=kind, paper_number=paper, marks=marks, status=status,
+            mark_status=mark_status)
 
     def entries(self):
         return {e.subject: e for e in self.ds.get_entries(
@@ -125,6 +132,34 @@ class MappingTests(SourceCase):
 
 
 class EntryTests(SourceCase):
+    def test_cohort_entry_loader_matches_single_student_output_with_bounded_queries(self):
+        students = [self.student]
+        for index in range(5):
+            student = Student.objects.create(
+                school=self.school, first_name=f"Learner{index}",
+                last_name="Cohort", admission_number=f"COHORT{index}",
+            )
+            Enrollment.objects.create(
+                student=student, academic_year=self.year,
+                class_level=self.level, stream=self.stream,
+            )
+            students.append(student)
+        for student in students:
+            self.mark(self.maths, 0, student=student)
+
+        with CaptureQueriesContext(connection) as queries:
+            batch = self.ds.get_entries_for_students(
+                str(self.school.id), str(self.exam.id),
+                [str(student.id) for student in students],
+            )
+        self.assertEqual(len(batch), len(students))
+        self.assertLessEqual(len(queries), 10)
+        self.assertEqual(
+            batch[str(self.student.id)],
+            self.ds.get_entries(str(self.school.id), str(self.exam.id),
+                                str(self.student.id)),
+        )
+
     def test_approved_and_locked_are_scored(self):
         self.mark(self.maths, 70, "approved")
         self.mark(self.science, 55, "locked")
@@ -139,7 +174,47 @@ class EntryTests(SourceCase):
         self.mark(self.science, 55, "submitted")
         for entry in self.entries().values():
             self.assertIsNone(entry.score)
-            self.assertEqual(entry.status, MarkStatus.MISSING)
+            self.assertEqual(entry.status, MarkStatus.PENDING)
+
+    def test_zero_is_a_scored_mark_not_absence(self):
+        self.mark(self.maths, 0)
+        entry = self.entries()["Mathematics"]
+        self.assertEqual(entry.score, Decimal("0"))
+        self.assertEqual(entry.status, MarkStatus.SCORED)
+
+    def test_finalized_dispositions_remain_distinct(self):
+        self.mark(self.maths, None, mark_status="absent")
+        self.mark(self.science, None, mark_status="exempted")
+        entries = self.entries()
+        self.assertEqual(entries["Mathematics"].status, MarkStatus.ABSENT)
+        self.assertEqual(entries["Science"].status, MarkStatus.EXEMPT)
+
+    def test_not_assessed_and_explicit_pending_are_distinct(self):
+        self.mark(self.maths, None, mark_status="not_assessed")
+        self.mark(self.science, None, mark_status="pending")
+        entries = self.entries()
+        self.assertEqual(entries["Mathematics"].status, MarkStatus.NOT_ASSESSED)
+        self.assertEqual(entries["Science"].status, MarkStatus.PENDING)
+
+    def test_not_assessed_paper_is_excluded_from_weighted_denominator(self):
+        SubjectPaper.objects.create(subject=self.maths, paper_number=1, weight=60,
+                                    max_marks=50)
+        SubjectPaper.objects.create(subject=self.maths, paper_number=2, weight=40,
+                                    max_marks=50)
+        self.mark(self.maths, 40, paper=1)
+        self.mark(self.maths, None, paper=2, mark_status="not_assessed")
+        scheme = make_scheme([("F", 0, 100, 1)])
+        summary = evaluate_student([self.entries()["Mathematics"]], scheme)
+        self.assertEqual(summary.subjects[0].score, Decimal("80.00"))
+        self.assertEqual(summary.pending, 0)
+        self.assertEqual(summary.excluded, 0)
+
+    def test_all_not_assessed_subject_is_excluded_not_pending(self):
+        self.mark(self.maths, None, mark_status="not_assessed")
+        scheme = make_scheme([("F", 0, 100, 1)])
+        summary = evaluate_student([self.entries()["Mathematics"]], scheme)
+        self.assertEqual(summary.subjects[0].status, "not_assessed")
+        self.assertEqual((summary.pending, summary.excluded, summary.subjects_completed), (0, 1, 0))
 
     def test_other_assessment_types_are_not_mixed_in(self):
         self.mark(self.maths, 40, "approved", kind="opener")
@@ -169,7 +244,7 @@ class EntryTests(SourceCase):
         self.assertEqual((c2.score, c2.status), (None, MarkStatus.MISSING))
         self.mark(self.maths, 70, "draft", paper=2)
         c2 = self.entries()["Mathematics"].components[1]
-        self.assertEqual((c2.score, c2.status), (None, MarkStatus.MISSING))
+        self.assertEqual((c2.score, c2.status), (None, MarkStatus.PENDING))
 
     def test_stream_subject_with_no_marks_shows_as_pending(self):
         user = get_user_model().objects.create_user(
@@ -178,6 +253,10 @@ class EntryTests(SourceCase):
         TeacherAssignment.objects.create(
             teacher=teacher, school=self.school, subject=self.science,
             stream=self.stream)
+        SubjectRegistration.objects.create(
+            student=self.student, academic_year=self.year, subject=self.science,
+            category="compulsory",
+        )
         self.mark(self.maths, 70, "approved")
         e = self.entries()
         self.assertEqual(set(e), {"Mathematics", "Science"})

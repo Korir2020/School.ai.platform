@@ -82,13 +82,35 @@ class PerformanceSerializer(serializers.ModelSerializer):
         read_only_fields = ('status', 'entered_by', 'updated_at')
 
     def validate(self, attrs):
+        from schools.models import SubjectRegistration
+
+        instance = getattr(self, "instance", None)
         term = attrs.get("term")
         year = attrs.get("academic_year")
+        student = attrs.get("student", instance.student if instance is not None else None)
+        subject = attrs.get("subject", instance.subject if instance is not None else None)
+        year = year or (instance.academic_year if instance is not None else None)
         if term and year and term.academic_year_id != year.id:
             raise serializers.ValidationError(
                 "Term does not belong to the selected academic year."
             )
-        subject = attrs.get("subject")
+        if student is not None and year is not None and subject is not None:
+            if student.school_id != year.school_id or subject.school_id != student.school_id:
+                raise serializers.ValidationError(
+                    "Student, subject, and academic year must belong to the same school."
+                )
+            if not Enrollment.objects.filter(
+                student=student, academic_year=year, is_active=True,
+            ).exists():
+                raise serializers.ValidationError(
+                    "The learner has no active enrollment in this academic year."
+                )
+            if not SubjectRegistration.objects.filter(
+                student=student, academic_year=year, subject=subject,
+            ).exists():
+                raise serializers.ValidationError(
+                    "The learner is not registered for this subject in this academic year."
+                )
         if subject:
             from schools.models import SubjectPaper
             numbers = list(
@@ -99,10 +121,17 @@ class PerformanceSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     "Paper number is not defined for this subject."
                 )
-        marks = attrs.get("marks")
         inst = getattr(self, "instance", None)
         subj = subject or (inst.subject if inst is not None else None)
         pno = attrs.get("paper_number", inst.paper_number if inst is not None else 1)
+        mark_status = attrs.get(
+            "mark_status", inst.mark_status if inst is not None else "scored",
+        )
+        marks = attrs.get("marks", inst.marks if inst is not None else None)
+        if mark_status == "scored" and marks is None:
+            raise serializers.ValidationError({"marks": ["A numeric mark is required for a scored entry; zero is valid."]})
+        if mark_status != "scored" and marks is not None:
+            raise serializers.ValidationError({"marks": ["Non-scored statuses must not include a numeric mark."]})
         if marks is not None and subj is not None:
             from schools.models import SubjectPaper
             paper = SubjectPaper.objects.filter(subject=subj, paper_number=pno).first()

@@ -7,7 +7,8 @@ from rest_framework.serializers import ValidationError
 from api.papers import SubjectPaperSerializer
 from api.serializers import PerformanceSerializer
 from schools.models import (
-    AcademicYear, Performance, School, Student, Subject, SubjectPaper, Term,
+    AcademicYear, ClassLevel, Curriculum, Enrollment, Performance, School,
+    Student, Subject, SubjectPaper, SubjectRegistration, Term,
 )
 
 
@@ -25,6 +26,15 @@ class PaperMaxMarksTests(TestCase):
             school=self.school, name="2026", start_date=date(2026, 1, 1), end_date=date(2026, 12, 31))
         self.term = Term.objects.create(
             academic_year=self.year, name="Term 1", start_date=date(2026, 1, 1), end_date=date(2026, 4, 30))
+        curriculum = Curriculum.objects.create(name="Test curriculum", code="MAX-CUR")
+        level = ClassLevel.objects.create(curriculum=curriculum, name="Level 1", level_number=1)
+        Enrollment.objects.create(
+            student=self.kid, academic_year=self.year, class_level=level,
+        )
+        SubjectRegistration.objects.create(
+            student=self.kid, academic_year=self.year, subject=self.bio,
+            category="compulsory",
+        )
 
     def _check(self, subject, paper, marks):
         return PerformanceSerializer().validate(

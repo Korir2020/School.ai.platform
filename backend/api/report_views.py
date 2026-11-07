@@ -68,12 +68,43 @@ def _exam_scheme(school_id, exam_id):
 def service(school_id, exam_id=None):
     store = DjangoConfigStore(str(school_id))
     scheme = store.load_scheme()
+    cfg = ReportConfig()
+    store.apply_to(cfg)
+    from schools.models import Exam
+    from marian_reports.frameworks import STAGE_PRESETS
+    exam = None
+    resolved = None
+    try:
+        exam = Exam.objects.filter(pk=int(exam_id), school_id=school_id).first()
+    except (TypeError, ValueError):
+        pass
+    if exam is not None:
+        if exam.framework_key and exam.framework_version:
+            scheme = _exam_scheme(school_id, exam_id) or scheme
+        else:
+            from api.framework_rules import resolve
+            resolved = resolve(exam.school_id, exam.class_level, exam.term.academic_year)
+            if resolved is not None and isinstance(resolved.rules, dict):
+                frozen = resolved.rules.get("scheme")
+                if isinstance(frozen, dict):
+                    from api.report_source import scheme_from_dict
+                    scheme = scheme_from_dict(frozen)
+    framework_key = exam.framework_key if exam and exam.framework_key else (
+        resolved.framework_key if resolved is not None else None)
     if scheme is None:
         raise ReportNotReady("no_grading_scale",
                              "This school has not set a grading scale yet.")
-    cfg = ReportConfig()
-    store.apply_to(cfg)
-    scheme = _exam_scheme(school_id, exam_id) or scheme
+    if framework_key == "cbe_primary":
+        # Primary rankings are opt-in. A saved school section preference wins.
+        preset = STAGE_PRESETS["cbe_primary"]
+        saved = store.saved_sections()
+        for key, value in preset.get("sections", {}).items():
+            if key not in saved:
+                cfg.sections[key] = value
+        cfg.labels.update(preset.get("labels", {}))
+        notice = "Internal school assessment result; not an official KNEC assessment."
+        saved_footer = (store.saved_options().get("footer_note") or "").strip()
+        cfg.footer_note = notice if not saved_footer else notice + " " + saved_footer
     return ReportService(DjangoDataSource(), scheme, cfg)
 
 
@@ -144,6 +175,51 @@ def report_meta(request):
         studs = [s for s in studs if s.id in user.student_ids]
     exams = [{"id": e.id, "name": e.name, "published": e.published}
              for e in ds.list_exams(user.school_id)]
+    from schools.models import Enrollment, Exam, ExamResult, LevelResult
+    exam_rows = {row.id: row for row in Exam.objects.filter(
+        school_id=user.school_id,
+    ).select_related("term").only(
+        "id", "framework_key", "status", "term_id", "class_level_id",
+        "assessment_type", "term__academic_year_id",
+    )}
+    numeric_ids = set(ExamResult.objects.filter(
+        exam_id__in=exam_rows.keys(),
+    ).values_list("exam_id", flat=True).distinct())
+    primary_exams = [row for row in exam_rows.values()
+                     if row.framework_key == "cbe_primary" and row.status == "published"]
+    primary_terms = {row.term_id for row in primary_exams}
+    primary_years = {row.term.academic_year_id for row in primary_exams}
+    level_keys = set(LevelResult.objects.filter(
+        student__school_id=user.school_id, status__in=["approved", "locked"],
+        term_id__in=primary_terms, academic_year_id__in=primary_years,
+        assessment_type__in={row.assessment_type for row in primary_exams},
+    ).values_list("student_id", "academic_year_id", "term_id", "assessment_type").distinct())
+    enrollments = Enrollment.objects.filter(
+        student__school_id=user.school_id, student_id__in={row[0] for row in level_keys},
+        academic_year_id__in=primary_years, is_active=True,
+    ).values_list("student_id", "academic_year_id", "class_level_id")
+    class_by_student_year = {(sid, year): class_id for sid, year, class_id in enrollments}
+    primary_exam_ids = {(row.term_id, row.assessment_type, row.class_level_id): row.id
+                        for row in primary_exams}
+    level_exam_ids = set()
+    for student_id, year_id, term_id, atype in level_keys:
+        class_id = class_by_student_year.get((student_id, year_id))
+        exam_id = primary_exam_ids.get((term_id, atype, class_id))
+        if exam_id:
+            level_exam_ids.add(exam_id)
+    saved_sections = DjangoConfigStore(str(user.school_id)).saved_sections()
+    for item in exams:
+        try:
+            exam_id = int(item["id"])
+        except (TypeError, ValueError):
+            exam_id = None
+        exam = exam_rows.get(exam_id)
+        item["framework_key"] = exam.framework_key if exam else None
+        item["result_mode"] = ("achievement_levels" if exam and exam.framework_key == "cbe_primary"
+                               and exam.status == "published" and exam_id not in numeric_ids
+                               and exam_id in level_exam_ids else "marks")
+        item["rankings_enabled"] = (bool(saved_sections.get("positions", False))
+                                    if exam and exam.framework_key == "cbe_primary" else True)
     if user.role == "teacher":
         from api.class_teacher_access import limit_meta
         studs, exams = limit_meta(request.user, studs, exams)
@@ -175,6 +251,7 @@ def report_selection(request):
     prov = request.query_params.get("provisional") == "1"
     out = {"selected": len(pool), "eligible": 0, "complete": 0, "pending": 0,
            "excluded": [], "published": snap.exam.published,
+           "cohort_ids": [str(s.id) for s in pool],
            "population": f"{cn}{' ' + stream if stream else ''} - {snap.exam.name}"}
     for s in pool:
         try:
@@ -251,6 +328,12 @@ def report_analytics(request):
 @guard
 def report_rankings(request):
     svc, snap, stream = _class_snapshot(request)
+    from schools.models import Exam
+    exam = Exam.objects.filter(pk=snap.exam.id, school_id=snap.school_id).only(
+        "id", "framework_key").first()
+    if exam is not None and exam.framework_key == "cbe_primary" \
+            and not svc.cfg.sections.get("positions", False):
+        return _err("rankings_disabled", "CBC Primary rankings are disabled by this school's report policy.", 403)
     scope = request.query_params.get("scope", "overall")
     if scope not in ("overall", "stream"):
         raise ReportNotReady("bad_scope", "scope must be overall or stream.")

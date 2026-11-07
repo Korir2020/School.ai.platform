@@ -1,3 +1,5 @@
+import uuid
+
 from django.conf import settings
 from django.db import models
 from django.db.models.functions import Lower
@@ -115,6 +117,18 @@ class Enrollment(models.Model):
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        indexes = [
+            models.Index(
+                fields=["academic_year", "is_active", "class_level", "stream"],
+                name="enr_year_roster_idx",
+            ),
+            models.Index(
+                fields=["student", "academic_year", "is_active"],
+                name="enr_student_year_idx",
+            ),
+        ]
+
     def __str__(self):
         return f"{self.student} - {self.academic_year.name} - {self.class_level.name}"
 
@@ -134,6 +148,47 @@ class Subject(models.Model):
     def __str__(self):
         return self.name
 
+
+class SubjectRegistration(models.Model):
+    CATEGORY_CHOICES = [
+        ("compulsory", "Compulsory"),
+        ("optional", "Optional"),
+    ]
+    student = models.ForeignKey(
+        Student, on_delete=models.CASCADE, related_name="subject_registrations")
+    academic_year = models.ForeignKey(
+        AcademicYear, on_delete=models.CASCADE, related_name="subject_registrations")
+    subject = models.ForeignKey(
+        Subject, on_delete=models.PROTECT, related_name="registrations")
+    category = models.CharField(max_length=12, choices=CATEGORY_CHOICES)
+    registered_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name="+")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["subject__name", "id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["student", "academic_year", "subject"],
+                name="unique_student_year_subject_registration",
+            ),
+        ]
+        indexes = [
+            models.Index(
+                fields=["academic_year", "student"],
+                name="subreg_year_student_idx",
+            ),
+            models.Index(
+                fields=["academic_year", "subject", "student"],
+                name="subreg_year_subj_idx",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.student} - {self.subject} ({self.academic_year.name})"
+
 class Performance(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
@@ -142,7 +197,20 @@ class Performance(models.Model):
     assessment_type = models.CharField(max_length=10, choices=[("opener", "Opener"), ("mid", "Mid-term"), ("end", "End-term")], default="end")
     paper_number = models.PositiveSmallIntegerField(default=1)
 
-    marks = models.DecimalField(max_digits=5, decimal_places=2, validators=[MinValueValidator(1), MaxValueValidator(100)])
+    MARK_STATUS_CHOICES = [
+        ("scored", "Scored"),
+        ("absent", "Absent"),
+        ("exempted", "Exempted"),
+        ("not_assessed", "Not assessed"),
+        ("pending", "Pending"),
+    ]
+    mark_status = models.CharField(
+        max_length=16, choices=MARK_STATUS_CHOICES, default="scored",
+    )
+    marks = models.DecimalField(
+        max_digits=5, decimal_places=2, null=True, blank=True,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+    )
     STATUS_CHOICES = [
         ("draft", "Draft"),
         ("submitted", "Submitted"),
@@ -161,9 +229,22 @@ class Performance(models.Model):
         constraints = [
             models.UniqueConstraint(fields=["student", "subject", "academic_year", "term", "assessment_type", "paper_number"], name="unique_student_subject_term_performance"),
             models.CheckConstraint(
-                condition=models.Q(marks__gte=1, marks__lte=100),
-                name="performance_marks_1_100",
+                condition=(
+                    models.Q(mark_status="scored", marks__isnull=False,
+                             marks__gte=0, marks__lte=100)
+                    | models.Q(
+                        mark_status__in=["absent", "exempted", "not_assessed", "pending"],
+                        marks__isnull=True,
+                    )
+                ),
+                name="performance_mark_status_valid",
             )
+        ]
+        indexes = [
+            models.Index(
+                fields=["term", "assessment_type", "subject", "student"],
+                name="perf_term_sub_stu_idx",
+            ),
         ]
 
     def __str__(self):
@@ -360,6 +441,7 @@ class ExamResult(models.Model):
     stream_rank = models.PositiveIntegerField(null=True, blank=True)
     class_rank = models.PositiveIntegerField(null=True, blank=True)
     subject_scores = models.JSONField(default=dict, blank=True)
+    subject_statuses = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -663,6 +745,9 @@ class AttendanceRecord(models.Model):
     class Meta:
         constraints = [models.UniqueConstraint(fields=["student", "date"], name="unique_student_attendance_date")]
         ordering = ["-date", "student__last_name"]
+        indexes = [
+            models.Index(fields=["date", "student"], name="att_date_student_idx"),
+        ]
 
 
 class StudentIntervention(models.Model):
@@ -1281,3 +1366,54 @@ class AnnouncementRecipient(models.Model):
     class Meta:
         constraints = [models.UniqueConstraint(fields=["announcement", "user"], name="unique_announcement_recipient")]
         indexes = [models.Index(fields=["user", "read_at"])]
+
+
+class BackgroundJob(models.Model):
+    """Durable queue row for bounded, school-scoped document generation."""
+    TYPES = [
+        ("report_cards", "Bulk report cards"),
+        ("fee_receipts", "Bulk fee receipts"),
+    ]
+    STATUSES = [
+        ("queued", "Queued"),
+        ("running", "Running"),
+        ("completed", "Completed"),
+        ("failed", "Failed"),
+    ]
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    school = models.ForeignKey(
+        School, on_delete=models.CASCADE, related_name="background_jobs",
+    )
+    requested_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True,
+        blank=True, related_name="requested_background_jobs",
+    )
+    job_type = models.CharField(max_length=20, choices=TYPES)
+    status = models.CharField(max_length=12, choices=STATUSES, default="queued")
+    payload = models.JSONField(default=dict)
+    progress = models.PositiveIntegerField(default=0)
+    total = models.PositiveIntegerField(default=0)
+    attempts = models.PositiveSmallIntegerField(default=0)
+    error = models.TextField(blank=True)
+    artifact_name = models.CharField(max_length=255, blank=True)
+    content_type = models.CharField(max_length=100, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    started_at = models.DateTimeField(null=True, blank=True)
+    heartbeat_at = models.DateTimeField(null=True, blank=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["created_at", "id"]
+        indexes = [
+            models.Index(fields=["status", "created_at"], name="job_status_created_idx"),
+            models.Index(fields=["school", "created_at"], name="job_school_created_idx"),
+            models.Index(fields=["status", "heartbeat_at"], name="job_status_heartbeat_idx"),
+        ]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(progress__lte=models.F("total")),
+                name="background_job_progress_lte_total",
+            ),
+        ]

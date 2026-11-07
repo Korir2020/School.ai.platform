@@ -4,6 +4,7 @@ from rest_framework.response import Response
 
 from schools.models import Performance, SchoolAdminProfile, Term
 from .permissions import get_user_school_id
+from .subject_registration_rules import registered_marks
 from .unofficial import unofficial
 
 
@@ -18,8 +19,9 @@ def term_summary(request, term_id):
     if term is None:
         return Response({"detail": "Not found."}, status=404)
 
-    marks = Performance.objects.filter(term=term)
-    final = marks.filter(status__in=["approved", "locked"])
+    marks = registered_marks(Performance.objects.filter(term=term), term.academic_year)
+    final_rows = marks.filter(status__in=["approved", "locked"])
+    final = final_rows.filter(mark_status="scored")
     rows = (
         final.values("subject__name")
         .annotate(average=Avg("marks"), highest=Max("marks"),
@@ -39,7 +41,12 @@ def term_summary(request, term_id):
             }
             for r in rows
         ],
-        "pending_marks": marks.count() - final.count(),
+        "pending_marks": marks.filter(status__in=["draft", "submitted"]).count()
+                         + final_rows.filter(mark_status="pending").count(),
+        "mark_status_counts": {
+            value: final_rows.filter(mark_status=value).count()
+            for value, _ in Performance.MARK_STATUS_CHOICES
+        },
         "unofficial": unofficial(
-            marks.exclude(status__in=["approved", "locked"])),
+            marks.filter(status__in=["draft", "submitted"])),
     })

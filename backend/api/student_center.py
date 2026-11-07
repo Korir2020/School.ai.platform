@@ -1,10 +1,11 @@
-from django.db.models import Avg, Sum
+from django.db.models import Avg, Count, Sum
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
 from schools.models import AttendanceRecord, Enrollment, FeePayment, Performance, Student, StudentFee, StudentGuardian, Term
 from .views import _scope
 from .permissions import restrict_for_teacher
+from .subject_registration_rules import registered_marks
 
 
 def _student(request, pk):
@@ -24,10 +25,32 @@ def student_center(request, pk):
     terms = Term.objects.filter(academic_year__school_id=student.school_id).select_related("academic_year").order_by("-start_date")
     history = []
     for term in terms:
-        marks = Performance.objects.filter(student=student, term=term, status__in=["approved", "locked"])
+        outcomes = registered_marks(
+            Performance.objects.filter(student=student, term=term,
+                                       status__in=["approved", "locked"]),
+            term.academic_year,
+        )
+        marks = outcomes.filter(mark_status="scored")
         agg = marks.aggregate(average=Avg("marks"))
-        if agg["average"] is not None:
-            history.append({"term_id": term.id, "term": term.name, "academic_year": term.academic_year.name, "average": round(float(agg["average"]), 2), "entries": marks.count(), "subjects": list(marks.values("subject__name").annotate(average=Avg("marks")).order_by("subject__name"))})
+        if outcomes.exists():
+            subject_rows = list(marks.values("subject__name").annotate(
+                average=Avg("marks"), entries=Count("id"),
+            ).order_by("subject__name"))
+            dispositions = {}
+            for row in outcomes.values("subject__name", "mark_status").annotate(count=Count("id")):
+                dispositions.setdefault(row["subject__name"], {})[row["mark_status"]] = row["count"]
+            for row in subject_rows:
+                row["mark_status_counts"] = dispositions.get(row["subject__name"], {})
+            history.append({
+                "term_id": term.id, "term": term.name,
+                "academic_year": term.academic_year.name,
+                "average": round(float(agg["average"]), 2) if agg["average"] is not None else None,
+                "entries": marks.count(), "subjects": subject_rows,
+                "mark_status_counts": {
+                    status: outcomes.filter(mark_status=status).count()
+                    for status, _ in Performance.MARK_STATUS_CHOICES
+                },
+            })
     fees = StudentFee.objects.filter(student=student).select_related("fee_structure").order_by("-id")
     payments = FeePayment.objects.filter(student_fee__student=student).select_related("student_fee__fee_structure").order_by("-paid_at")
     totals = fees.aggregate(due=Sum("amount_due"), paid=Sum("amount_paid"))

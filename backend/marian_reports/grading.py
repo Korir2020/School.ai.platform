@@ -29,9 +29,11 @@ def to_decimal(value, name="value") -> Decimal:
 class MarkStatus(str, Enum):
     SCORED = "scored"        # a real mark; zero is a legitimate score
     MISSING = "missing"      # not yet entered -> pending, never zero
+    PENDING = "pending"      # explicitly marked as awaiting assessment entry
     ABSENT = "absent"        # sat-out; policy decides
     EXEMPT = "exempt"        # excluded from totals and max
     WITHDRAWN = "withdrawn"  # excluded from totals and max
+    NOT_ASSESSED = "not_assessed"  # deliberately not assessed; excluded, not pending
 
 
 @dataclass(frozen=True)
@@ -188,19 +190,41 @@ def _component_score(entry: SubjectEntry, scheme: GradingScheme):
         return MarkStatus.SCORED, s, smax
     wsum = Decimal(0)
     acc = Decimal(0)
+    excluded_statuses = []
     for c in entry.components:
         w = to_decimal(c.weight, "weight")
         cm = to_decimal(c.max_mark, "component max")
         if w <= 0 or cm <= 0:
             raise GradingError(f"{entry.subject}: weight and max must be positive")
-        if c.status != MarkStatus.SCORED or c.score is None:
-            st = c.status if c.status != MarkStatus.SCORED else MarkStatus.MISSING
-            return st, None, smax  # any non-scored component keeps the subject non-final
-        cs = to_decimal(c.score, "component score")
+        status = c.status if c.status != MarkStatus.SCORED or c.score is not None else MarkStatus.MISSING
+        if status in (MarkStatus.MISSING, MarkStatus.PENDING):
+            return status, None, smax
+        if status == MarkStatus.ABSENT:
+            if scheme.absent_policy == "pending":
+                return MarkStatus.ABSENT, None, smax
+            if scheme.absent_policy == "zero":
+                wsum += w
+            else:
+                excluded_statuses.append(status)
+            continue
+        if status in (MarkStatus.EXEMPT, MarkStatus.WITHDRAWN, MarkStatus.NOT_ASSESSED):
+            excluded_statuses.append(status)
+            continue
+        cs = to_decimal(c.score, f"{entry.subject} component score")
         if cs < 0 or cs > cm:
             raise GradingError(f"{entry.subject}: component score {cs} outside 0..{cm}")
         acc += (cs / cm) * w
         wsum += w
+    if not wsum:
+        if MarkStatus.NOT_ASSESSED in excluded_statuses:
+            return MarkStatus.NOT_ASSESSED, None, smax
+        if MarkStatus.EXEMPT in excluded_statuses:
+            return MarkStatus.EXEMPT, None, smax
+        if MarkStatus.WITHDRAWN in excluded_statuses:
+            return MarkStatus.WITHDRAWN, None, smax
+        if MarkStatus.ABSENT in excluded_statuses:
+            return MarkStatus.ABSENT, None, smax
+        return MarkStatus.MISSING, None, smax
     return MarkStatus.SCORED, (acc / wsum) * smax, smax
 
 
@@ -210,7 +234,7 @@ def evaluate_student(entries: Sequence[SubjectEntry], scheme: GradingScheme) -> 
     notes = []
     for e in entries:
         status, score, smax = _component_score(e, scheme)
-        if status in (MarkStatus.EXEMPT, MarkStatus.WITHDRAWN) or (
+        if status in (MarkStatus.EXEMPT, MarkStatus.WITHDRAWN, MarkStatus.NOT_ASSESSED) or (
                 status == MarkStatus.ABSENT and scheme.absent_policy == "exclude"):
             excluded += 1
             results.append(SubjectResult(e.subject, status.value, None, smax, None, None, None, None,
@@ -218,7 +242,7 @@ def evaluate_student(entries: Sequence[SubjectEntry], scheme: GradingScheme) -> 
             continue
         if status == MarkStatus.ABSENT and scheme.absent_policy == "zero":
             status, score = MarkStatus.SCORED, Decimal(0)
-        if status != MarkStatus.SCORED:
+        if status in (MarkStatus.MISSING, MarkStatus.PENDING, MarkStatus.ABSENT):
             pending += 1
             results.append(SubjectResult(e.subject, status.value, None, smax, None, None, None, None,
                                          False, e.teacher, e.remarks))

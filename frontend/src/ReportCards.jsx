@@ -19,11 +19,15 @@ export default function ReportCards({ d }) {
     setBusy(true);
     try {
       const r = await api("/api/report-card/" + id + "/" + termId + "/");
-      if (!r.ok) throw new Error("card");
+      if (!r.ok) {
+        let body = {};
+        try { body = await r.json(); } catch { body = {}; }
+        throw new Error(body.detail || "Could not load this report card.");
+      }
       setRc(await r.json());
-    } catch {
+    } catch (error) {
       setRc(null);
-      setBad("card");
+      setBad(error.message || "Could not load this report card.");
     }
     setBusy(false);
   };
@@ -50,7 +54,7 @@ export default function ReportCards({ d }) {
         </Select>
       </Card>
       {busy && <Loading />}
-      {bad === "card" && <Alert>Could not load this report card.</Alert>}
+      {bad && bad !== "students" && <Alert>{bad}</Alert>}
       {rc && !busy && (
         <Card title={rc.student.name + " (Adm " + rc.student.admission_number + ")"}>
           <p>{rc.term}, {rc.academic_year}</p>
