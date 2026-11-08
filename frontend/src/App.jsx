@@ -28,6 +28,7 @@ import Platform from "./Platform";
 import AuditLog from "./AuditLog";
 import Accounts from "./Accounts";
 import Fees from "./Fees";
+import BursarDashboard from "./BursarDashboard";
 import Connect from "./Connect";
 import Feedback from "./Feedback";
 import Calendar from "./Calendar";
@@ -63,7 +64,7 @@ function Dash({ onOut }) {
   useEffect(() => { (async () => {
     const a = await api("/api/auth/me/"); if (a.status === 401) return onOut(); const m = await a.json(); setMe(m); if (m.role === "school_admin" && m.setup_complete === false && !m.is_deputy && !window.location.hash) setTab("Setup");
     if (m.role === "none") return;
-    if (["bursar", "secretary"].includes(m.role)) { setD({ role: m.role }); return; }
+    if (m.role === "secretary") { setD({ role: m.role }); return; }
     if (m.role === "parent") { setD({ role: "parent" }); return; }
     const b = await api("/api/dashboard/"); if (b.ok) setD(await b.json());
   })(); }, [onOut, setTab]);
@@ -73,7 +74,7 @@ function Dash({ onOut }) {
   const home = d && <>{role === "school_admin" ? <Dash2Top me={me} d={d} go={setTab} tabs={{ Students: 1, Teachers: 1, Exams: 1, Approve: 1, Fees: 1 }}><Dash2Low d={d} go={setTab} tabs={{ Approve: 1, Exams: 1, Reports: 1, Students: 1, Analytics: 1, Fees: 1 }} /><Dash2Mid d={d} go={setTab} /></Dash2Top> : role === "superadmin" ? <SuperHome me={me} d={d} go={setTab} /> : role === "teacher" ? <TeacherHome me={me} d={d} go={setTab} /> : <Home me={me} d={d} />}{role === "school_admin" && <Dash2Act go={setTab} />}<Password /></>;
   const baseTabs = role === "teacher" ? { Home: home, Announcements: <Announcements />, Connect: <Connect />, Feedback: <Feedback />, Calendar: <Calendar />, Marks: need(<Marks d={d} />), Levels: need(<LevelEntry d={d} />), Attendance: <Attendance />, ...(me && me.is_class_teacher ? { 'Report Cards': <ReportModule /> } : {}) }
     : role === "school_admin" ? { Home: home, Announcements: <Announcements />, Connect: <Connect />, Feedback: <Feedback />, Calendar: <Calendar />, Approve: <Approvals />, Exams: need(<Exams d={d} />), 'Subject Registration': <SubjectRegistration />, Reports: need(<ReportCards d={d} />), 'Report Cards': <ReportModule />, Analytics: need(<Analytics d={d} />), Attendance: <Attendance />, Fees: <Fees admin />, Documents: <BulkDocuments admin />, 'Migration Centre': <MigrationCentre />, Students: need(<Students d={d} />), Parents: <ParentAccounts />, Promotion: <Promotion />, Transfers: <TeacherTransfers />, Teachers: need(<><Teachers />{me && !me.is_deputy && <Deputies />}</>), Staff: <Staff />, Audit: <AuditLog />, Setup: <SetupPage me={me} d={d} go={setTab} /> }
-    : role === "bursar" ? { Fees: <Fees admin />, Announcements: <Announcements />, Connect: <Connect />, Documents: <BulkDocuments />, Calendar: <Calendar /> }
+    : role === "bursar" ? { Home: <BursarDashboard me={me} data={d} />, Fees: <Fees admin />, Announcements: <Announcements />, Connect: <Connect />, Documents: <BulkDocuments />, Calendar: <Calendar /> }
     : role === "parent" ? { Home: <Parent />, Announcements: <Announcements />, Connect: <Connect />, Feedback: <Feedback /> }
     : role === "secretary" ? { Connect: <Connect /> }
     : role === "superadmin" ? { Home: home, Schools: <Platform d={d} />, Registrations: <RegistrationReview />, Transfers: <TeacherTransfers />, Admins: <Accounts />, Backups: <Backups />, Audit: <AuditLog />, Feedback: <Feedback owner /> }
