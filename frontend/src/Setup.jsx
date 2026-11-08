@@ -197,6 +197,15 @@ export default function Setup() {
     }
   };
 
+  const groupOpen = (group) => group.subjects.filter((item) => !item.already_added).map((item) => `${item.definition_id}-${item.class_level_id}`);
+  const toggleGroup = (group) => {
+    const keys = groupOpen(group);
+    if (!keys.length) return;
+    setSelected((current) => keys.every((k) => current.includes(k))
+      ? current.filter((value) => !keys.includes(value))
+      : [...current, ...keys.filter((k) => !current.includes(k))]);
+  };
+
   const toggleCatalog = (item) => {
     const key = `${item.definition_id}-${item.class_level_id}`;
     setSelected((current) => current.includes(key)
@@ -294,7 +303,7 @@ export default function Setup() {
             <Alert kind="info">{catalog ? catalog.notice : "Catalogue is not available for this school type yet."}</Alert>
             {catalogGroups.length === 0 ? <p className="s2-mut">No catalogue levels are available for this school type. Shared class levels remain read-only.</p> : catalogGroups.map((group) => (
               <div className="s2-catalog-group" key={`${group.curriculum_code}-${group.class_level_id}`}>
-                <div className="s2-catalog-head"><b>{group.class_level_name}</b><span>{group.curriculum_code} · {group.subjects.length} options</span></div>
+                <div className="s2-catalog-head"><b>{group.class_level_name}</b><span>{group.curriculum_code} · {group.subjects.length} options</span><label className="s2-catalog-all"><input type="checkbox" checked={groupOpen(group).length > 0 && groupOpen(group).every((k) => selected.includes(k))} disabled={groupOpen(group).length === 0} onChange={() => toggleGroup(group)} />Select all</label></div>
                 <div className="s2-catalog-list">
                   {group.subjects.map((item) => {
                     const key = `${item.definition_id}-${item.class_level_id}`;

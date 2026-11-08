@@ -111,3 +111,8 @@ main>div.s2.s2{background:none;border:0;padding:0}
   .s2-catalog-list{grid-template-columns:1fr}
   .s2-catalog-item:nth-child(even){border-left:0}
 }
+
+/* select all per grade: small and quiet */
+.s2-catalog-head b{flex:1;min-width:0}
+.s2-catalog-all{display:inline-flex;align-items:center;gap:4px;font-size:.7rem;color:var(--s2-mut);white-space:nowrap;cursor:pointer}
+.s2-catalog-all input{margin:0;width:13px;height:13px}
