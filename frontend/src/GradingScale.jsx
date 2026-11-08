@@ -6,7 +6,6 @@ const P = "/api/report-module/grading-config/";
 const blank = () => ({ label: "", min: "", max: "", points: "" });
 const PRESETS = {
   kcse: { pass: 40, best: "7", bands: [["E",0,30,1],["D-",30,35,2],["D",35,40,3],["D+",40,45,4],["C-",45,50,5],["C",50,55,6],["C+",55,60,7],["B-",60,65,8],["B",65,70,9],["B+",70,75,10],["A-",75,80,11],["A",80,100,12]] },
-  kjsea: { pass: 0, best: "", bands: [["BE2",0,11,1],["BE1",11,21,2],["AE2",21,31,3],["AE1",31,41,4],["ME2",41,58,5],["ME1",58,75,6],["EE2",75,90,7],["EE1",90,100,8]] },
 };
 const nice = (s) => String(s).replace(/_/g, " ");
 
@@ -80,11 +79,10 @@ export default function GradingScale({ onSaved }) {
   return (
     <div>
       <Card title="Grading scale">
-        <p>Enter this school's grade bands. The first must start at 0, the last must end at 100, and each band must start where the one before ends.</p>
+        <p>Enter this school's grade bands. CBC Junior grading thresholds are school-configured here; Marian does not supply national percentage cutoffs or official KNEC grades. The first band must start at 0, the last at 100, and each band must join the next.</p>
         <Select id="gs-pre" label="Start from a standard scale (optional)" value={pre} onChange={(e) => applyPreset(e.target.value)}>
           <option value="">Enter my own</option>
           <option value="kcse">Secondary 8-4-4: KCSE 12-point scale</option>
-          <option value="kjsea">Junior school CBE: KJSEA 8 levels</option>
         </Select>
         <p>A starting point only. KNEC does not publish fixed KCSE percentage ranges, so check these against your school's rules and edit any row before saving.</p>
         {rows.map((r, i) => (

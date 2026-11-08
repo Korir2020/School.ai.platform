@@ -11,23 +11,35 @@ function YearEnd({ years, toast, onDone }) {
   const [from, setFrom] = useState(active.length ? String(active[0].id) : "");
   const [to, setTo] = useState("");
   const [rows, setRows] = useState(null), [err, setErr] = useState(""), [busy, setBusy] = useState(false);
-  const [choice, setChoice] = useState({}), [ask, setAsk] = useState(false);
+  const [choice, setChoice] = useState({}), [pathChoice, setPathChoice] = useState({}), [ask, setAsk] = useState(false);
 
   useEffect(() => {
-    setRows(null); setErr(""); setChoice({});
+    setRows(null); setErr(""); setChoice({}); setPathChoice({});
     if (!from || !to) return;
     api(`/api/promotions/preview/?from_year=${from}&to_year=${to}`).then(async (r) => {
       const j = await read(r);
-      if (r.ok) setRows(j.students); else setErr(j.detail || "Could not load students.");
+      if (r.ok) {
+        setRows(j.students);
+        setPathChoice(Object.fromEntries((j.students || []).filter((row) =>
+          row.current_pathway_id && [...(row.pathways || []), ...(row.current_pathways || [])]
+            .some((pathway) => String(pathway.id) === String(row.current_pathway_id)))
+          .map((row) => [row.student_id, String(row.current_pathway_id)])));
+      } else setErr(j.detail || "Could not load students.");
     });
   }, [from, to]);
 
   const pending = (rows || []).filter((x) => !x.already_moved);
   const pick = (id, v) => setChoice({ ...choice, [id]: v });
+  const pickPath = (id, v) => setPathChoice({ ...pathChoice, [id]: v });
   const ids = (v) => Object.keys(choice).filter((k) => choice[k] === v).map(Number);
+  const needsPath = (row) => choice[row.student_id] === "repeat"
+    ? row.current_pathway_required : choice[row.student_id] === "skip" ? false : row.pathway_required;
+  const pathRowsMissing = pending.filter((row) => needsPath(row) && !pathChoice[row.student_id]);
   const run = async () => {
     setAsk(false); setBusy(true);
-    const r = await api("/api/promotions/run/", "POST", { from_year: from, to_year: to, repeat: ids("repeat"), skip: ids("skip") });
+    const pathways = Object.fromEntries(pending.filter((row) => needsPath(row) && pathChoice[row.student_id])
+      .map((row) => [row.student_id, Number(pathChoice[row.student_id])]));
+    const r = await api("/api/promotions/run/", "POST", { from_year: from, to_year: to, repeat: ids("repeat"), skip: ids("skip"), pathways });
     const j = await read(r); setBusy(false);
     if (!r.ok) return toast(j.detail || "Promotion failed", "err");
     toast(`${j.promoted} promoted, ${j.repeated} repeating, ${j.graduated} completed school`, "ok");
@@ -38,12 +50,17 @@ function YearEnd({ years, toast, onDone }) {
     { label: "Student", get: (x) => x.name, render: (x) => <><b>{x.name}</b><small>{x.admission_number}</small></> },
     { label: "Now in", key: "current" },
     { label: "Moves to", get: (x) => x.next || "", render: (x) => x.already_moved ? <Badge kind="ok">Already moved</Badge> : choice[x.student_id] === "repeat" ? `${x.current} (repeat)` : choice[x.student_id] === "skip" ? <span className="sub">Not moved</span> : (x.next || <Badge kind="warn">Completes school</Badge>) },
-    { label: "Action", render: (x) => x.already_moved ? null : (
-      <select aria-label={`Action for ${x.name}`} value={choice[x.student_id] || ""} onChange={(e) => pick(x.student_id, e.target.value)}>
+    { label: "Action", render: (x) => x.already_moved ? null : (() => {
+      const paths = choice[x.student_id] === "repeat" ? x.current_pathways || [] : x.pathways || [];
+      return <div><select aria-label={`Action for ${x.name}`} value={choice[x.student_id] || ""} onChange={(e) => pick(x.student_id, e.target.value)}>
         <option value="">{x.next ? "Promote" : "Complete school"}</option>
         <option value="repeat">Repeat class</option>
         <option value="skip">Don&apos;t move now</option>
-      </select>) },
+      </select>
+      {needsPath(x) && <select aria-label={`Senior pathway for ${x.name}`} value={pathChoice[x.student_id] || ""} onChange={(e) => pickPath(x.student_id, e.target.value)}>
+        <option value="">Choose Senior pathway...</option>{paths.map((pathway) => <option key={pathway.id} value={pathway.id}>{pathway.name}</option>)}
+      </select>}</div>;
+    })() },
   ];
 
   return (<Card title="Year-end promotion">
@@ -61,7 +78,8 @@ function YearEnd({ years, toast, onDone }) {
     {from && to && !err && !rows && <Loading />}
     {rows && (rows.length ? <>
       <DataTable cols={cols} rows={rows} search="Search students or classes" />
-      <Button kind="teal" busy={busy} disabled={!pending.length} onClick={() => setAsk(true)}>Move {pending.length} student{pending.length === 1 ? "" : "s"}</Button>
+      {pathRowsMissing.length > 0 && <Alert kind="warn">Choose a pathway for each learner entering or repeating in Senior School before moving them.</Alert>}
+      <Button kind="teal" busy={busy} disabled={!pending.length || pathRowsMissing.length > 0} onClick={() => setAsk(true)}>Move {pending.length} student{pending.length === 1 ? "" : "s"}</Button>
     </> : <EmptyState title="No active students" text="No students are enrolled in the current year." />)}
     {ask && <ConfirmDialog title="Run year-end promotion?" confirm="Move students"
       text={`${pending.length - ids("skip").length} students will move into the new year (${ids("repeat").length} repeating). Students in the final class will be marked as having completed school.`}
@@ -104,9 +122,12 @@ function ExitStudent({ students, toast, onDone }) {
 }
 
 function Former({ rows, toast, onDone }) {
-  const [levels, setLevels] = useState([]), [streams, setStreams] = useState([]);
-  const [open, setOpen] = useState(null), [f, setF] = useState({ class_level: "", stream: "" }), [busy, setBusy] = useState(false);
-  useEffect(() => { listAll("/api/class-levels/").then(setLevels); listAll("/api/streams/").then(setStreams); }, []);
+  const [levels, setLevels] = useState([]), [streams, setStreams] = useState([]), [curricula, setCurricula] = useState([]), [pathways, setPathways] = useState([]);
+  const [open, setOpen] = useState(null), [f, setF] = useState({ class_level: "", stream: "", pathway: "" }), [busy, setBusy] = useState(false);
+  useEffect(() => {
+    listAll("/api/class-levels/").then(setLevels); listAll("/api/streams/").then(setStreams);
+    listAll("/api/curriculums/").then(setCurricula); listAll("/api/curriculum-pathways/").then(setPathways);
+  }, []);
   const save = async () => {
     setBusy(true);
     const r = await api(`/api/students/${open.id}/readmit/`, "POST", f);
@@ -115,6 +136,10 @@ function Former({ rows, toast, onDone }) {
     if (r.ok) { setOpen(null); onDone(); }
   };
   const lvlStreams = streams.filter((s) => String(s.class_level) === f.class_level && s.is_active !== false);
+  const selectedLevel = levels.find((level) => String(level.id) === f.class_level);
+  const curriculum = curricula.find((row) => String(row.id) === String(selectedLevel?.curriculum));
+  const isSenior = curriculum?.code?.toUpperCase() === "CBC" && Number(selectedLevel?.level_number) >= 10 && Number(selectedLevel?.level_number) <= 12;
+  const availablePathways = pathways.filter((pathway) => pathway.class_levels?.some((id) => String(id) === f.class_level));
   const cols = [
     { label: "Student", get: (x) => x.name, render: (x) => <><b>{x.name}</b><small>{x.admission_number}</small></> },
     { label: "Status", get: (x) => STATUS[x.status], render: (x) => <Badge kind={x.status === "graduated" ? "ok" : "warn"}>{STATUS[x.status] || x.status}</Badge> },
@@ -126,14 +151,18 @@ function Former({ rows, toast, onDone }) {
     <DataTable cols={cols} rows={rows} search="Search former students" empty="No students have left or completed school yet." />
     {open && <Modal title={`Re-admit ${open.name}`} onClose={() => setOpen(null)} actions={<>
       <Button kind="secondary" onClick={() => setOpen(null)}>Cancel</Button>
-      <Button kind="teal" busy={busy} disabled={!f.class_level} onClick={save}>Re-admit</Button></>}>
+      <Button kind="teal" busy={busy} disabled={!f.class_level || (isSenior && (!f.pathway || !availablePathways.some((p) => String(p.id) === f.pathway)))} onClick={save}>Re-admit</Button></>}>
       <p className="sub">They join the class you choose in the current academic year.</p>
-      <Select label="Class" value={f.class_level} onChange={(e) => setF({ class_level: e.target.value, stream: "" })}>
+      <Select label="Class" value={f.class_level} onChange={(e) => setF({ class_level: e.target.value, stream: "", pathway: "" })}>
         <option value="">Select class...</option>{levels.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
       </Select>
       {lvlStreams.length > 0 && <Select label="Stream" value={f.stream} onChange={(e) => setF({ ...f, stream: e.target.value })}>
         <option value="">No stream</option>{lvlStreams.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
       </Select>}
+      {isSenior && <Select label="CBC Senior pathway" value={f.pathway} onChange={(e) => setF({ ...f, pathway: e.target.value })}>
+        <option value="">Choose a pathway...</option>{availablePathways.map((pathway) => <option key={pathway.id} value={pathway.id}>{pathway.name}</option>)}
+      </Select>}
+      {isSenior && availablePathways.length === 0 && <Alert kind="warn">No active Senior pathway is configured for this grade.</Alert>}
     </Modal>}
   </Card>);
 }

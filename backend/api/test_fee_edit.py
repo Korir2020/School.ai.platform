@@ -56,4 +56,4 @@ class FeeEditTests(APITestCase):
         x = FeeStructure.objects.create(
             school=self.other, academic_year=year, name="Tuition", amount=Decimal("100"))
         r = self.client.patch(self.url(x.id), {"amount": "5"}, format="json")
-        self.assertEqual(r.status_code, 404)
+        self.assertEqual(r.status_code, 403)

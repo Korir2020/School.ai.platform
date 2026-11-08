@@ -2,12 +2,13 @@ import { useState, useEffect, useMemo } from "react";
 import { api, listAll as list } from "./api";
 import { useToast } from "./toastctx";
 import { Button, Input, Select, Modal, ConfirmDialog, Alert, Loading, ErrorState } from "./ui";
+import SetupSection from "./SetupSection";
 import "./setup2.css";
 
 // Turn any server reply into a sentence, so the red message is never blank.
 const NAMES = { academic_year: "Academic year", name: "Term name",
   start_date: "Start date", end_date: "End date", non_field_errors: "" };
-export function explain(status, e) {
+function explain(status, e) {
   if (e && typeof e.detail === "string" && e.detail) return e.detail;
   const parts = Object.entries(e || {}).map(([k, v]) => {
     const msg = Array.isArray(v) ? v.join(" ") : String(v);
@@ -27,9 +28,33 @@ const addDays = (s, n) => { const d = day(s); d.setUTCDate(d.getUTCDate() + n); 
 const fmt = (s) => (s ? day(s).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }) : "—");
 const weeks = (a, b) => Math.max(0, Math.round(((day(b) - day(a)) / 86400000 + 1) / 7));
 const todayIso = () => iso(new Date());
+const EMPTY_LIST = [];
+
+function suggestTerm(yid, keep, years, terms) {
+  const year = years.find((item) => String(item.id) === String(yid));
+  if (!year) return { ...keep, academic_year: yid };
+  const matchingTerms = terms.filter((item) => String(item.academic_year) === String(yid))
+    .sort((a, b) => a.start_date.localeCompare(b.start_date));
+  const used = new Set(matchingTerms.map((item) => item.name.trim().toLowerCase()));
+  let number = 1;
+  while (used.has("term " + number)) number++;
+  const last = matchingTerms[matchingTerms.length - 1];
+  const start = last ? addDays(last.end_date, 1) : year.start_date;
+  const suggestedStart = start > year.end_date ? year.end_date : start;
+  const suggestedEnd = addDays(suggestedStart, 7 * 13 - 1) > year.end_date
+    ? year.end_date
+    : addDays(suggestedStart, 7 * 13 - 1);
+  return {
+    ...keep,
+    academic_year: String(yid),
+    name: "Term " + number,
+    start_date: suggestedStart,
+    end_date: suggestedEnd,
+  };
+}
 
 // Pure validation, shared by the add form and the edit dialog.
-export function termProblems(t, year, others) {
+function termProblems(t, year, others) {
   const p = [];
   if (!year) return ["Choose an academic year."];
   if (!t.name.trim()) p.push("Enter a term name.");
@@ -43,7 +68,7 @@ export function termProblems(t, year, others) {
     p.push(`${year.name} already has a term called "${t.name.trim()}".`);
   return p;
 }
-export function overlaps(t, others) {
+function overlaps(t, others) {
   if (!t.start_date || !t.end_date) return [];
   return others.filter((o) => t.start_date <= o.end_date && t.end_date >= o.start_date);
 }
@@ -57,18 +82,27 @@ export default function Terms() {
   const [t, setT] = useState({ academic_year: "", name: "", start_date: "", end_date: "", is_active: true });
   const [ed, setEd] = useState(null), [ask, setAsk] = useState(null);
   const [busy, setBusy] = useState(""), [err, setErr] = useState({});
-  const load = async () => {
+  const load = async (initializeTerm = false) => {
     try {
       const get = (p) => list("/api/" + p + "/");
       const [yr, tm] = await Promise.all(["academic-years", "terms"].map(get));
       yr.sort((a, b) => (b.start_date || "").localeCompare(a.start_date || ""));
       setX({ yr, tm }); setBad(false);
+      if (initializeTerm && yr.length) {
+        setT((current) => current.academic_year
+          ? current
+          : suggestTerm(yr[0].id, current, yr, tm));
+      }
       return { yr, tm };
     } catch { setBad(true); return null; }
   };
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    // This effect initiates async API reads; state updates happen after the requests resolve.
+    // oxlint-disable-next-line react/set-state-in-effect
+    load(true);
+  }, []);
 
-  const send = async (key, path, method, body, ok) => {
+  const send = async (key, path, method, body, ok, afterLoad) => {
     setBusy(key); setErr((e) => ({ ...e, [key]: "" }));
     let r, e = {};
     try { r = await api(path, method, body); if (!r.ok) e = await r.json().catch(() => ({})); }
@@ -81,40 +115,23 @@ export default function Terms() {
       const m = explain(r.status, e);
       setErr((s) => ({ ...s, [key]: m })); toast("Could not save: " + m, "err");
     }
-    await load();
+    const data = await load();
+    if (r.ok && afterLoad) afterLoad(data);
     return r.ok;
   };
 
-  const yrs = x ? x.yr : [];
-  const tms = x ? x.tm : [];
+  const yrs = x ? x.yr : EMPTY_LIST;
+  const tms = x ? x.tm : EMPTY_LIST;
   const yearOf = (id) => yrs.find((a) => String(a.id) === String(id));
   const termsOf = (id) => tms.filter((m) => String(m.academic_year) === String(id))
     .sort((a, b) => a.start_date.localeCompare(b.start_date));
-
-  // Default the add-term form to the newest year, and suggest the next term.
-  const suggest = (yid, keep) => {
-    const yr = yearOf(yid);
-    if (!yr) return { ...keep, academic_year: yid };
-    const ts = termsOf(yid);
-    const used = new Set(ts.map((m) => m.name.trim().toLowerCase()));
-    let k = 1; while (used.has("term " + k)) k++;
-    const last = ts[ts.length - 1];
-    const start = last ? addDays(last.end_date, 1) : yr.start_date;
-    const s = start > yr.end_date ? yr.end_date : start;
-    const e = addDays(s, 7 * 13 - 1) > yr.end_date ? yr.end_date : addDays(s, 7 * 13 - 1);
-    return { ...keep, academic_year: String(yid), name: "Term " + k, start_date: s, end_date: e };
-  };
-  useEffect(() => {
-    if (x && !t.academic_year && yrs.length) setT((c) => suggest(yrs[0].id, c));
-    else if (x && t._re) setT((c) => suggest(c.academic_year, { ...c, _re: 0 }));
-  }, [x]);
 
   const current = useMemo(() => {
     const act = tms.filter((m) => m.is_active).sort((a, b) => b.start_date.localeCompare(a.start_date));
     return act[0] || null;
   }, [tms]);
 
-  if (bad) return <ErrorState text="Could not load terms." onRetry={load} />;
+  if (bad) return <ErrorState text="Could not load terms." onRetry={() => load(true)} />;
   if (!x) return <Loading />;
 
   const ty = yearOf(t.academic_year);
@@ -125,16 +142,22 @@ export default function Terms() {
   const addTerm = async () => {
     const body = { academic_year: Number(t.academic_year), name: t.name.trim(),
       start_date: t.start_date, end_date: t.end_date, is_active: !!t.is_active };
-    if (await send("term", "/api/terms/", "POST", body, `${body.name} added to ${ty.name}`)) {
-      setT((c) => ({ ...c, _re: 1 }));
-    }
+    await send("term", "/api/terms/", "POST", body, `${body.name} added to ${ty.name}`, (data) => {
+      if (data) setT((currentForm) => suggestTerm(currentForm.academic_year, currentForm, data.yr, data.tm));
+    });
   };
   const yProbs = [];
   if (y.start_date && y.end_date && y.end_date < y.start_date) yProbs.push("End date must not be before start date.");
   if (y.name && yrs.some((a) => a.name.trim().toLowerCase() === y.name.trim().toLowerCase())) yProbs.push(`Year "${y.name}" already exists.`);
   const addYear = async () => {
     const body = { ...y, name: y.name.trim(), is_active: true };
-    if (await send("year", "/api/academic-years/", "POST", body, `Academic year ${body.name} added`)) setY(emptyYear);
+    if (await send("year", "/api/academic-years/", "POST", body, `Academic year ${body.name} added`, (data) => {
+      if (data && !t.academic_year && data.yr.length) {
+        setT((currentForm) => currentForm.academic_year
+          ? currentForm
+          : suggestTerm(data.yr[0].id, currentForm, data.yr, data.tm));
+      }
+    })) setY(emptyYear);
   };
   const nextYear = () => {
     const n = (yrs[0] && parseInt(yrs[0].name, 10)) || new Date().getFullYear();
@@ -161,9 +184,9 @@ export default function Terms() {
   const left = current ? Math.ceil((day(current.end_date) - day(now)) / 86400000) : 0;
   const status = (m) => (!m.is_active ? ["off", "Off"] : current && m.id === current.id ? ["live", "In use"] : m.end_date < now ? ["done", "Ended"] : m.start_date > now ? ["next", "Upcoming"] : ["on", "Active"]);
 
+  const calendarComplete = yrs.length > 0 && tms.some((m) => m.is_active);
   return (
-    <section className="s2-sec" id="setup-terms">
-      <div className="s2-sh"><div><h3>Academic calendar</h3><p>Years and terms. The app uses the active term with the latest start date.</p></div></div>
+    <SetupSection id="setup-terms" title="Academic calendar" summary={`${yrs.length} year${yrs.length === 1 ? "" : "s"}, ${tms.length} term${tms.length === 1 ? "" : "s"}${current ? " · active term" : ""}`} complete={calendarComplete}>
 
       <div className={"s2-now" + (current ? "" : " empty")}>
         {current ? <>
@@ -184,7 +207,7 @@ export default function Terms() {
                 <div className="s2-yh">
                   <div><b>{a.name}</b><span>{fmt(a.start_date)} – {fmt(a.end_date)} · {ts.length} term{ts.length === 1 ? "" : "s"}</span></div>
                   <div className="s2-acts">
-                    <Button kind="ghost" size="sm" onClick={() => setT((c) => suggest(a.id, c))}>+ Term</Button>
+                    <Button kind="ghost" size="sm" onClick={() => setT((c) => suggestTerm(a.id, c, yrs, tms))}>+ Term</Button>
                     <Button kind="ghost" size="sm" onClick={() => setEd({ kind: "year", path: "/api/academic-years/" + a.id + "/", row: a, start_date: a.start_date, end_date: a.end_date })}>Edit</Button>
                   </div>
                 </div>
@@ -211,7 +234,7 @@ export default function Terms() {
             <h4>Add term</h4>
             {yrs.length === 0 ? <Alert kind="info">Add an academic year first, then its terms.</Alert> : <>
               <Select id="tm-year" label="Academic year" value={t.academic_year}
-                onChange={(e) => setT((c) => suggest(e.target.value, c))}>
+                onChange={(e) => setT((c) => suggestTerm(e.target.value, c, yrs, tms))}>
                 <option value="">Select...</option>
                 {yrs.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
               </Select>
@@ -260,6 +283,6 @@ export default function Terms() {
         confirm="Turn off" onYes={() => {
           send("row" + ask.id, tpath(ask), "PATCH", { is_active: false }, ask.name + " turned off"); setAsk(null); }}
         onNo={() => setAsk(null)} />}
-    </section>
+    </SetupSection>
   );
 }

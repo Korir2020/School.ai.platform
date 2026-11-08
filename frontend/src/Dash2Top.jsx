@@ -8,7 +8,10 @@ export default function Dash2Top({ me, d, go, tabs, children }) {
   const name = me ? me.username : "";
   const school = me && me.school ? me.school.name : "";
   const x = d.exams || {};
-  const fees = d.fees || {};
+  const canViewFeeData = me && me.role === "school_admin" && !me.is_deputy;
+  const hasFeeData = canViewFeeData && Object.prototype.hasOwnProperty.call(d, "fees")
+    && d.fees !== null && typeof d.fees === "object";
+  const fees = hasFeeData ? d.fees : {};
   const examTotal =
     x.draft === undefined && x.published === undefined
       ? "\u2014"
@@ -27,8 +30,8 @@ export default function Dash2Top({ me, d, go, tabs, children }) {
     ["Subjects", num(d.subjects), "Active subjects", "pink", "Subjects", null],
     ["Examinations", examTotal, "Total examinations", "teal", "Exams", "Exams"],
     ["Marks Approval", num(d.awaiting_approval), "Pending approval", "cyan", "Approve", "Approve"],
-    ["Fee Collection", feePct, "Collected", "violet", "Fees", "Fees"],
   ];
+  if (hasFeeData) cards.push(["Fee Collection", feePct, "Collected", "violet", "Fees", "Fees"]);
 
   return (
     <div className="dash2">

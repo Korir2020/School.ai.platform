@@ -45,7 +45,7 @@ class CommitTests(TestCase):
         self.g7 = make(ClassLevel, curriculum=cur, name="Grade 7", level_number=7)
         self.g10 = make(ClassLevel, curriculum=cur, name="Grade 10", level_number=10)
         make(Stream, school=self.school, class_level=self.g7, name="East")
-        make(Stream, school=self.school, class_level=self.g10, name="East")
+        make(Stream, school=self.school, class_level=self.g10, name="East (Grade 10)")
         self.year = make(AcademicYear, school=self.school, name="2026",
                          start_date=date(2026, 1, 1), end_date=date(2026, 12, 1), is_active=True)
 
@@ -90,6 +90,6 @@ class CommitTests(TestCase):
         self.assertEqual(Student.objects.count(), 0)
 
     def test_senior_learner_keeps_assessment_number(self):
-        resp = self.post("Admission No,First name,Surname,Class,Assessment Number\n2001,Zawadi,Mwangi,Grade 10 East,A123\n")
+        resp = self.post("Admission No,First name,Surname,Class,Assessment Number\n2001,Zawadi,Mwangi,Grade 10 East (Grade 10),A123\n")
         self.assertEqual(resp.status_code, 201, resp.data)
         self.assertEqual(Student.objects.get().assessment_number, "A123")

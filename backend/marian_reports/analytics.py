@@ -68,24 +68,57 @@ def group_stats(snap: Snapshot, scheme, stream=None) -> dict:
     return out
 
 
+def senior_combination_stats(snap: Snapshot, scheme, stream=None) -> list:
+    """Descriptive CBC Senior summaries within identical learner subject sets."""
+    groups = {}
+    for sid, student in snap.students.items():
+        if student.status != "active" or (stream and student.stream != stream):
+            continue
+        key = (student.pathway_code, tuple(student.subject_combination))
+        groups.setdefault(key, []).append(sid)
+    out = []
+    for (pathway_code, _subject_ids), ids in sorted(groups.items()):
+        student = snap.students[ids[0]]
+        pathway = student.pathway_name or pathway_code or "Unassigned pathway"
+        subjects = ", ".join(student.registered_subject_names) or "No registered subjects"
+        label = f"{pathway} · {subjects}"
+        out.append({"pathway": pathway, "pathway_code": pathway_code,
+                    "subject_combination": list(student.registered_subject_names),
+                    "group": label, **_group_row(snap, scheme, label, ids, True)})
+    return out
+
+
 def support_list(snap: Snapshot, threshold_points=4) -> list:
     """Students needing academic support: calculated, for staff review (not an automatic decision)."""
     out = []
     for sid, sm in snap.summaries.items():
         st = snap.students[sid]
         if st.status == "active" and sm.mean_points is not None and sm.mean_points < threshold_points:
-            out.append({"student_id": sid, "adm_no": st.adm_no, "stream": st.stream, "mean_points": sm.mean_points})
+            out.append({"student_id": sid, "adm_no": st.adm_no, "stream": st.stream,
+                        "mean_points": sm.mean_points, "pathway": st.pathway_name,
+                        "pathway_code": st.pathway_code,
+                        "subject_combination": list(st.registered_subject_names)})
     return sorted(out, key=lambda r: r["mean_points"])
 
 
-def ranking_table(snap: Snapshot, scope="overall", stream=None) -> dict:
+def ranking_table(snap: Snapshot, scope="overall", stream=None, framework_key=None) -> dict:
     res = snap.overall if scope == "overall" else snap.stream[stream]
+    senior = (framework_key or getattr(snap.exam, "framework_key", None)) == "cbe_senior"
     rows = []
     for sid, pos in sorted(res.ranks.items(), key=lambda kv: (kv[1], snap.students[kv[0]].adm_no)):
         st, sm = snap.students[sid], snap.summaries[sid]
-        rows.append({"position": pos, "student_id": sid, "adm_no": st.adm_no, "name": st.full_name, "stream": st.stream,
+        rows.append({"position": pos, "out_of": res.population_sizes.get(str(sid), res.population_size),
+                     "rank_group": (st.pathway_name + " · " + ", ".join(st.registered_subject_names)
+                                    if senior else ""),
+                     "pathway": st.pathway_name if senior else "",
+                     "pathway_code": st.pathway_code if senior else "",
+                     "subject_combination": list(st.registered_subject_names) if senior else [],
+                     "student_id": sid, "adm_no": st.adm_no, "name": st.full_name, "stream": st.stream,
                      "total": sm.total, "best_points": sm.best_points, "mean_points": sm.mean_points,
                      "mean_grade": sm.mean_points_grade})
+    if senior:
+        rows.sort(key=lambda row: (row["pathway_code"], tuple(row["subject_combination"]),
+                                   row["position"], row["adm_no"]))
     return {"population": res.population, "tie_policy": res.tie_policy, "included": res.population_size,
             "excluded": dict(res.excluded), "rows": rows}
 

@@ -19,6 +19,7 @@ from .background_jobs import (
     ASYNC_DOCUMENT_THRESHOLD, MAX_DOCUMENT_BATCH, _safe_name,
     enqueue_document_job,
 )
+from .fee_permissions import get_fee_access_school_id
 
 try:
     from reportlab.lib import colors
@@ -346,16 +347,13 @@ def bulk_report_cards(request):
 
 @api_view(["GET", "POST"])
 def fee_receipts(request):
-    school_id, error = _school_id(request, ("admin", "bursar"))
-    if error: return error
-    if school_id is None:
-        raw_school_id = request.data.get("school_id") if request.method == "POST" else request.GET.get("school_id")
-        if not isinstance(raw_school_id, (int, str)) or isinstance(raw_school_id, bool) or not str(raw_school_id).isdigit():
-            return Response({"detail": "Platform administrators must select one school."}, status=400)
-        school_id = int(raw_school_id)
-        from schools.models import School
-        if not School.objects.filter(pk=school_id).exists():
-            return Response({"detail": "School not found."}, status=404)
+    raw_school_id = request.data.get("school_id") if request.method == "POST" else request.GET.get("school_id")
+    if raw_school_id is None:
+        school_id = get_fee_access_school_id(request.user)
+    elif not isinstance(raw_school_id, (int, str)) or isinstance(raw_school_id, bool) or not str(raw_school_id).isdigit():
+        return Response({"detail": "school_id must be a valid school ID."}, status=400)
+    else:
+        school_id = get_fee_access_school_id(request.user, school_id=int(raw_school_id))
     qs = FeePayment.objects.select_related("student_fee__student__school", "student_fee__fee_structure")
     qs = qs.filter(student_fee__student__school_id=school_id)
     raw_ids = request.data.get("payment_ids") if request.method == "POST" else request.GET.get("payment_ids")
@@ -364,6 +362,8 @@ def fee_receipts(request):
         return Response({"detail": id_error}, status=400)
     if ids is not None:
         qs = qs.filter(id__in=ids)
+        if qs.count() != len(ids):
+            return Response({"detail": "You do not have permission to access fee information."}, status=403)
     if request.method == "GET":
         response = paginated_mapped_response(
             request, qs.order_by("-paid_at", "-id"),
@@ -375,8 +375,6 @@ def fee_receipts(request):
         )
         response.data["payments"] = response.data["results"]
         return response
-    if ids is not None and qs.count() != len(ids):
-        return Response({"detail": "One or more selected payments are not available in this school."}, status=403)
     payment_ids = list(qs.order_by("id").values_list("id", flat=True)[:MAX_DOCUMENT_BATCH + 1])
     if len(payment_ids) > MAX_DOCUMENT_BATCH:
         return Response({"detail": f"Select at most {MAX_DOCUMENT_BATCH:,} payments per export."}, status=400)

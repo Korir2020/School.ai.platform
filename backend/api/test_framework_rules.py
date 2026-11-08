@@ -20,9 +20,11 @@ class FrameworkRulesTests(TestCase):
         self.school = School.objects.create(name="Test School", code="fw-test")
         self.c844 = Curriculum.objects.create(name="Test 844", code="T844")
         self.cbc = Curriculum.objects.create(name="Test CBC", code="TCBC")
+        self.real_cbc = Curriculum.objects.create(name="CBC", code="CBC")
         self.form1 = ClassLevel.objects.create(curriculum=self.c844, name="Form 1", level_number=1)
         self.form2 = ClassLevel.objects.create(curriculum=self.c844, name="Form 2", level_number=2)
         self.grade3 = ClassLevel.objects.create(curriculum=self.cbc, name="Grade 3", level_number=3)
+        self.grade8 = ClassLevel.objects.create(curriculum=self.real_cbc, name="Grade 8", level_number=8)
         self.year = AcademicYear.objects.create(
             school=self.school, name="2026", start_date=date(2026, 1, 1), end_date=date(2026, 12, 31))
         self.term = Term.objects.create(
@@ -58,6 +60,22 @@ class FrameworkRulesTests(TestCase):
     def test_unknown_framework_refused(self):
         with self.assertRaises(FrameworkError):
             create_version(self.school, "nope", self.c844, 1, 4, self.admin)
+
+    def test_junior_framework_is_limited_to_cbc_grades_7_to_9(self):
+        with self.assertRaises(FrameworkError):
+            create_version(self.school, "cbe_junior_levels", self.cbc, 7, 9, self.admin)
+        with self.assertRaises(FrameworkError):
+            create_version(self.school, "cbe_junior_levels", self.real_cbc, 6, 9, self.admin)
+        with self.assertRaises(FrameworkError):
+            create_version(self.school, "cbe_junior_levels", self.real_cbc, 7, 10, self.admin)
+        version = create_version(self.school, "cbe_junior_levels", self.real_cbc, 7, 9, self.admin)
+        self.assertTrue(version.covers(self.grade8))
+
+    def test_junior_has_no_built_in_percentage_grading_bands(self):
+        from marian_reports.frameworks import get_framework
+        from marian_reports.grading import GradingError
+        with self.assertRaises(GradingError):
+            get_framework("cbe_junior_levels").scheme()
 
     def test_non_admin_refused(self):
         self.assertFalse(is_authorized(self.plain))

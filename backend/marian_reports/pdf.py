@@ -142,6 +142,10 @@ def draw_report(c: canvas.Canvas, rd: ReportData, page_no: int = 1, page_total: 
     monogram(c, M + 10, top + 12, 52, initials)
     txt(c, M + 74, top + 20, st.full_name.upper(), BOLD, 12, INK, maxw=lw_ - 84)
     fields = [("ADM NO", st.adm_no), ("CLASS", f"{st.class_name} {st.stream}".strip())]
+    if st.pathway_name:
+        fields.append(("PATHWAY", st.pathway_name))
+    if st.registered_subject_names:
+        fields.append(("REGISTERED SUBJECTS", ", ".join(st.registered_subject_names)))
     if sec.get("kcpe", True) and st.kcpe_score: fields.append(("KCPE SCORE", str(st.kcpe_score)))
     if sec.get("gender", True) and st.gender: fields.append(("GENDER", st.gender))
     fields.append(("REPORT NO", rd.report_no))

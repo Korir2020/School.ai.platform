@@ -24,7 +24,6 @@ from api.connect_rules import (
 )
 from api.suspension import SchoolNotSuspended
 from schools.models import (
-    StaffProfile,
     CalendarEvent,
     ConnectAck,
     ConnectAttachment,
@@ -36,6 +35,7 @@ from schools.models import (
     Enrollment,
     GuardianProfile,
     SchoolAdminProfile,
+    StaffProfile,
     StudentGuardian,
     TeacherProfile,
 )
@@ -244,7 +244,7 @@ def channel_posts(request, pk):
 
 def _create_post(request, sid, role, channel):
     if not can_post(channel, role):
-        return _err("forbidden", "Only school administrators can post in this channel.", 403)
+        return _err("forbidden", "Only authorized school staff can post in this channel.", 403)
     if is_muted(sid, request.user):
         return _err("muted", "You have been muted by a school administrator.", 403)
     slow = _slow(request)
@@ -401,13 +401,12 @@ def members(request):
     if bad:
         return bad
     staff = {}
+    for profile in StaffProfile.objects.filter(school_id=sid).select_related("user"):
+        staff[profile.user_id] = (profile.user, profile.role)
     for model, label in ((TeacherProfile, "teacher"), (SchoolAdminProfile, "admin")):
         ids = model.objects.filter(school_id=sid).values("user_id")
         for u in User.objects.filter(id__in=ids):
             staff[u.id] = (u, label)
-    bursar_ids = StaffProfile.objects.filter(school_id=sid, role="bursar").values("user_id")
-    for u in User.objects.filter(id__in=bursar_ids):
-        staff[u.id] = (u, "bursar")
     active = Enrollment.objects.filter(is_active=True, student__school_id=sid).values("student_id")
     linked = StudentGuardian.objects.filter(student_id__in=active).values("guardian_id")
     parent_ids = GuardianProfile.objects.filter(school_id=sid, id__in=linked).values("user_id")
@@ -431,7 +430,14 @@ def members(request):
             item["user_id"] = u.id
             item["muted"] = u.id in muted
         out.append(item)
-    out.sort(key=lambda m: (m["role"] != "admin", m["role"] != "teacher", m["role"] != "bursar", m["name"].lower()))
+    out.sort(
+        key=lambda m: (
+            m["role"] != "admin",
+            m["role"] != "teacher",
+            m["role"] not in ("bursar", "secretary"),
+            m["name"].lower(),
+        )
+    )
     return Response({"members": out, "parent_count": parent_count, "truncated": truncated})
 
 

@@ -61,7 +61,7 @@ export default function TeacherHome({ me, d, go }) {
   const t = d.active_term;
   const name = me ? (me.first_name || me.username) : "";
   const school = me && me.school ? me.school.name : "";
-  const a = d.assignments || [];
+  const a = useMemo(() => d.assignments || [], [d.assignments]);
   const m = d.my_marks_by_status || {};
   const draft = m.draft || 0, wait = m.submitted || 0, appr = m.approved || 0, lock = m.locked || 0;
   const total = draft + wait + appr + lock;
@@ -95,7 +95,7 @@ export default function TeacherHome({ me, d, go }) {
     ["Calendar", "Calendar", "Calendar"],
   ];
 
-  const today = new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  const [today] = useState(() => new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long", year: "numeric" }));
 
   return (
     <div className="plain th">

@@ -57,6 +57,16 @@ def create_version(school, framework_key, curriculum, min_level, max_level, user
             raise FrameworkError("CBC Primary applies only to the CBC curriculum.")
         if min_level < 1 or max_level > 6:
             raise FrameworkError("CBC Primary applies only to Grades 1–6.")
+    if framework_key == "cbe_junior_levels":
+        if curriculum.code.upper() != "CBC":
+            raise FrameworkError("CBC Junior applies only to the CBC curriculum.")
+        if min_level < 7 or max_level > 9:
+            raise FrameworkError("CBC Junior applies only to Grades 7–9.")
+    if framework_key == "cbe_senior":
+        if curriculum.code.upper() != "CBC":
+            raise FrameworkError("CBC Senior applies only to the CBC curriculum.")
+        if min_level < 10 or max_level > 12:
+            raise FrameworkError("CBC Senior applies only to Grades 10–12.")
     return FrameworkVersion.objects.create(
         school=school, framework_key=framework_key, version=next_version(school.id, framework_key),
         curriculum=curriculum, min_level=min_level, max_level=max_level,

@@ -61,17 +61,22 @@ def report_card(request, student_id, term_id):
     if term is None:
         return Response({"detail": "Not found."}, status=404)
 
-    primary_class_ids = Enrollment.objects.filter(
+    enrolled_class_ids = Enrollment.objects.filter(
         student=student, academic_year=term.academic_year, is_active=True,
     ).values_list("class_level_id", flat=True)
-    primary_exam = Exam.objects.filter(
+    cbc_exam = Exam.objects.filter(
         school_id=student.school_id, term=term, status="published",
-        framework_key="cbe_primary", class_level_id__in=primary_class_ids,
-    ).exists()
-    if primary_exam:
+        framework_key__in=["cbe_primary", "cbe_junior_levels", "cbe_senior"],
+        class_level_id__in=enrolled_class_ids,
+    ).values_list("framework_key", flat=True).first()
+    if cbc_exam:
+        stage = {"cbe_primary": "Primary", "cbe_junior_levels": "Junior",
+                 "cbe_senior": "Senior"}.get(cbc_exam, "CBC")
         return Response({
-            "error": "cbc_primary_report_module_required",
-            "detail": "CBC Primary report cards must be generated from Report Cards → select the published examination. That report applies this school's configured paper weights, grading rules, and approved achievement descriptors.",
+            "error": ("cbc_senior_report_module_required" if stage == "Senior"
+                      else "cbc_junior_report_module_required" if stage == "Junior"
+                      else "cbc_primary_report_module_required"),
+            "detail": f"CBC {stage} report cards must be generated from Report Cards → select the published examination. That report applies this school's configured paper weights, grading rules, and approved achievement descriptors.",
         }, status=409)
 
     marks = registered_marks(Performance.objects.filter(student=student, term=term), term.academic_year)

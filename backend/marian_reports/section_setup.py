@@ -38,6 +38,9 @@ def apply_sections(cfg, body) -> dict:
         raise SectionError("Values must be true or false: " + ", ".join(bad))
     before = effective_sections(cfg)
     changed = {k: [before[k], v] for k, v in new.items() if before[k] != v}
-    for k, (_, v) in changed.items():
+    # Store every explicitly requested key, not only keys that differ from the
+    # effective default. Stage-specific settings may not exist in ReportConfig
+    # until first configured.
+    for k, v in new.items():
         cfg.sections[k] = v
     return changed

@@ -4,6 +4,7 @@ from django.db import transaction
 from django.db.models import Count, DecimalField, ExpressionWrapper, F, Sum
 from django.utils import timezone
 from rest_framework.decorators import api_view
+from api.fee_permissions import get_fee_access_school_id
 from rest_framework.response import Response
 
 from api.fee_billing import (
@@ -12,23 +13,12 @@ from api.fee_billing import (
 from api.pagination import paginated_mapped_response, paginated_response
 
 from schools.models import (
-    AcademicYear, FeePayment, FeeStructure, MarkAuditLog,
-    SchoolAdminProfile, StaffProfile, Student, StudentFee,
+    AcademicYear, FeePayment, FeeStructure, MarkAuditLog, Student, StudentFee,
 )
 
 
 def _fee_school(request):
-    if request.user.is_superuser:
-        return None, None
-    admin = SchoolAdminProfile.objects.filter(user=request.user).first()
-    staff = StaffProfile.objects.filter(user=request.user, role="bursar").first()
-    if admin:
-        return admin.school_id, None
-    if staff:
-        return staff.school_id, None
-    return None, Response({"detail": "Only admins and bursars can access fees."}, status=403)
-
-
+    return get_fee_access_school_id(request.user)
 def _money(value):
     return f"{Decimal(str(value or 0)):.2f}"
 
@@ -86,9 +76,7 @@ def _audit(request, invoice, action, details=None):
 
 @api_view(["GET"])
 def fee_summary(request):
-    school_id, error = _fee_school(request)
-    if error:
-        return error
+    school_id = _fee_school(request)
     qs = StudentFee.objects.all()
     if school_id is not None:
         qs = qs.filter(student__school_id=school_id)
@@ -106,9 +94,7 @@ def fee_summary(request):
 
 @api_view(["GET", "POST"])
 def fee_structures(request):
-    school_id, error = _fee_school(request)
-    if error:
-        return error
+    school_id = _fee_school(request)
     if request.method == "GET":
         qs = FeeStructure.objects.select_related("academic_year")
         if school_id is not None:
@@ -118,8 +104,9 @@ def fee_structures(request):
         )
     data = request.data
     year = AcademicYear.objects.filter(id=data.get("academic_year")).first()
-    if not year or school_id is not None and year.school_id != school_id:
+    if not year:
         return Response({"detail": "Academic year is not in your school."}, status=403)
+    get_fee_access_school_id(request.user, school_id=year.school_id)
     if not data.get("name", "").strip():
         return Response({"detail": "Fee name is required."}, status=400)
     scope, scope_error = parse_scope(data, school_id or year.school_id, year)
@@ -146,12 +133,11 @@ def fee_structures(request):
 @api_view(["PATCH", "PUT"])
 def fee_structure_detail(request, pk):
     """Edit a fee item (amount, category, term, grades) and re-bill learners."""
-    school_id, error = _fee_school(request)
-    if error:
-        return error
+    school_id = _fee_school(request)
     x = FeeStructure.objects.filter(pk=pk).first()
-    if x is None or (school_id is not None and x.school_id != school_id):
+    if x is None:
         return Response({"detail": "Fee item not found."}, status=404)
+    get_fee_access_school_id(request.user, school_id=x.school_id)
     data = request.data
     merged = {
         "term": data.get("term", x.term_id),
@@ -181,13 +167,18 @@ def fee_structure_detail(request, pk):
 
 @api_view(["GET", "POST"])
 def fee_invoices(request):
-    school_id, error = _fee_school(request)
-    if error:
-        return error
+    school_id = _fee_school(request)
     if request.method == "GET":
         qs = StudentFee.objects.select_related("student", "fee_structure")
-        if school_id is not None:
-            qs = qs.filter(student__school_id=school_id)
+        if request.GET.get("student"):
+            target = Student.objects.filter(pk=request.GET["student"]).values_list("school_id", flat=True).first()
+            if target is not None:
+                get_fee_access_school_id(request.user, school_id=target)
+        if request.GET.get("fee_structure"):
+            target = FeeStructure.objects.filter(pk=request.GET["fee_structure"]).values_list("school_id", flat=True).first()
+            if target is not None:
+                get_fee_access_school_id(request.user, school_id=target)
+        qs = qs.filter(student__school_id=school_id)
         status = request.GET.get("status")
         if status:
             qs = qs.filter(status=status)
@@ -205,10 +196,12 @@ def fee_invoices(request):
     data = request.data
     student = Student.objects.filter(id=data.get("student")).first()
     structure = FeeStructure.objects.filter(id=data.get("fee_structure")).first()
+    if student:
+        get_fee_access_school_id(request.user, school_id=student.school_id)
+    if structure:
+        get_fee_access_school_id(request.user, school_id=structure.school_id)
     if not student or not structure or student.school_id != structure.school_id:
         return Response({"detail": "Student and fee structure must be valid."}, status=400)
-    if school_id is not None and student.school_id != school_id:
-        return Response({"detail": "Student is not in your school."}, status=403)
     try:
         x = StudentFee.objects.create(student=student, fee_structure=structure,
                                       amount_due=_amt(data.get("amount_due", structure.amount)),
@@ -223,9 +216,7 @@ def fee_invoices(request):
 
 @api_view(["POST"])
 def fee_payment(request):
-    school_id, error = _fee_school(request)
-    if error:
-        return error
+    school_id = _fee_school(request)
     amount, amount_error = _parse_amount(request.data.get("amount"))
     if amount_error:
         return Response({"detail": amount_error}, status=400)
@@ -237,8 +228,7 @@ def fee_payment(request):
         with transaction.atomic():
             invoice = StudentFee.objects.select_for_update().select_related(
                 "student", "fee_structure").get(pk=request.data.get("student_fee"))
-            if school_id is not None and invoice.student.school_id != school_id:
-                return Response({"detail": "Invoice is not in your school."}, status=403)
+            get_fee_access_school_id(request.user, school_id=invoice.student.school_id)
             if invoice.status in ["paid", "waived"]:
                 return Response({"detail": "This invoice cannot receive another payment."}, status=400)
             balance = invoice.amount_due - invoice.amount_paid
@@ -265,12 +255,13 @@ def fee_payment(request):
 
 @api_view(["GET"])
 def fee_payments(request):
-    school_id, error = _fee_school(request)
-    if error:
-        return error
+    school_id = _fee_school(request)
     qs = FeePayment.objects.select_related("student_fee__student", "received_by")
-    if school_id is not None:
-        qs = qs.filter(student_fee__student__school_id=school_id)
+    if request.GET.get("student_fee"):
+        target = StudentFee.objects.filter(pk=request.GET["student_fee"]).values_list("student__school_id", flat=True).first()
+        if target is not None:
+            get_fee_access_school_id(request.user, school_id=target)
+    qs = qs.filter(student_fee__student__school_id=school_id)
     if request.GET.get("student_fee"):
         qs = qs.filter(student_fee_id=request.GET["student_fee"])
     return paginated_mapped_response(
@@ -280,15 +271,12 @@ def fee_payments(request):
 
 @api_view(["POST"])
 def fee_waive(request, pk):
-    school_id, error = _fee_school(request)
-    if error:
-        return error
+    school_id = _fee_school(request)
     try:
         with transaction.atomic():
             invoice = StudentFee.objects.select_for_update().select_related(
                 "student", "fee_structure").get(pk=pk)
-            if school_id is not None and invoice.student.school_id != school_id:
-                return Response({"detail": "Invoice is not in your school."}, status=403)
+            get_fee_access_school_id(request.user, school_id=invoice.student.school_id)
             if invoice.status == "paid":
                 return Response({"detail": "A paid invoice cannot be waived."}, status=400)
             invoice.status = "waived"
@@ -301,9 +289,7 @@ def fee_waive(request, pk):
 
 @api_view(["GET"])
 def fee_report(request):
-    school_id, error = _fee_school(request)
-    if error:
-        return error
+    school_id = _fee_school(request)
     qs = StudentFee.objects.select_related("fee_structure")
     if school_id is not None:
         qs = qs.filter(student__school_id=school_id)
@@ -321,16 +307,17 @@ def fee_report(request):
 def fee_receipt(request, pk):
     """Read-only receipt data for one payment. Never changes money."""
     from api.receipt_verify import verify_fields
-    school_id, error = _fee_school(request)
-    if error:
-        return error
+    school_id = _fee_school(request)
     qs = FeePayment.objects.select_related(
         "student_fee__student__school", "student_fee__fee_structure__academic_year", "received_by")
-    if school_id is not None:
-        qs = qs.filter(student_fee__student__school_id=school_id)
     payment = qs.filter(pk=pk).first()
     if payment is None:
+        # Query the identifier once without leaking whether a foreign receipt exists.
+        foreign = FeePayment.objects.filter(pk=pk).select_related("student_fee__student").first()
+        if foreign is not None:
+            get_fee_access_school_id(request.user, school_id=foreign.student_fee.student.school_id)
         return Response({"detail": "Receipt not found."}, status=404)
+    get_fee_access_school_id(request.user, school_id=payment.student_fee.student.school_id)
     fee = payment.student_fee
     student = fee.student
     school = student.school
@@ -377,9 +364,7 @@ def fee_receipt(request, pk):
 def student_categories(request):
     """Set day/boarder for many learners at once, then fix their bills."""
     from schools.models import Student
-    school_id, error = _fee_school(request)
-    if error:
-        return error
+    school_id = _fee_school(request)
     category = str(request.data.get("category", "")).strip().lower()
     if category not in ("day", "boarder"):
         return Response({"detail": "Category must be day or boarder."}, status=400)
@@ -389,9 +374,9 @@ def student_categories(request):
         return Response({"detail": "Students must be a list of ids."}, status=400)
     if not ids:
         return Response({"detail": "Pick at least one learner."}, status=400)
-    qs = Student.objects.filter(id__in=ids)
-    if school_id is not None:
-        qs = qs.filter(school_id=school_id)
+    for target_school_id in Student.objects.filter(id__in=ids).values_list("school_id", flat=True).distinct():
+        get_fee_access_school_id(request.user, school_id=target_school_id)
+    qs = Student.objects.filter(id__in=ids, school_id=school_id)
     changed = removed = created = 0
     for st in qs:
         if st.fee_category != category:
@@ -407,13 +392,12 @@ def student_categories(request):
 def carry_forward_arrears(request):
     """Carry unpaid balances of the previous term into the chosen term."""
     from schools.models import Student, Term
-    school_id, error = _fee_school(request)
-    if error:
-        return error
+    school_id = _fee_school(request)
     term = Term.objects.select_related("academic_year").filter(
         pk=request.data.get("term") or 0).first()
-    if term is None or (school_id is not None and term.academic_year.school_id != school_id):
+    if term is None:
         return Response({"detail": "Term not found."}, status=404)
+    get_fee_access_school_id(request.user, school_id=term.academic_year.school_id)
     prev = previous_term(term)
     if prev is None:
         return Response({"detail": "There is no earlier term to carry from."}, status=400)
@@ -463,14 +447,13 @@ def _adjust_payload(invoice):
 def fee_adjust(request, pk):
     """See or change one learner's bill. Every change needs a reason and is recorded."""
     from schools.models import FeeAdjustment
-    school_id, error = _fee_school(request)
-    if error:
-        return error
+    school_id = _fee_school(request)
     with transaction.atomic():
         invoice = (StudentFee.objects.select_for_update()
                    .select_related("student", "fee_structure").filter(pk=pk).first())
-        if invoice is None or (school_id is not None and invoice.student.school_id != school_id):
+        if invoice is None:
             return Response({"detail": "Invoice not found."}, status=404)
+        get_fee_access_school_id(request.user, school_id=invoice.student.school_id)
         if request.method == "POST":
             reason = str(request.data.get("reason", "")).strip()[:200]
             if len(reason) < 3:
@@ -512,12 +495,11 @@ def fee_adjust(request, pk):
 def fee_statement(request, pk):
     """Balance statement for one learner. Works at any time, paid up or not."""
     from schools.models import FeeAdjustment, Student
-    school_id, error = _fee_school(request)
-    if error:
-        return error
+    school_id = _fee_school(request)
     student = Student.objects.select_related("school").filter(pk=pk).first()
-    if student is None or (school_id is not None and student.school_id != school_id):
+    if student is None:
         return Response({"detail": "Learner not found."}, status=404)
+    get_fee_access_school_id(request.user, school_id=student.school_id)
     school = student.school
     fees = (StudentFee.objects.filter(student=student)
             .select_related("fee_structure__academic_year", "fee_structure__term")
@@ -580,9 +562,7 @@ def fee_statement(request, pk):
 def fee_years(request):
     from api.serializers import AcademicYearSerializer
     from schools.models import AcademicYear
-    school_id, error = _fee_school(request)
-    if error:
-        return error
+    school_id = _fee_school(request)
     qs = AcademicYear.objects.all()
     if school_id is not None:
         qs = qs.filter(school_id=school_id)
@@ -595,9 +575,7 @@ def fee_years(request):
 def fee_terms(request):
     from api.serializers import TermSerializer
     from schools.models import Term
-    school_id, error = _fee_school(request)
-    if error:
-        return error
+    school_id = _fee_school(request)
     qs = Term.objects.all()
     if school_id is not None:
         qs = qs.filter(academic_year__school_id=school_id)
@@ -610,9 +588,7 @@ def fee_terms(request):
 def fee_students(request):
     from api.serializers import StudentSerializer
     from schools.models import Student
-    school_id, error = _fee_school(request)
-    if error:
-        return error
+    school_id = _fee_school(request)
     qs = Student.objects.all()
     if school_id is not None:
         qs = qs.filter(school_id=school_id)

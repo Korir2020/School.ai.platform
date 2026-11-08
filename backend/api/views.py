@@ -3,7 +3,7 @@ from rest_framework.response import Response
 
 from schools.models import (
     School, Student, AcademicYear, Term, Curriculum, ClassLevel,
-    Stream, Enrollment, Subject, SubjectDefinition, Performance,
+    Stream, Enrollment, Subject, SubjectDefinition, Performance, CurriculumPathway,
 )
 from .pagination import paginated_response
 from .permissions import get_user_school_id, restrict_for_teacher
@@ -36,7 +36,13 @@ def _list(request, model, serializer_class, school_field):
     if model is Stream:
         queryset = queryset.select_related("class_level")
     elif model is Subject:
-        queryset = queryset.select_related("definition__curriculum")
+        queryset = queryset.select_related("definition__curriculum").prefetch_related(
+            "definition__class_levels", "definition__pathways")
+    elif model is Enrollment:
+        queryset = queryset.select_related(
+            "student", "academic_year", "class_level__curriculum", "stream",
+            "pathway__curriculum",
+        )
     queryset = restrict_for_teacher(request.user, queryset)
     return paginated_response(request, queryset, serializer_class)
 
@@ -96,6 +102,91 @@ def primary_subject_catalog(request):
     return Response([{"id": row.id, "name": row.name, "code": row.code,
                       "class_level_id": level.id, "class_level_name": level.name}
                      for row in rows])
+
+
+@api_view(["GET"])
+def junior_subject_catalog(request):
+    """CBC Junior learning-area catalogue scoped to one Grade 7–9 level."""
+    try:
+        level_id = int(request.query_params.get("class_level", ""))
+    except (TypeError, ValueError):
+        return Response({"detail": "Choose a CBC Junior class level."}, status=400)
+    level = ClassLevel.objects.select_related("curriculum").filter(
+        pk=level_id, curriculum__code__iexact="CBC", level_number__gte=7,
+        level_number__lte=9, is_active=True,
+    ).first()
+    if level is None:
+        return Response({"detail": "Not found: CBC Junior class level."}, status=404)
+    rows = SubjectDefinition.objects.filter(
+        curriculum=level.curriculum, is_active=True,
+        class_levels=level,
+    ).order_by("name", "code")
+    return Response([{"id": row.id, "name": row.name, "code": row.code,
+                      "class_level_id": level.id, "class_level_name": level.name}
+                     for row in rows])
+
+
+@api_view(["GET"])
+def curriculum_pathway_list(request):
+    """Read-only shared curriculum paths used by school enrollment forms."""
+    _, error = _scope(request)
+    if error:
+        return error
+    rows = CurriculumPathway.objects.filter(is_active=True).select_related(
+        "curriculum").prefetch_related("class_levels").order_by(
+            "curriculum__name", "name", "id")
+    return Response([{
+        "id": row.id, "name": row.name, "code": row.code,
+        "curriculum_id": row.curriculum_id, "curriculum_code": row.curriculum.code,
+        "class_levels": [level.id for level in row.class_levels.all()],
+    } for row in rows])
+
+
+@api_view(["GET"])
+def senior_subject_catalog(request):
+    """CBC Senior subject catalogue scoped by grade and pathway eligibility."""
+    _, error = _scope(request)
+    if error:
+        return error
+    try:
+        level_id = int(request.query_params.get("class_level", ""))
+    except (TypeError, ValueError):
+        return Response({"detail": "Choose a CBC Senior class level."}, status=400)
+    level = ClassLevel.objects.select_related("curriculum").filter(
+        pk=level_id, curriculum__code__iexact="CBC", level_number__gte=10,
+        level_number__lte=12, is_active=True,
+    ).first()
+    if level is None:
+        return Response({"detail": "Not found: CBC Senior class level."}, status=404)
+    pathways = list(CurriculumPathway.objects.filter(
+        curriculum_id=level.curriculum_id, is_active=True, class_levels=level,
+    ).order_by("name", "id"))
+    pathway_id = request.query_params.get("pathway")
+    selected_pathway = None
+    if pathway_id:
+        try:
+            selected_pathway = next(row for row in pathways if row.pk == int(pathway_id))
+        except (TypeError, ValueError, StopIteration):
+            return Response({"detail": "Choose a pathway that applies to this grade."}, status=400)
+    definitions = SubjectDefinition.objects.filter(
+        curriculum_id=level.curriculum_id, is_active=True, class_levels=level,
+    ).prefetch_related("pathways").order_by("name", "code")
+    subjects = []
+    for row in definitions:
+        tagged = list(row.pathways.all())
+        if selected_pathway and tagged and selected_pathway.pk not in {p.pk for p in tagged}:
+            continue
+        subjects.append({
+            "id": row.id, "name": row.name, "code": row.code,
+            "class_level_id": level.id, "class_level_name": level.name,
+            "pathways": [{"id": p.id, "code": p.code, "name": p.name} for p in tagged],
+        })
+    return Response({
+        "class_level_id": level.id, "class_level_name": level.name,
+        "pathways": [{"id": row.id, "name": row.name, "code": row.code}
+                     for row in pathways],
+        "subjects": subjects,
+    })
 
 
 @api_view(["GET"])

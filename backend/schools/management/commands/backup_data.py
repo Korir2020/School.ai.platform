@@ -1,4 +1,4 @@
-"""Write a full, checksummed Marian backup to disk.
+"""Write a checksummed, privacy-redacted Marian platform snapshot to disk.
 
     python manage.py backup_data --output-dir /var/backups/marian --keep 14
 
@@ -15,7 +15,7 @@ from schools.models import MarkAuditLog
 
 
 class Command(BaseCommand):
-    help = "Create a full backup file (gzip JSON with checksum)."
+    help = "Create a privacy-redacted platform snapshot (gzip JSON with checksum)."
 
     def add_arguments(self, parser):
         parser.add_argument("--output-dir", default="backups")
@@ -31,6 +31,7 @@ class Command(BaseCommand):
             fh.write(blob)
         MarkAuditLog.objects.create(action="backup_created", details={"file": name, "records": meta["total"], "sha256": meta["sha256"]})
         self.stdout.write(self.style.SUCCESS(f"Backup written: {path} ({meta['total']} records, sha256 {meta['sha256'][:12]}...)"))
+        self.stdout.write("Privacy redactions omit fee records and user-authored message text; see backup metadata.")
         if opts["keep"] > 0:
             old = sorted(f for f in os.listdir(out) if f.startswith("marian-backup-") and f.endswith(".json.gz"))
             for f in old[:-opts["keep"]]:

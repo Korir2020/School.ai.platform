@@ -1,9 +1,12 @@
 """Data backup and restoration.
 
-Full platform backup (superadmin, or `manage.py backup_data`):
+Platform snapshot (superadmin, or `manage.py backup_data`):
   a gzip file holding {"meta": {...}, "objects": [...]} where objects is
   standard Django dumpdata output and meta carries a SHA-256 checksum,
-  per-model counts and the migration state it was taken at.
+  per-model counts and the migration state it was taken at. Fee models and
+  fee audit/job rows are omitted; fee category and user-authored notification,
+  Connect post, and Connect report text is redacted. Other learner and marks
+  records remain in the snapshot.
 Restore only through `manage.py restore_data` (needs shell access and an
 explicit --yes), never through the web: a wrong click must not wipe a school.
 
@@ -30,12 +33,25 @@ from rest_framework.response import Response
 
 from schools.models import MarkAuditLog, School, SchoolAdminProfile
 
+from .fee_permissions import get_fee_access_school_id
 from .permissions import IsSuperAdmin
 
 FORMAT = "marian-backup"
 VERSION = 1
 EXCLUDE = ["contenttypes", "auth.permission", "sessions", "admin.logentry",
-           "token_blacklist"]
+           "token_blacklist", "schools.feestructure", "schools.studentfee",
+           "schools.feepayment", "schools.feeadjustment", "schools.connectattachment"]
+REDACTED_BACKUP_FIELDS = {
+    "schools.student": ("fee_category",),
+    "schools.notification": ("message",),
+    "schools.connectpost": ("body",),
+    "schools.connectreport": ("reason",),
+}
+SENSITIVE_BACKUP_MODELS = {
+    "schools.feestructure", "schools.studentfee", "schools.feepayment",
+    "schools.feeadjustment", "schools.backgroundjob", "schools.markauditlog",
+    "schools.connectpost", "schools.connectattachment", "schools.connectreport",
+}
 MAX_UPLOAD = 200 * 1024 * 1024
 
 
@@ -61,19 +77,58 @@ def _digest(objects_json):
     return hashlib.sha256(objects_json.encode("utf-8")).hexdigest()
 
 
+def _redact_backup_objects(objects):
+    """Remove fee data and user-authored school message text from a platform backup."""
+    safe_objects = []
+    for obj in objects:
+        label = obj.get("model", "").lower()
+        fields = obj.get("fields") or {}
+        if label == "schools.markauditlog" and str(fields.get("action", "")).startswith("fee_"):
+            continue
+        if label == "schools.backgroundjob" and fields.get("job_type") == "fee_receipts":
+            continue
+        for field in REDACTED_BACKUP_FIELDS.get(label, ()):
+            fields.pop(field, None)
+        safe_objects.append(obj)
+    return safe_objects
+
+
+def _safe_validation_report(report):
+    """Keep validation useful without returning counts of protected records."""
+    safe = dict(report)
+    meta = report.get("meta")
+    if meta:
+        meta = dict(meta)
+        counts = meta.get("counts")
+        if isinstance(counts, dict):
+            meta["counts"] = {
+                model: count for model, count in counts.items()
+                if model.lower() not in SENSITIVE_BACKUP_MODELS
+            }
+        # The aggregate total would reveal the omitted sensitive record count.
+        meta.pop("total", None)
+        safe["meta"] = meta
+    return safe
+
+
 def build_full_backup():
     """Return (gzip_bytes, meta)."""
     buf = io.StringIO()
     call_command("dumpdata", exclude=_excluded(), natural_foreign=True, stdout=buf, verbosity=0)
     objects_json = buf.getvalue() or "[]"
-    objects = json.loads(objects_json)
+    objects = _redact_backup_objects(json.loads(objects_json))
     canon = json.dumps(objects, sort_keys=True, separators=(",", ":"))
     counts = {}
     for o in objects:
         counts[o["model"]] = counts.get(o["model"], 0) + 1
     meta = {"format": FORMAT, "version": VERSION, "created_at": timezone.now().isoformat(),
             "migrations": migration_state(), "counts": counts, "total": len(objects),
-            "sha256": _digest(canon)}
+            "sha256": _digest(canon),
+            "redactions": {"models": ["schools.feestructure", "schools.studentfee",
+                                         "schools.feepayment", "schools.feeadjustment",
+                                         "schools.connectattachment"],
+                           "fields": REDACTED_BACKUP_FIELDS,
+                           "fee_audit_rows": True, "fee_receipt_jobs": True}}
     raw = json.dumps({"meta": meta, "objects": objects}, separators=(",", ":")).encode("utf-8")
     return gzip.compress(raw, compresslevel=6), meta
 
@@ -202,7 +257,7 @@ def validate_backup(request):
     if f.size > MAX_UPLOAD:
         return Response({"detail": "The file is larger than 200 MB."}, status=400)
     _, report = read_backup(f.read())
-    return Response(report)
+    return Response(_safe_validation_report(report))
 
 
 @api_view(["GET"])
@@ -219,9 +274,13 @@ def backup_status(request):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def school_export_view(request):
-    boss = SchoolAdminProfile.objects.filter(user=request.user, is_deputy=False).select_related("school").first()
+    school_id = get_fee_access_school_id(request.user)
+    boss = SchoolAdminProfile.objects.filter(
+        user=request.user, school_id=school_id, is_deputy=False,
+    ).select_related("school").first()
     if not boss:
         return Response({"detail": "Only the school administrator can export the school's data."}, status=403)
+    get_fee_access_school_id(request.user, school_id=boss.school_id)
     doc = school_export(boss.school)
     MarkAuditLog.objects.create(school=boss.school, user=request.user, action="school_data_exported",
                                 details={"counts": doc["meta"]["counts"]})

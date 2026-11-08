@@ -1,8 +1,13 @@
 from datetime import date
 from decimal import Decimal
+from io import BytesIO
+import os
+import tempfile
 
 from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import override_settings
+from PIL import Image
 from rest_framework.test import APITestCase
 
 from schools.models import AcademicYear, Performance, School, SchoolAdminProfile, Student, Subject, SubjectRegistration, Term
@@ -10,6 +15,9 @@ from schools.models import AcademicYear, Performance, School, SchoolAdminProfile
 
 class BrandingAndAcademicReportTests(APITestCase):
     def setUp(self):
+        self.media = tempfile.TemporaryDirectory()
+        self.media_override = override_settings(MEDIA_ROOT=self.media.name)
+        self.media_override.enable()
         self.school = School.objects.create(name="Brand School", code="BR1")
         self.other = School.objects.create(name="Other", code="BR2")
         self.admin = User.objects.create_user("brandadmin", password="pass12345")
@@ -23,14 +31,59 @@ class BrandingAndAcademicReportTests(APITestCase):
             category="compulsory")
         Performance.objects.create(student=self.student, subject=subject, academic_year=year, term=self.term, marks=Decimal("70"), status="approved")
 
+    def tearDown(self):
+        self.media_override.disable()
+        self.media.cleanup()
+
+    @staticmethod
+    def image_file(name="logo.png", image_format="PNG", content_type=None, size=(32, 32)):
+        data = BytesIO()
+        Image.new("RGB", size, (20, 80, 120)).save(data, format=image_format)
+        return SimpleUploadedFile(
+            name, data.getvalue(), content_type=content_type or {
+                "PNG": "image/png", "JPEG": "image/jpeg", "WEBP": "image/webp",
+            }[image_format])
+
     def test_admin_can_upload_valid_logo_and_reject_large_file(self):
         self.client.force_authenticate(self.admin)
-        logo = SimpleUploadedFile("logo.png", b"fake-png", content_type="image/png")
+        logo = self.image_file()
         result = self.client.post("/api/school/branding/", {"logo": logo}, format="multipart")
         self.assertEqual(result.status_code, 200)
         self.assertTrue(School.objects.get(pk=self.school.id).logo.name)
         bad = SimpleUploadedFile("logo.exe", b"bad", content_type="application/octet-stream")
         self.assertEqual(self.client.post("/api/school/branding/", {"logo": bad}, format="multipart").status_code, 400)
+        oversized = SimpleUploadedFile(
+            "large.png", os.urandom(2 * 1024 * 1024 + 1), content_type="image/png")
+        self.assertEqual(self.client.post("/api/school/branding/", {"logo": oversized}, format="multipart").status_code, 400)
+
+    def test_logo_rejects_spoofed_content_and_supports_replace_remove(self):
+        self.client.force_authenticate(self.admin)
+        spoofed = self.image_file("logo.png", "JPEG", "image/png")
+        self.assertEqual(self.client.post("/api/school/branding/", {"logo": spoofed}, format="multipart").status_code, 400)
+        self.assertEqual(self.client.post(
+            "/api/school/branding/", {"logo": self.image_file("logo.webp", "WEBP")}, format="multipart").status_code, 200)
+        self.school.refresh_from_db()
+        first = self.school.logo.name
+        self.assertTrue(os.path.exists(os.path.join(self.media.name, first)))
+        self.assertEqual(self.client.post(
+            "/api/school/branding/", {"logo": self.image_file("logo.webp", "WEBP", size=(48, 48))}, format="multipart").status_code, 200)
+        self.school.refresh_from_db()
+        second = self.school.logo.name
+        self.assertNotEqual(first, second)
+        self.assertFalse(os.path.exists(os.path.join(self.media.name, first)))
+        self.assertTrue(os.path.exists(os.path.join(self.media.name, second)))
+        self.assertEqual(self.client.delete("/api/school/branding/").status_code, 200)
+        self.assertFalse(os.path.exists(os.path.join(self.media.name, second)))
+        self.school.refresh_from_db()
+        self.assertFalse(self.school.logo)
+
+    def test_logo_isolation_uses_authenticated_school(self):
+        self.client.force_authenticate(self.admin)
+        self.other.logo = self.image_file("other.png")
+        self.other.save(update_fields=["logo"])
+        response = self.client.get(f"/api/school/branding/?school_id={self.other.id}")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["code"], self.school.code)
 
     def test_advanced_report_uses_finalized_marks_and_school_scope(self):
         self.client.force_authenticate(self.admin)

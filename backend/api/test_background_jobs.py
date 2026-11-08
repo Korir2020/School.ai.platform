@@ -81,8 +81,8 @@ class BackgroundDocumentJobTests(APITestCase):
             payload={"payment_ids": [self.payment.id], "format": "zip"}, total=1,
         )
         self.client.force_authenticate(foreign_user)
-        self.assertEqual(self.client.get(f"/api/jobs/{job.pk}/").status_code, 404)
-        self.assertEqual(self.client.get(f"/api/jobs/{job.pk}/download/").status_code, 404)
+        self.assertEqual(self.client.get(f"/api/jobs/{job.pk}/").status_code, 403)
+        self.assertEqual(self.client.get(f"/api/jobs/{job.pk}/download/").status_code, 403)
 
     def test_document_worker_failure_is_persisted_and_queue_continues(self):
         job = BackgroundJob.objects.create(

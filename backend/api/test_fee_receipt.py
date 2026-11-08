@@ -80,15 +80,16 @@ class FeeReceiptTests(APITestCase):
         self.assertIn("/api/fees/receipt-verify/", r["verify_url"])
         self.assertIn("<svg", r["qr_svg"])
 
-    def test_public_verify_page_shows_receipt_but_not_learner(self):
+    def test_public_verify_page_shows_validity_only(self):
         p = self.pay(self.invoice, "100")
         r = self.get(self.admin, p).json()
         page = APIClient().get(urlparse(r["verify_url"]).path)
         self.assertEqual(page.status_code, 200)
         text = page.content.decode()
-        self.assertIn(r["receipt_number"], text)
-        self.assertIn("Fee School", text)
-        self.assertIn("100.00", text)
+        self.assertIn("Valid receipt", text)
+        self.assertNotIn(r["receipt_number"], text)
+        self.assertNotIn("Fee School", text)
+        self.assertNotIn("100.00", text)
         self.assertNotIn("A Student", text)
 
     def test_forged_or_tampered_token_is_not_valid(self):
@@ -137,10 +138,10 @@ class FeeReceiptTests(APITestCase):
         r = self.client.get(f"/api/fees/payments/{p.id}/receipt/")
         self.assertIn(r.status_code, (401, 403))
 
-    def test_cross_school_returns_404(self):
+    def test_cross_school_receipt_access_is_denied(self):
         p = self.pay(self.other_invoice, "100.00")
         r = self.get(self.admin, p)
-        self.assertEqual(r.status_code, 404)
+        self.assertEqual(r.status_code, 403)
         self.assertNotIn("Other", str(r.data))
         self.assertEqual(self.get(self.other_admin, p).status_code, 200)
 

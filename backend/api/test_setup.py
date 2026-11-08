@@ -19,9 +19,9 @@ COMPLETE = "/api/setup/complete/"
 class SetupWizardTests(TestCase):
     def setUp(self):
         self.a = School.objects.create(
-            name="A", code="SA1", location="Town", county="Nairobi", school_type="Secondary")
+            name="A", code="SA1", location="Town", county="Nairobi", school_type="senior")
         self.b = School.objects.create(
-            name="B", code="SB1", location="City", county="Kisumu", school_type="Primary")
+            name="B", code="SB1", location="City", county="Kisumu", school_type="primary")
         self.boss = self._admin("bossa", self.a, False)
         self.dep = self._admin("depa", self.a, True)
         self.bossb = self._admin("bossb", self.b, False)

@@ -68,8 +68,18 @@ export default function Exams({ d }) {
     ] : []),
     { label: "Student", key: "name", sort: true },
     { label: "Admission no.", key: "admission_number", sort: true },
+    ...(res?.framework_key === "cbe_senior" ? [
+      { label: "Pathway", key: "pathway", sort: true, render: (r) => r.pathway || "—" },
+      { label: "Registered subject combination", get: (r) => (r.subject_combination || []).join(", "),
+        render: (r) => (r.subject_combination || []).join(", ") || "—" },
+    ] : []),
     { label: res?.result_mode === "achievement_levels" ? "Overall progress summary" : "Average", key: "overall_average", sort: true,
       render: (r) => res?.result_mode === "achievement_levels" ? (r.overall_summary || "—") : r.overall_average + "%" },
+    ...(res?.result_mode === "marks" && ["cbe_primary", "cbe_junior_levels", "cbe_senior"].includes(res?.framework_key) ? [
+      { label: "School-configured overall grade", key: "overall_grade", render: (r) => r.overall_grade || "—" },
+      { label: "Subject results (percentage · grade)", get: (r) => Object.entries(r.subject_scores || {}).map(([subject, score]) => `${subject}: ${score}% · ${r.subject_grades?.[subject] || "—"}`).join("; "),
+        render: (r) => Object.entries(r.subject_scores || {}).map(([subject, score]) => `${subject}: ${score}% · ${r.subject_grades?.[subject] || "—"}`).join("; ") || "—" },
+    ] : []),
     ...(res?.result_mode === "achievement_levels" ? [{
       label: "School-defined subject levels", get: (r) => Object.entries(r.subject_scores || {}).map(([subject, level]) => `${subject}: ${level.label}`).join("; "),
       render: (r) => Object.entries(r.subject_scores || {}).map(([subject, level]) => `${subject}: ${level.label}`).join("; ") || "—",
@@ -124,7 +134,7 @@ export default function Exams({ d }) {
         <Button kind="ghost" size="sm" onClick={() => setRes(null)}>Close</Button>
       </Card>}
       {ask && <ConfirmDialog title={"Publish " + ask.name + "?"} confirm="Publish"
-        text="This creates the official results and ranks."
+        text="This publishes the internal school results. Numeric rankings are shown only where school policy enables them."
         onYes={() => publish(ask)} onNo={() => setAsk(null)} />}
     </div>
   );

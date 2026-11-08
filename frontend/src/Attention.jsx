@@ -15,7 +15,9 @@ export default function Attention({ d, go }) {
   }, []);
   const wait = d.awaiting_approval || 0;
   const drafts = (d.exams && d.exams.draft) || 0;
-  const overdue = Number((d.fees && d.fees.overdue_amount) || 0);
+  const hasFeeData = Object.prototype.hasOwnProperty.call(d, "fees")
+    && d.fees !== null && typeof d.fees === "object";
+  const overdue = hasFeeData ? Number(d.fees.overdue_amount || 0) : 0;
   const items = [];
   const add = (tab, text, label, level) => items.push({ tab, text, label, level });
   if (wait > 0) add("Approve", wait + " marks waiting for approval", "Review", "warn");

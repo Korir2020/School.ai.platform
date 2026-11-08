@@ -11,6 +11,7 @@ from reportlab.pdfgen import canvas
 from rest_framework.response import Response
 
 from api.level_rules import _enrollment, scale_for
+from marian_reports.frameworks import CBC_REPORT_FRAMEWORKS
 from schools.models import Exam, LevelResult, Performance, School, Student, SubjectRegistration
 
 PRINTABLE = ("approved", "locked")
@@ -39,11 +40,12 @@ def _err(code, message, status):
 def approved_rows(student, year, term, atype):
     return list(LevelResult.objects.filter(
         student=student, academic_year=year, term=term, assessment_type=atype,
-        status__in=PRINTABLE).select_related("subject").order_by("subject__name"))
+        status__in=PRINTABLE).select_related("subject", "scale").order_by("subject__name"))
 
 
 def build_pdf(school_name, learner, adm, class_name, year_name, term_name, atype, levels, rows,
-              is_primary=False):
+              is_primary=False, is_junior=False, is_senior=False):
+    is_cbc_level_stage = is_primary or is_junior or is_senior
     labels = {x.get("key"): x.get("label", x.get("key")) for x in levels}
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=A4)
@@ -51,8 +53,8 @@ def build_pdf(school_name, learner, adm, class_name, year_name, term_name, atype
     def footer():
         c.setFont(FONT, 7.5)
         c.drawString(M, M + 14, "Achievement wording is set by your school; no national thresholds are applied.")
-        if is_primary:
-            c.drawString(M, M + 4, "Internal school assessment; not an official KNEC assessment. No ranking applied.")
+        if is_cbc_level_stage:
+            c.drawString(M, M + 4, "Internal school assessment; not an official KNEC assessment. No numeric ranking applied.")
         else:
             c.drawString(M, M + 4, "This stage reports levels only: no marks, percentages, grades or positions.")
 
@@ -71,7 +73,11 @@ def build_pdf(school_name, learner, adm, class_name, year_name, term_name, atype
     c.drawString(M, y, _safe(school_name))
     y -= 20
     c.setFont(BOLD, 11)
-    c.drawString(M, y, "LEARNING PROGRESS REPORT")
+    title = ("SENIOR SCHOOL LEARNING PROGRESS REPORT" if is_senior else
+             "JUNIOR SCHOOL LEARNING PROGRESS REPORT" if is_junior else
+             "PRIMARY SCHOOL LEARNING PROGRESS REPORT" if is_primary else
+             "LEARNING PROGRESS REPORT")
+    c.drawString(M, y, title)
     c.setFont(FONT, 9.5)
     for line in (
         "Learner: " + learner + "     Adm: " + adm,
@@ -82,7 +88,7 @@ def build_pdf(school_name, learner, adm, class_name, year_name, term_name, atype
         c.drawString(M, y, _safe(line))
     y = head(y - 28)
     cw = W - M - C3
-    if is_primary:
+    if is_cbc_level_stage:
         counts = {item.get("key"): 0 for item in levels}
         for row in rows:
             counts[row.level_key] = counts.get(row.level_key, 0) + 1
@@ -143,16 +149,20 @@ def level_pdf_response(request, user, st):
     if scale is None:
         return None
     is_primary = exam.framework_key == "cbe_primary"
-    if is_primary and (enr is None or enr.class_level_id != exam.class_level_id):
-        return _err("report_not_ready", "Learner is not enrolled in this examination's Primary grade.", 422)
+    is_junior = exam.framework_key == "cbe_junior_levels"
+    is_senior = exam.framework_key == "cbe_senior"
+    is_cbc_level_stage = exam.framework_key in CBC_REPORT_FRAMEWORKS
+    if is_cbc_level_stage and (enr is None or enr.class_level_id != exam.class_level_id):
+        stage = "Senior" if is_senior else "Junior" if is_junior else "Primary"
+        return _err("report_not_ready", f"Learner is not enrolled in this examination's CBC {stage} grade.", 422)
     if exam.status != "published":
         return _err("report_not_ready", "This exam is not published yet.", 422)
-    atype = request.query_params.get("type", "end")
+    atype = request.query_params.get("type", exam.assessment_type)
     if atype not in ATYPES:
         return _err("report_not_ready", "Unknown assessment type.", 422)
     year, term = exam.term.academic_year, exam.term
     rows = approved_rows(student, year, term, atype)
-    if is_primary:
+    if is_cbc_level_stage:
         registered = set(SubjectRegistration.objects.filter(
             student=student, academic_year=year, subject__school_id=student.school_id,
         ).values_list("subject_id", flat=True))
@@ -162,15 +172,25 @@ def level_pdf_response(request, user, st):
             subject_id__in=registered,
         ).exists():
             return None
-        if registered and {row.subject_id for row in rows} != registered:
+        if not registered:
+            return _err("report_not_ready", "No learning areas are registered for this learner and academic year.", 422)
+        if {row.subject_id for row in rows} != registered:
             return _err("report_not_ready", "Approved achievement levels are incomplete for registered learning areas.", 422)
     if not rows:
         return _err("report_not_ready", "No approved levels for this learner yet.", 422)
+    if is_cbc_level_stage and len({row.scale_id for row in rows}) != 1:
+        return _err("report_not_ready", "This CBC examination contains inconsistent achievement-scale versions.", 422)
+    report_scale = rows[0].scale if is_cbc_level_stage else scale
+    if is_cbc_level_stage and (report_scale.school_id != student.school_id
+                              or not report_scale.covers(exam.class_level)):
+        return _err("report_not_ready", "The saved achievement scale does not match this examination grade.", 422)
     pdf = build_pdf(
         School.objects.get(pk=user.school_id).name,
         (student.first_name + " " + student.last_name).strip(), student.admission_number,
-        enr.class_level.name + " " + enr.stream.name, year.name, term.name, atype,
-        scale.levels, rows, is_primary=is_primary)
+        enr.class_level.name + " " + enr.stream.name
+        + (" · " + enr.pathway.name if is_senior and enr.pathway else ""),
+        year.name, term.name, atype, report_scale.levels, rows,
+        is_primary=is_primary, is_junior=is_junior, is_senior=is_senior)
     resp = HttpResponse(pdf, content_type="application/pdf")
     kind = "attachment" if request.query_params.get("download") == "1" else "inline"
     name = re.sub(r"[^A-Za-z0-9_.-]", "_", str(student.admission_number)) + "-levels.pdf"
@@ -185,9 +205,9 @@ def level_selection(request, svc, user, exam_id, cn, stream, ids):
     if exam is None:
         return None
     svc.authorize_class(user, cn)
-    is_primary = exam.framework_key == "cbe_primary"
+    is_cbc_level_stage = exam.framework_key in CBC_REPORT_FRAMEWORKS
     exact = (svc.ds.list_exam_students(user.school_id, exam.id, cn)
-             if is_primary and hasattr(svc.ds, "list_exam_students") else None)
+             if is_cbc_level_stage and hasattr(svc.ds, "list_exam_students") else None)
     pool = list(exact if exact is not None else
                 svc.ds.list_students(user.school_id, class_name=cn, stream=stream or None))
     if stream:
@@ -203,7 +223,7 @@ def level_selection(request, svc, user, exam_id, cn, stream, ids):
     enr, scale = _level_scale(exam, first)
     if scale is None:
         return None
-    atype = request.query_params.get("type", "end")
+    atype = request.query_params.get("type", exam.assessment_type)
     if atype not in ATYPES:
         return _err("report_not_ready", "Unknown assessment type.", 400)
     pks = [p for p in (_pk(s.id) for s in pool) if p is not None]
@@ -216,7 +236,7 @@ def level_selection(request, svc, user, exam_id, cn, stream, ids):
            "population": cn + (" " + stream if stream else "") + " - " + str(getattr(exam, "name", ""))}
     registered_by_student = {}
     completed_by_student = {}
-    if is_primary:
+    if is_cbc_level_stage:
         registered_by_student = {sid: set() for sid in pks}
         for sid, subject_id in SubjectRegistration.objects.filter(
             student_id__in=pks, academic_year=exam.term.academic_year,
@@ -239,10 +259,10 @@ def level_selection(request, svc, user, exam_id, cn, stream, ids):
         if getattr(s, "status", "active") == "withdrawn":
             out["excluded"].append({"student_id": s.id, "adm_no": s.adm_no,
                                     "reason": "Learner has withdrawn.", "code": "withdrawn"})
-        elif is_primary and registered_by_student.get(_pk(s.id)) and registered_by_student[_pk(s.id)].issubset(completed_by_student.get(_pk(s.id), set())):
+        elif is_cbc_level_stage and registered_by_student.get(_pk(s.id)) and registered_by_student[_pk(s.id)].issubset(completed_by_student.get(_pk(s.id), set())):
             out["eligible"] += 1
             out["complete"] += 1
-        elif is_primary:
+        elif is_cbc_level_stage:
             missing = len(registered_by_student.get(_pk(s.id), set()) - completed_by_student.get(_pk(s.id), set()))
             out["excluded"].append({"student_id": s.id, "adm_no": s.adm_no,
                                     "reason": (f"{missing} registered learning area(s) do not have approved levels yet."

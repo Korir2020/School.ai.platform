@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import School
+from .models import BackgroundJob, ConnectPost, ConnectReport, Notification, School
 
 admin.site.register(School)
 
@@ -12,6 +12,13 @@ class MarkAuditLogAdmin(admin.ModelAdmin):
     list_display = ("timestamp", "school", "user", "action", "performance")
     list_filter = ("school", "action")
     readonly_fields = [f.name for f in MarkAuditLog._meta.fields]
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if request.user.is_superuser:
+            # Fee operations share this model with marks and platform audit events.
+            qs = qs.exclude(action__startswith="fee_")
+        return qs
 
     def has_add_permission(self, request):
         return False
@@ -91,8 +98,68 @@ class ExamResultAdmin(admin.ModelAdmin):
 from django.apps import apps
 from django.contrib.admin.sites import AlreadyRegistered
 
+
+class StudentAdmin(admin.ModelAdmin):
+    def get_exclude(self, request, obj=None):
+        excluded = list(super().get_exclude(request, obj) or ())
+        if request.user.is_superuser and "fee_category" not in excluded:
+            excluded.append("fee_category")
+        return excluded or None
+
+
+class NotificationAdmin(admin.ModelAdmin):
+    def get_exclude(self, request, obj=None):
+        excluded = list(super().get_exclude(request, obj) or ())
+        # Notification messages are free text and may contain fee details.
+        if request.user.is_superuser and "message" not in excluded:
+            excluded.append("message")
+        return excluded or None
+
+
+class ConnectPostAdmin(admin.ModelAdmin):
+    list_display = ("channel", "author", "is_pinned", "is_urgent", "created_at")
+
+    def get_exclude(self, request, obj=None):
+        excluded = list(super().get_exclude(request, obj) or ())
+        if request.user.is_superuser and "body" not in excluded:
+            excluded.append("body")
+        return excluded or None
+
+
+class ConnectReportAdmin(admin.ModelAdmin):
+    def get_exclude(self, request, obj=None):
+        excluded = list(super().get_exclude(request, obj) or ())
+        if request.user.is_superuser and "reason" not in excluded:
+            excluded.append("reason")
+        return excluded or None
+
+
+class BackgroundJobAdmin(admin.ModelAdmin):
+    list_display = ("id", "school", "job_type", "status", "created_at", "updated_at")
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if request.user.is_superuser:
+            qs = qs.exclude(job_type="fee_receipts")
+        return qs
+
+
+# Do not expose direct fee models or raw Connect attachment bytes in platform admin.
+_UNREGISTERED_MODELS = {
+    "FeeStructure", "StudentFee", "FeePayment", "FeeAdjustment", "ConnectAttachment",
+}
+_CUSTOM_ADMINS = {
+    "Student": StudentAdmin,
+    "Notification": NotificationAdmin,
+    "ConnectPost": ConnectPostAdmin,
+    "ConnectReport": ConnectReportAdmin,
+    "BackgroundJob": BackgroundJobAdmin,
+}
+
 for _m in apps.get_app_config("schools").get_models():
+    if _m.__name__ in _UNREGISTERED_MODELS:
+        continue
     try:
-        admin.site.register(_m)
+        admin.site.register(_m, _CUSTOM_ADMINS.get(_m.__name__, admin.ModelAdmin))
     except AlreadyRegistered:
         pass

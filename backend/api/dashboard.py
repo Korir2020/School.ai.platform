@@ -1,14 +1,16 @@
 from django.db.models import Count, DecimalField, ExpressionWrapper, F, Sum
 from django.utils import timezone
 from rest_framework.decorators import api_view
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
 from schools.models import (
     Enrollment, Exam, Performance, School, SchoolAdminProfile, Stream,
     Student, Subject, TeacherAssignment, TeacherProfile, Term, StudentFee,
-    FeePayment,
+    FeePayment, StaffProfile,
 )
 from .views import _scope
+from api.fee_permissions import get_fee_access_school_id
 
 STATUSES = ("draft", "submitted", "approved", "locked")
 
@@ -33,12 +35,7 @@ def _term_info(term):
     return {"id": term.id, "name": term.name, "academic_year": term.academic_year.name}
 
 
-def _admin_data(school_id):
-    term = _active_term(school_id)
-    marks = Performance.objects.filter(student__school_id=school_id)
-    exams = {"draft": 0, "published": 0}
-    for row in Exam.objects.filter(school_id=school_id).values("status").annotate(n=Count("id")):
-        exams[row["status"]] = row["n"]
+def _fee_data(school_id):
     fees = StudentFee.objects.filter(student__school_id=school_id).exclude(status="waived")
     fee_totals = fees.aggregate(due=Sum("amount_due"), paid=Sum("amount_paid"))
     due = fee_totals["due"] or 0
@@ -47,7 +44,23 @@ def _admin_data(school_id):
     recent_payments = FeePayment.objects.filter(
         student_fee__student__school_id=school_id
     ).select_related("student_fee__student").order_by("-paid_at")[:5]
-    return {
+    return {"invoices": fees.count(), "amount_due": str(due),
+            "amount_paid": str(paid), "balance": str(due - paid),
+            "collection_percentage": round(float(paid / due * 100), 1) if due else 0,
+            "overdue_amount": str(overdue.aggregate(x=Sum(ExpressionWrapper(F("amount_due") - F("amount_paid"), output_field=DecimalField(max_digits=12, decimal_places=2))))["x"] or 0),
+            "recent_payments": [{"student": str(p.student_fee.student),
+                                 "amount": str(p.amount), "method": p.method,
+                                 "reference": p.reference, "paid_at": p.paid_at}
+                                for p in recent_payments]}
+
+
+def _admin_data(school_id, include_fees):
+    term = _active_term(school_id)
+    marks = Performance.objects.filter(student__school_id=school_id)
+    exams = {"draft": 0, "published": 0}
+    for row in Exam.objects.filter(school_id=school_id).values("status").annotate(n=Count("id")):
+        exams[row["status"]] = row["n"]
+    data = {
         "role": "school_admin",
         "students": Student.objects.filter(school_id=school_id).count(),
         "active_enrollments": Enrollment.objects.filter(
@@ -59,15 +72,10 @@ def _admin_data(school_id):
         "marks_by_status": _status_counts(marks.filter(term=term) if term else marks.none()),
         "awaiting_approval": marks.filter(status="submitted").count(),
         "exams": exams,
-        "fees": {"invoices": fees.count(), "amount_due": str(due),
-                 "amount_paid": str(paid), "balance": str(due - paid),
-                 "collection_percentage": round(float(paid / due * 100), 1) if due else 0,
-                 "overdue_amount": str(overdue.aggregate(x=Sum(ExpressionWrapper(F("amount_due") - F("amount_paid"), output_field=DecimalField(max_digits=12, decimal_places=2))))["x"] or 0),
-                 "recent_payments": [{"student": str(p.student_fee.student),
-                                      "amount": str(p.amount), "method": p.method,
-                                      "reference": p.reference, "paid_at": p.paid_at}
-                                     for p in recent_payments]},
     }
+    if include_fees:
+        data["fees"] = _fee_data(school_id)
+    return data
 
 
 def _teacher_data(user, school_id):
@@ -110,11 +118,23 @@ def _superadmin_data():
 
 @api_view(["GET"])
 def dashboard(request):
+    # Bursars do not otherwise have the academic dashboard's school scope.
+    # Give them only the authorized fee summary, not unrelated school records.
+    if StaffProfile.objects.filter(user=request.user, role="bursar").exists() and not SchoolAdminProfile.objects.filter(user=request.user).exists() and not request.user.is_superuser:
+        try:
+            fee_school_id = get_fee_access_school_id(request.user)
+        except PermissionDenied as exc:
+            return Response({"detail": str(exc.detail)}, status=403)
+        return Response({"role": "bursar", "fees": _fee_data(fee_school_id)})
     school_id, error = _scope(request)
     if error:
         return error
     if request.user.is_superuser:
         return Response(_superadmin_data())
     if SchoolAdminProfile.objects.filter(user=request.user).exists():
-        return Response(_admin_data(school_id))
+        try:
+            fee_school_id = get_fee_access_school_id(request.user, school_id=school_id)
+        except PermissionDenied:
+            fee_school_id = None
+        return Response(_admin_data(school_id, fee_school_id == school_id))
     return Response(_teacher_data(request.user, school_id))

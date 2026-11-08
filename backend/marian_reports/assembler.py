@@ -2,6 +2,7 @@
 renderers (PDF, HTML, CSV) just display ReportData."""
 from __future__ import annotations
 import hashlib, hmac, os
+from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal, ROUND_HALF_UP
@@ -9,7 +10,7 @@ from typing import Optional
 from .domain import *
 from .config import ReportConfig
 from .grading import GradingScheme, evaluate_student, StudentSummary, MarkStatus, to_decimal
-from .ranking import Candidate, rank
+from .ranking import Candidate, RankingResult, rank
 
 
 def _secret() -> bytes:
@@ -108,14 +109,33 @@ def _breakdown(entries):
 
 def _pos(res, sid) -> dict:
     p = res.ranks.get(sid)
-    return {"pos": p, "of": res.population_size,
-            "label": f"{p}/{res.population_size}" if p else f"—/{res.population_size}",
+    population = res.population_sizes.get(str(sid), res.population_size)
+    return {"pos": p, "of": population,
+            "label": f"{p}/{population}" if p else f"—/{population}",
             "excluded": res.excluded.get(sid, "")}
 
 
+def _rank_grouped(candidates, *, population, tie_policy, include_incomplete=False, key_for):
+    """Rank separate populations and retain each candidate's actual denominator."""
+    groups = defaultdict(list)
+    for candidate in candidates:
+        groups[key_for(candidate.student_id)].append(candidate)
+    result = RankingResult(population, tie_policy, 0)
+    for members in groups.values():
+        part = rank(members, population=population, tie_policy=tie_policy,
+                    include_incomplete=include_incomplete)
+        result.ranks.update(part.ranks)
+        result.excluded.update(part.excluded)
+        result.population_sizes.update({c.student_id: part.population_size for c in members})
+        result.population_size += part.population_size
+    return result
+
+
 class ReportService:
-    def __init__(self, ds: DataSource, scheme: GradingScheme, config: Optional[ReportConfig] = None):
+    def __init__(self, ds: DataSource, scheme: GradingScheme, config: Optional[ReportConfig] = None,
+                 framework_key: Optional[str] = None):
         self.ds, self.scheme, self.cfg = ds, scheme, config or ReportConfig()
+        self.framework_key = framework_key
 
     # ---------- authorization (tenancy first; 404 on foreign ids to avoid leaking existence)
     def authorize_student(self, user: User, student: Student):
@@ -163,17 +183,37 @@ class ReportService:
                 val = (summ.best_points * 100000 + summ.total) if self.cfg.rank_by == "best_points" else summ.total
             cands.append(Candidate(s.id, val, summ.is_complete, s.status, group=s.stream))
         pol, inc = self.cfg.tie_policy, self.cfg.include_incomplete_in_rank
-        overall = rank(cands, population=f"{class_name} overall", tie_policy=pol, include_incomplete=inc)
         streams = sorted({s.stream for s in pop})
-        stream_r = {st: rank(cands, population=f"{class_name} {st}", tie_policy=pol,
-                             include_incomplete=inc, group=st) for st in streams}
         by_id = {s.id: s for s in pop}
+        senior = (self.framework_key or getattr(exam, "framework_key", None)) == "cbe_senior"
+        combo_key = lambda student_id: (
+            by_id[student_id].pathway_code,
+            tuple(by_id[student_id].subject_combination),
+        )
+        if senior:
+            overall = _rank_grouped(cands, population=f"{class_name} overall",
+                                    tie_policy=pol, include_incomplete=inc,
+                                    key_for=combo_key)
+            stream_r = {}
+            for st in streams:
+                members = [candidate for candidate in cands if candidate.group == st]
+                stream_r[st] = _rank_grouped(
+                    members, population=f"{class_name} {st}", tie_policy=pol,
+                    include_incomplete=inc, key_for=combo_key)
+        else:
+            overall = rank(cands, population=f"{class_name} overall", tie_policy=pol,
+                           include_incomplete=inc)
+            stream_r = {st: rank(cands, population=f"{class_name} {st}", tie_policy=pol,
+                                 include_incomplete=inc, group=st) for st in streams}
         gender_r = {}
         for st in streams:
             for g in sorted({s.gender for s in pop if s.stream == st}):
                 sub = [c for c in cands if c.group == st and by_id[c.student_id].gender == g]
-                gender_r[(st, g)] = rank(sub, population=f"{class_name} {st} gender {g}", tie_policy=pol,
-                                         include_incomplete=inc)
+                gender_r[(st, g)] = (_rank_grouped(
+                    sub, population=f"{class_name} {st} gender {g}", tie_policy=pol,
+                    include_incomplete=inc, key_for=combo_key) if senior else
+                    rank(sub, population=f"{class_name} {st} gender {g}", tie_policy=pol,
+                         include_incomplete=inc))
         subj_r = {}
         subjects = sorted({r.subject for sm in summaries.values() for r in sm.subjects})
         scopes = streams if self.cfg.subject_rank_scope == "stream" else ["*"]
@@ -184,7 +224,10 @@ class ReportService:
                     if sc != "*" and s.stream != sc: continue
                     r = next((x for x in summaries[s.id].subjects if x.subject == sub), None)
                     cs.append(Candidate(s.id, r.score if r and r.counted else None, True, s.status))
-                subj_r[(sc, sub)] = rank(cs, population=f"{class_name} {sc} {sub}", tie_policy=pol)
+                subj_r[(sc, sub)] = (_rank_grouped(
+                    cs, population=f"{class_name} {sc} {sub}", tie_policy=pol,
+                    key_for=combo_key) if senior else
+                    rank(cs, population=f"{class_name} {sc} {sub}", tie_policy=pol))
         return Snapshot(sid, exam, class_name, by_id, summaries, overall, stream_r, gender_r, subj_r,
                         h.hexdigest()[:16])
 
@@ -236,8 +279,8 @@ class ReportService:
 
     def _build_report_core(self, user: User, snap: Snapshot, student_id: str,
                      provisional_ok: Optional[bool] = None, today: Optional[date] = None) -> ReportData:
-        # Prefer the report snapshot's roster row. CBC Primary snapshots use
-        # the exact active enrollment for the exam year; reloading the latest
+        # Prefer the report snapshot's roster row. CBC Primary/Junior snapshots
+        # use the exact active enrollment for the exam year; reloading the latest
         # enrollment here would otherwise mislabel a historical report.
         student = snap.students.get(str(student_id)) or self.ds.get_student(user.school_id, student_id)
         self.authorize_student(user, student)
@@ -251,7 +294,8 @@ class ReportService:
             res = snap.subject.get((scope, r.subject))
             pos = ""
             if res and r.counted:
-                pos = f"{res.ranks.get(sid, '—')}/{res.population_size}"
+                population = res.population_sizes.get(str(sid), res.population_size)
+                pos = f"{res.ranks.get(sid, '—')}/{population}"
             remark = r.remarks or (self.cfg.remark_for_pct(r.pct) if r.pct is not None else "")
             label = {"scored": "", "missing": "Pending", "pending": "Pending",
                      "absent": "Absent", "exempt": "Exempt",

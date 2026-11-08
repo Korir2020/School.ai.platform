@@ -3,11 +3,11 @@ import { Alert, Button, Input, Select } from "./ui";
 import "./pub.css";
 import "./register.css";
 
-const EMPTY = { school_name: "", proposed_school_code: "", school_type: "secondary", school_phone: "", county: "", administrator_name: "", administrator_username: "", administrator_email: "", administrator_phone: "", password: "", confirm_password: "", authorized: false };
+const EMPTY = { school_name: "", proposed_school_code: "", school_type: "", school_phone: "", county: "", administrator_name: "", administrator_username: "", administrator_email: "", administrator_phone: "", password: "", confirm_password: "", authorized: false };
 
 const STEPS = ["Account", "School", "Review"];
 const ACCT = ["administrator_name", "administrator_username", "administrator_email", "administrator_phone", "password", "confirm_password"];
-const TYPES = { primary: "Primary", junior: "Junior school", secondary: "Senior / Secondary", combined: "Combined / other" };
+const TYPES = { primary: "Primary school", junior: "Junior school", combined: "Combined (junior and primary)", senior: "Senior school" };
 
 export default function SchoolRegistration({ onBack, onSignIn }) {
   const [form, setForm] = useState(EMPTY), [error, setError] = useState(""), [busy, setBusy] = useState(false), [registration, setRegistration] = useState(null), [code, setCode] = useState(""), [verified, setVerified] = useState(false); const [wait, setWait] = useState(60); const [note, setNote] = useState("");
@@ -46,6 +46,7 @@ export default function SchoolRegistration({ onBack, onSignIn }) {
         if (!form.password) return "Password is required.";
         if (form.password !== form.confirm_password) return "Passwords do not match.";
       }
+      if (n === 1 && !form.school_type) return "Choose a school type.";
       if (n === 1 && (!t("school_name") || !t("proposed_school_code") || !t("school_phone"))) return "Fill in the school name, school code and school phone.";
       return "";
     };
@@ -78,7 +79,8 @@ export default function SchoolRegistration({ onBack, onSignIn }) {
               <Input label="School name" value={form.school_name} onChange={set("school_name")} />
               <Input label="School code" value={form.proposed_school_code} onChange={set("proposed_school_code")} />
               <Select label="School type" value={form.school_type} onChange={set("school_type")}>
-                <option value="primary">Primary</option><option value="junior">Junior school</option><option value="secondary">Senior / Secondary</option><option value="combined">Combined / other</option>
+                <option value="" disabled>Choose school type…</option>
+                <option value="primary">Primary school</option><option value="junior">Junior school</option><option value="combined">Combined (junior and primary)</option><option value="senior">Senior school</option>
               </Select>
               <Input label="School phone" value={form.school_phone} onChange={set("school_phone")} />
               <Input label="County" value={form.county} onChange={set("county")} />

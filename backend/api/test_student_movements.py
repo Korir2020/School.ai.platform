@@ -18,7 +18,7 @@ class StudentMovementTests(APITestCase):
         self.y1 = AcademicYear.objects.create(school=self.school, name="2025", start_date=datetime.date(2025, 1, 1), end_date=datetime.date(2025, 12, 1))
         self.y2 = AcademicYear.objects.create(school=self.school, name="2026", start_date=datetime.date(2026, 1, 1), end_date=datetime.date(2026, 12, 1))
         self.s7 = Stream.objects.create(school=self.school, class_level=self.g7, name="East")
-        self.s8 = Stream.objects.create(school=self.school, class_level=self.g8, name="East")
+        self.s8 = Stream.objects.create(school=self.school, class_level=self.g8, name="East (Grade 8)")
         self.a = self._kid("A1", self.g7, self.s7)
         self.b = self._kid("B1", self.g7, self.s7)
         self.c = self._kid("C1", self.g8, self.s8)  # final class

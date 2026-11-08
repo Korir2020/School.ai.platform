@@ -47,7 +47,7 @@ class SchoolProfileTests(TestCase):
         self.assertEqual(r.status_code, 200)
         self.a.refresh_from_db()
         self.assertEqual(
-            (self.a.location, self.a.county, self.a.school_type), ("Town", "Nairobi", "secondary"))
+            (self.a.location, self.a.county, self.a.school_type), ("Town", "Nairobi", "senior"))
         self.assertEqual(
             MarkAuditLog.objects.filter(action="profile_updated", school=self.a).count(), 1)
 

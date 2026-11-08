@@ -27,6 +27,7 @@ from schools.models import (
     Stream,
     Student,
     StudentGuardian,
+    StaffProfile,
     TeacherProfile,
 )
 
@@ -62,6 +63,10 @@ class RulesTests(TestCase):
         SchoolAdminProfile.objects.create(user=self.admin, school=self.school)
         self.teacher = U.objects.create_user("con_teacher", "t@example.com", "pw12345!")
         TeacherProfile.objects.create(user=self.teacher, school=self.school)
+        self.bursar = U.objects.create_user("con_bursar", "b@example.com", "pw12345!")
+        StaffProfile.objects.create(user=self.bursar, school=self.school, role="bursar")
+        self.secretary = U.objects.create_user("con_secretary", "se@example.com", "pw12345!")
+        StaffProfile.objects.create(user=self.secretary, school=self.school, role="secretary")
         self.parent = U.objects.create_user("con_parent", "p@example.com", "pw12345!", first_name="Grace", last_name="Test")
         self.guardian = GuardianProfile.objects.create(user=self.parent, school=self.school, phone="0700000001")
         self.stranger = U.objects.create_user("con_stranger", "s@example.com", "pw12345!")
@@ -83,6 +88,8 @@ class RulesTests(TestCase):
     def test_roles(self):
         self.assertEqual(membership(self.admin), (self.school.id, ADMIN))
         self.assertEqual(membership(self.teacher), (self.school.id, TEACHER))
+        self.assertEqual(membership(self.bursar), (self.school.id, "bursar"))
+        self.assertEqual(membership(self.secretary), (self.school.id, "secretary"))
         self.assertEqual(membership(self.parent), (self.school.id, PARENT))
         self.assertEqual(membership(self.stranger), (None, None))
         self.assertEqual(membership(self.root), (None, None))
@@ -105,8 +112,17 @@ class RulesTests(TestCase):
         self.assertEqual(ConnectChannel.objects.filter(school=self.other).count(), 0)
 
     def test_roles_for_and_display_name(self):
-        out = roles_for([self.admin.id, self.teacher.id, self.parent.id])
-        self.assertEqual(out, {self.admin.id: ADMIN, self.teacher.id: TEACHER, self.parent.id: PARENT})
+        out = roles_for([self.admin.id, self.teacher.id, self.bursar.id, self.secretary.id, self.parent.id])
+        self.assertEqual(
+            out,
+            {
+                self.admin.id: ADMIN,
+                self.teacher.id: TEACHER,
+                self.bursar.id: "bursar",
+                self.secretary.id: "secretary",
+                self.parent.id: PARENT,
+            },
+        )
         self.assertEqual(display_name(self.parent, PARENT), "Grace Test")
         self.assertEqual(display_name(self.teacher, TEACHER), "Teacher")
         self.assertNotIn("con_teacher", display_name(self.teacher, TEACHER))

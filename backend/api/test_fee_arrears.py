@@ -78,7 +78,7 @@ class ArrearsTests(APITestCase):
             academic_year=year, name="T",
             start_date=date(2026, 1, 1), end_date=date(2026, 4, 1))
         r = self.client.post("/api/fees/carry-forward/", {"term": t.id}, format="json")
-        self.assertEqual(r.status_code, 404)
+        self.assertEqual(r.status_code, 403)
 
     def test_editing_amount_keeps_arrears(self):
         t1 = self.term("Term 1", -200, -100)

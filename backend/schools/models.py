@@ -2,8 +2,37 @@ import uuid
 
 from django.conf import settings
 from django.db import models
-from django.db.models.functions import Lower
+from django.db.models.functions import Lower, Trim
 from django.core.validators import MinValueValidator, MaxValueValidator
+
+
+SCHOOL_TYPE_CHOICES = [
+    ("primary", "Primary school"),
+    ("junior", "Junior school"),
+    ("combined", "Combined (junior and primary)"),
+    ("senior", "Senior school"),
+]
+
+SCHOOL_TYPE_ALIASES = {
+    "primary": "primary",
+    "primary school": "primary",
+    "elementary": "primary",
+    "junior": "junior",
+    "junior school": "junior",
+    "combined": "combined",
+    "combined / other": "combined",
+    "combined (junior and primary)": "combined",
+    "senior": "senior",
+    "senior school": "senior",
+    "secondary": "senior",
+    "secondary school": "senior",
+    "senior / secondary": "senior",
+}
+
+
+def normalize_school_type(value):
+    normalized = " ".join(str(value or "").strip().lower().split())
+    return SCHOOL_TYPE_ALIASES.get(normalized, normalized)
 
 
 class School(models.Model):
@@ -12,7 +41,7 @@ class School(models.Model):
     location = models.CharField(max_length=200, blank=True)
     email = models.EmailField(blank=True)
     phone = models.CharField(max_length=30, blank=True)
-    school_type = models.CharField(max_length=30, blank=True)
+    school_type = models.CharField(max_length=30, blank=True, choices=SCHOOL_TYPE_CHOICES)
     county = models.CharField(max_length=100, blank=True)
     sub_county = models.CharField(max_length=100, blank=True)
     logo = models.FileField(upload_to="school-logos/", null=True, blank=True)
@@ -105,6 +134,13 @@ class Stream(models.Model):
     name = models.CharField(max_length=50)
     is_active = models.BooleanField(default=True)
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                Lower(Trim("name")), "school", name="unique_stream_name_per_school",
+            )
+        ]
+
     def __str__(self):
         return f"{self.class_level.name} - {self.name}"
 
@@ -113,6 +149,10 @@ class Enrollment(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
     academic_year = models.ForeignKey(AcademicYear, on_delete=models.CASCADE)
     class_level = models.ForeignKey(ClassLevel, on_delete=models.CASCADE)
+    pathway = models.ForeignKey(
+        "CurriculumPathway", on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="enrollments",
+    )
     stream = models.ForeignKey(Stream, on_delete=models.SET_NULL, null=True, blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -144,6 +184,13 @@ class Subject(models.Model):
         related_name="school_subjects"
     )
     is_active = models.BooleanField(default=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                Lower(Trim("name")), "school", name="unique_subject_name_per_school",
+            )
+        ]
 
     def __str__(self):
         return self.name
@@ -543,8 +590,7 @@ _OPEN_REG = ["pending_verification", "verified", "pending_approval",
 class SchoolRegistration(models.Model):
     """Public request to start a school. NOT a School: nothing real exists
     until a superadmin approves it."""
-    TYPES = [("primary", "Primary"), ("junior", "Junior school"),
-             ("secondary", "Secondary"), ("combined", "Combined / other")]
+    TYPES = SCHOOL_TYPE_CHOICES
     STATUSES = [
         ("pending_verification", "Pending verification"),
         ("verified", "Verified"),

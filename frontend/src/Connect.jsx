@@ -5,7 +5,13 @@ import "./connect.css";
 
 const MAX = 2000;
 const POLL_MS = 20000;
-const ROLE_TEXT = { admin: "School admin", teacher: "Teacher", bursar: "Bursar" };
+const ROLE_TEXT = {
+  admin: "School admin",
+  teacher: "Teacher",
+  bursar: "Bursar",
+  secretary: "Secretary",
+  parent: "Parent",
+};
 
 async function call(path, method = "GET", body) {
   const r = await api(path, method, body);
@@ -23,6 +29,35 @@ async function call(path, method = "GET", body) {
 
 function when(iso) {
   return new Date(iso).toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+}
+
+function at(iso) {
+  return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function calendarKey(iso) {
+  const value = new Date(iso);
+  return [value.getFullYear(), value.getMonth(), value.getDate()].join("-");
+}
+
+function dateLabel(iso) {
+  const value = new Date(iso);
+  const today = new Date();
+  const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const messageDay = new Date(value.getFullYear(), value.getMonth(), value.getDate());
+  const daysAgo = Math.round((start - messageDay) / 86400000);
+  if (daysAgo === 0) return "Today";
+  if (daysAgo === 1) return "Yesterday";
+  return value.toLocaleDateString([], {
+    day: "numeric",
+    month: "short",
+    year: value.getFullYear() === today.getFullYear() ? undefined : "numeric",
+  });
+}
+
+function authorKey(post) {
+  if (post.author_id !== undefined && post.author_id !== null) return "id:" + post.author_id;
+  return "display:" + [post.author || "Member", post.author_role || "member"].join("|");
 }
 
 function day(iso) {
@@ -68,7 +103,7 @@ function AuthorAv({ post }) {
   );
 }
 
-function PostCard({ post, me, acts }) {
+function PostCard({ post, me, acts, showHeader = true, grouped = false }) {
   const [open, setOpen] = useState(false);
   const timer = useRef(null);
   const pressAt = useRef({ x: 0, y: 0 });
@@ -91,39 +126,47 @@ function PostCard({ post, me, acts }) {
     setOpen(true);
   };
   const roleText = ROLE_TEXT[post.author_role];
-  const cls = "cn-post" + (post.is_urgent ? " urgent" : "") + (post.hidden ? " hidden" : "");
+  const cls = "cn-post" + (post.is_urgent ? " urgent" : "") + (post.hidden ? " hidden" : "") + (grouped ? " grouped" : "");
   return (
     <article onPointerDown={pressStart} onPointerMove={pressMove} onPointerUp={pressEnd} onPointerCancel={pressEnd} onPointerLeave={pressEnd} onContextMenu={menuOnRight} className={cls + (post.mine ? " mine" : "")}>
-      <header className="cn-ph">
-        <AuthorAv post={post} />
-        <b>{post.author}</b>
-        {roleText && <span className="cn-tag">{roleText}</span>}
-        {post.is_urgent && <span className="cn-tag cn-urgent">Urgent</span>}
-        {post.is_pinned && <span className="cn-tag">Pinned</span>}
-        {post.hidden && <span className="cn-tag cn-urgent">Hidden</span>}
-        <time className="cn-time" dateTime={post.created_at}>{when(post.created_at)}</time>
-      </header>
-      {post.body && <p className="cn-body">{post.body}</p>}
-      {post.attachments && post.attachments.length > 0 && (
-        <div className="cn-atts">
-          {post.attachments.map((a) => (
-            <AttachmentView key={a.id} att={a} />
-          ))}
-        </div>
+      {showHeader && (
+        <header className="cn-ph">
+          <AuthorAv post={post} />
+          <b>{post.author}</b>
+          {roleText && <span className="cn-tag">{roleText}</span>}
+        </header>
       )}
-      {post.event && (
-        <p className="cn-event">
-          <b>{post.event.title}</b> {day(post.event.start_date)}
-          {post.event.end_date ? " to " + day(post.event.end_date) : ""}
-        </p>
-      )}
-      {admin && post.report_count > 0 && (
-        <div className="cn-pa">
-          <span className="cn-tag cn-urgent">
-            {post.report_count} {post.report_count === 1 ? "report" : "reports"}
-          </span>
-        </div>
-      )}
+      <div className="cn-bubble">
+        {(post.is_urgent || post.is_pinned || post.hidden) && (
+          <div className="cn-post-flags">
+            {post.is_urgent && <span className="cn-tag cn-urgent">Urgent</span>}
+            {post.is_pinned && <span className="cn-tag">Pinned</span>}
+            {post.hidden && <span className="cn-tag cn-urgent">Hidden</span>}
+          </div>
+        )}
+        {post.body && <p className="cn-body">{post.body}</p>}
+        {post.attachments && post.attachments.length > 0 && (
+          <div className="cn-atts">
+            {post.attachments.map((a) => (
+              <AttachmentView key={a.id} att={a} />
+            ))}
+          </div>
+        )}
+        {post.event && (
+          <p className="cn-event">
+            <b>{post.event.title}</b> {day(post.event.start_date)}
+            {post.event.end_date ? " to " + day(post.event.end_date) : ""}
+          </p>
+        )}
+        {admin && post.report_count > 0 && (
+          <div className="cn-pa">
+            <span className="cn-tag cn-urgent">
+              {post.report_count} {post.report_count === 1 ? "report" : "reports"}
+            </span>
+          </div>
+        )}
+        <time className="cn-time" dateTime={post.created_at}>{at(post.created_at)}</time>
+      </div>
       {open && hasMenu && (
         <div className="cn-menu" role="menu">
           {!post.mine && <button type="button" role="menuitem" className="cn-link" onClick={() => { setOpen(false); acts.report(post); }}>Report</button>}
@@ -471,7 +514,7 @@ function Composer({ me, events, onSend, onDone }) {
           className="cn-msg"
           rows={1}
           maxLength={MAX}
-          placeholder="Type a message..."
+          placeholder="Message..."
           aria-label="Message"
           value={text}
           onChange={(e) => {
@@ -500,6 +543,7 @@ function ChatPanel({ channel, me, onSeen }) {
   const [events, setEvents] = useState([]);
   const [pending, setPending] = useState(null);
   const [loadingMore, setLoadingMore] = useState(false);
+  const observedNewest = useRef(0);
 
   const base = "/api/connect/channels/" + channel.id + "/posts/";
 
@@ -617,10 +661,14 @@ function ChatPanel({ channel, me, onSeen }) {
 
   const newestId = feed.posts.length ? feed.posts[0].id : 0;
   useEffect(() => {
-    if (!ready) return undefined;
+    if (!ready || !newestId) return undefined;
+    const firstObservation = observedNewest.current === 0;
+    const genuinelyNew = newestId > observedNewest.current;
+    observedNewest.current = newestId;
+    if (!firstObservation && !genuinelyNew) return undefined;
     const t = setTimeout(() => {
       const el = document.getElementById("cn-end");
-      if (el) el.scrollIntoView({ block: "end" });
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "end" });
     }, 60);
     return () => clearTimeout(t);
   }, [ready, newestId]);
@@ -628,6 +676,34 @@ function ChatPanel({ channel, me, onSeen }) {
   if (!ready && !err) return <Loading />;
   const pinIds = new Set(query ? [] : pinned.map((p) => p.id));
   const shown = feed.posts.filter((p) => !pinIds.has(p.id));
+  const messageRows = [];
+  let previousDay = "";
+  let previousAuthor = "";
+  [...shown].reverse().forEach((post) => {
+    const postDay = calendarKey(post.created_at);
+    const sameDay = previousDay === postDay;
+    const sameAuthor = sameDay && previousAuthor === authorKey(post);
+    if (!sameDay) {
+      messageRows.push(
+        <div className="cn-date" key={"date" + postDay}>
+          <span>{dateLabel(post.created_at)}</span>
+        </div>,
+      );
+    }
+    messageRows.push(
+      <PostCard
+        key={post.id}
+        post={post}
+        me={me}
+        kind={channel.kind}
+        acts={acts}
+        showHeader={!sameAuthor}
+        grouped={sameAuthor}
+      />,
+    );
+    previousDay = postDay;
+    previousAuthor = authorKey(post);
+  });
 
   return (
     <div className="cn-chat">
@@ -647,7 +723,7 @@ function ChatPanel({ channel, me, onSeen }) {
       {note && <Alert kind={note.kind}>{note.text}</Alert>}
       {!canPost && (
         <p className="cn-hint">
-          {me.muted ? "You have been muted by a school administrator." : "Only school administrators post in this channel."}
+          {me.muted ? "You have been muted by a school administrator." : "Only authorized school staff can post in this channel."}
         </p>
       )}
       {pinIds.size > 0 && (
@@ -668,9 +744,7 @@ function ChatPanel({ channel, me, onSeen }) {
           text={query ? "Try a different word." : "Posts from the school will appear here."}
         />
       )}
-      {[...shown].reverse().map((p) => (
-        <PostCard key={p.id} post={p} me={me} kind={channel.kind} acts={acts} />
-      ))}
+      {messageRows}
       <div id="cn-end" />
         {canPost && (
           <Composer me={me} events={events} onSend={(fd) => upload(base, fd, 60000)} onDone={refresh} />

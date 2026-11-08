@@ -1,11 +1,13 @@
 from django.db.models import Avg, Count, Sum
 from rest_framework.decorators import api_view
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
-from schools.models import AttendanceRecord, Enrollment, FeePayment, Performance, Student, StudentFee, StudentGuardian, Term
+from schools.models import AttendanceRecord, Enrollment, FeePayment, Performance, StaffProfile, Student, StudentFee, StudentGuardian, SchoolAdminProfile, Term
 from .views import _scope
 from .permissions import restrict_for_teacher
 from .subject_registration_rules import registered_marks
+from api.fee_permissions import get_fee_access_school_id
 
 
 def _student(request, pk):
@@ -17,8 +19,39 @@ def _student(request, pk):
     return student, Response({"detail": "Not found."}, status=404) if not student else None
 
 
+def _fee_center_data(student):
+    fees = StudentFee.objects.filter(student=student).select_related("fee_structure").order_by("-id")
+    payments = FeePayment.objects.filter(student_fee__student=student).select_related("student_fee__fee_structure").order_by("-paid_at")
+    totals = fees.aggregate(due=Sum("amount_due"), paid=Sum("amount_paid"))
+    return {
+        "fees": [{"id": f.id, "fee": f.fee_structure.name, "due": str(f.amount_due),
+                  "paid": str(f.amount_paid), "balance": str(f.balance), "status": f.status}
+                 for f in fees],
+        "payments": [{"id": p.id,
+                      "receipt_number": f"RCPT-{student.school.code}-{p.id:06d}",
+                      "amount": str(p.amount), "method": p.get_method_display(),
+                      "reference": p.reference, "paid_at": p.paid_at}
+                     for p in payments],
+        "fee_totals": {"due": str(totals["due"] or 0),
+                       "paid": str(totals["paid"] or 0),
+                       "balance": str((totals["due"] or 0) - (totals["paid"] or 0))},
+    }
+
+
 @api_view(["GET"])
 def student_center(request, pk):
+    # Fee staff receive only the ledger for a learner in their one authorized
+    # school; this endpoint must not widen access to academic/attendance data.
+    if StaffProfile.objects.filter(user=request.user, role="bursar").exists() and not SchoolAdminProfile.objects.filter(user=request.user).exists() and not request.user.is_superuser:
+        try:
+            fee_school_id = get_fee_access_school_id(request.user)
+        except PermissionDenied as exc:
+            return Response({"detail": str(exc.detail)}, status=403)
+        student = Student.objects.filter(pk=pk, school_id=fee_school_id).first()
+        if student is None:
+            return Response({"detail": "Not found."}, status=404)
+        return Response({"student": {"id": student.id, "name": str(student)},
+                         **_fee_center_data(student)})
     student, error = _student(request, pk)
     if error: return error
     enrollments = Enrollment.objects.filter(student=student).select_related("academic_year", "class_level", "stream").order_by("-academic_year__start_date")
@@ -51,10 +84,17 @@ def student_center(request, pk):
                     for status, _ in Performance.MARK_STATUS_CHOICES
                 },
             })
-    fees = StudentFee.objects.filter(student=student).select_related("fee_structure").order_by("-id")
-    payments = FeePayment.objects.filter(student_fee__student=student).select_related("student_fee__fee_structure").order_by("-paid_at")
-    totals = fees.aggregate(due=Sum("amount_due"), paid=Sum("amount_paid"))
+    fee_data = None
+    try:
+        get_fee_access_school_id(request.user, school_id=student.school_id)
+    except PermissionDenied:
+        pass
+    else:
+        fee_data = _fee_center_data(student)
     guardians = StudentGuardian.objects.filter(student=student).select_related("guardian__user")
     attendance = AttendanceRecord.objects.filter(student=student)
     counts = {status: attendance.filter(status=status).count() for status, _ in AttendanceRecord.STATUSES}
-    return Response({"student": {"id": student.id, "name": str(student), "first_name": student.first_name, "last_name": student.last_name, "admission_number": student.admission_number, "date_of_birth": student.date_of_birth}, "enrollments": [{"academic_year": e.academic_year.name, "class": e.class_level.name, "stream": e.stream.name if e.stream else "Unassigned", "active": e.is_active} for e in enrollments], "history": history, "attendance": {"counts": counts, "total": attendance.count(), "records": [{"date": x.date, "status": x.status, "notes": x.notes} for x in attendance[:100]]}, "fees": [{"id": f.id, "fee": f.fee_structure.name, "due": str(f.amount_due), "paid": str(f.amount_paid), "balance": str(f.balance), "status": f.status} for f in fees], "payments": [{"id": p.id, "receipt_number": f"RCPT-{student.school.code}-{p.id:06d}", "amount": str(p.amount), "method": p.get_method_display(), "reference": p.reference, "paid_at": p.paid_at} for p in payments], "fee_totals": {"due": str(totals["due"] or 0), "paid": str(totals["paid"] or 0), "balance": str((totals["due"] or 0) - (totals["paid"] or 0))}, "guardians": [{"name": str(g.guardian.user.get_full_name() or g.guardian.user.username), "relationship": g.relationship, "phone": g.guardian.phone} for g in guardians]})
+    data = {"student": {"id": student.id, "name": str(student), "first_name": student.first_name, "last_name": student.last_name, "admission_number": student.admission_number, "date_of_birth": student.date_of_birth}, "enrollments": [{"academic_year": e.academic_year.name, "class": e.class_level.name, "stream": e.stream.name if e.stream else "Unassigned", "active": e.is_active} for e in enrollments], "history": history, "attendance": {"counts": counts, "total": attendance.count(), "records": [{"date": x.date, "status": x.status, "notes": x.notes} for x in attendance[:100]]}, "guardians": [{"name": str(g.guardian.user.get_full_name() or g.guardian.user.username), "relationship": g.relationship, "phone": g.guardian.phone} for g in guardians]}
+    if fee_data is not None:
+        data.update(fee_data)
+    return Response(data)

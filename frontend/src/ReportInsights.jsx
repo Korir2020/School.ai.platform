@@ -20,7 +20,7 @@ function Table({ head, rows }) {
   );
 }
 
-export default function ReportInsights({ exam, cls, stream, prov, rankEnabled = true }) {
+export default function ReportInsights({ exam, cls, stream, prov, rankEnabled = true, frameworkKey = "" }) {
   const [data, setData] = useState(null);
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
@@ -73,31 +73,43 @@ export default function ReportInsights({ exam, cls, stream, prov, rankEnabled = 
         <Button onClick={() => save("xlsx")}>Export Excel</Button>
       </p>
       {msg && <Alert>{msg}</Alert>}
-      {!rankEnabled && data && <p>Rankings are disabled by this school's Primary report policy.</p>}
+      {!rankEnabled && data && <p>Rankings are disabled by this school's CBC report policy.</p>}
       {g && (
         <div>
           <p><b>{g.population}</b></p>
           <p>
             <Badge>{g.assessed} assessed</Badge> <Badge>{g.eligible} eligible</Badge> <Badge kind="warn">{g.incomplete} incomplete</Badge>
-            {g.mean_grade && <> <Badge>Mean {g.mean_grade}</Badge> <Badge>{g.mean_points} pts</Badge> <Badge>{g.mean_weighted_pct}%</Badge></>}
+            {frameworkKey !== "cbe_senior" && g.mean_grade && <> <Badge>Mean {g.mean_grade}</Badge> <Badge>{g.mean_points} pts</Badge> <Badge>{g.mean_weighted_pct}%</Badge></>}
           </p>
           <p>{Object.entries(g.grade_distribution || {}).map(([k, v]) => <Badge key={k}>{k}: {v}</Badge>)}</p>
           {g.subjects && <Table head={["Subject", "Mean %", "High", "Low", "Pass %", "Done", "Pending"]}
             rows={g.subjects.map((s) => [s.subject, s.mean_weighted_pct, s.highest, s.lowest, s.pass_rate, s.assessed, s.pending])} />}
+          {frameworkKey === "cbe_senior" && <>
+            <p>{g.comparison_note || "Senior group summaries are internal and separated by pathway and exact registered-subject combination; they are not official KNEC rankings."}</p>
+            <Table head={["Pathway / subject combination", "Eligible", "Assessed", "Incomplete", "Mean grade", "Mean points", "Mean %"]}
+              rows={(g.pathway_combinations || []).map((x) => [x.group, x.eligible, x.assessed, x.incomplete, x.mean_grade, x.mean_points, x.mean_weighted_pct])} />
+          </>}
         </div>
       )}
       {rk && (
         <div>
           <p><b>Rankings</b> ({rk.included} included, ties: {String(rk.tie_policy)})</p>
-          <Table head={["#", "Adm", "Name", "Stream", "Total", "Best pts", "Mean pts", "Grade"]}
-            rows={(rk.rows || []).map((x) => [x.position, x.adm_no, x.name, x.stream, x.total, x.best_points, x.mean_points, x.mean_grade])} />
+          <Table head={frameworkKey === "cbe_senior"
+            ? ["Position", "Out of", "Pathway / subject combination", "Adm", "Name", "Stream", "Total", "Mean grade"]
+            : ["#", "Adm", "Name", "Stream", "Total", "Best pts", "Mean pts", "Grade"]}
+            rows={(rk.rows || []).map((x) => frameworkKey === "cbe_senior"
+              ? [`${x.position}/${x.out_of}`, x.out_of, x.rank_group, x.adm_no, x.name, x.stream, x.total, x.mean_grade]
+              : [x.position, x.adm_no, x.name, x.stream, x.total, x.best_points, x.mean_points, x.mean_grade])} />
         </div>
       )}
       {data && (
         <div>
           <p><b>Support list</b> (for staff review, not an automatic decision)</p>
           {sp.length === 0 ? <p>No students flagged.</p> :
-            <Table head={["Adm", "Stream", "Mean pts"]} rows={sp.map((x) => [x.adm_no, x.stream, x.mean_points])} />}
+            <Table head={frameworkKey === "cbe_senior" ? ["Adm", "Stream", "Pathway", "Registered subjects", "Mean pts"] : ["Adm", "Stream", "Mean pts"]}
+              rows={sp.map((x) => frameworkKey === "cbe_senior"
+                ? [x.adm_no, x.stream, x.pathway, (x.subject_combination || []).join(", "), x.mean_points]
+                : [x.adm_no, x.stream, x.mean_points])} />}
         </div>
       )}
     </Card>

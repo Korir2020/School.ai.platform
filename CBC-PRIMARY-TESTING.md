@@ -1,6 +1,6 @@
 # CBC Primary (Grades 1–6) — Manual Acceptance Test
 
-This acceptance test covers the CBC Primary path only. Junior and Senior School remain intentionally out of scope until Primary passes manual testing. It uses school-configured rules; it does not define or claim national KNEC grading thresholds. The existing 8-4-4 calculation path is unchanged.
+This acceptance test covers the CBC Primary path only. CBC Junior Grades 7–9 have a separate acceptance guide in `CBC-JUNIOR-TESTING.md`; Senior School remains out of scope. This guide uses school-configured rules and does not define or claim national KNEC grading thresholds. The existing 8-4-4 calculation path is unchanged.
 
 ## 1. Set up a test class and learners
 

@@ -117,9 +117,11 @@ class RoleMatrixTests(APITestCase):
     def test_no_hard_delete_through_api(self):
         self.client.force_authenticate(self.admin_a)
         for url in [f"/api/students/{self.student_id}/",
-                    f"/api/academic-years/{self.year_id}/",
-                    f"/api/subjects/{self.subject_id}/"]:
+                    f"/api/academic-years/{self.year_id}/"]:
             self.assertEqual(self.client.delete(url).status_code, 405, url)
+        self.assertEqual(
+            self.client.delete(f"/api/subjects/{self.subject_id}/").status_code, 409
+        )
         self.assertTrue(Student.objects.filter(pk=self.student_id).exists())
 
     def test_login_rules(self):

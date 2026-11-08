@@ -1,6 +1,7 @@
 from datetime import date
 
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from rest_framework.test import APIClient
 
@@ -16,6 +17,7 @@ from schools.models import (
     School,
     SchoolAdminProfile,
     Stream,
+    StaffProfile,
     Student,
     StudentGuardian,
     TeacherProfile,
@@ -287,3 +289,93 @@ class ConnectApiTests(TestCase):
         r = self._c().delete(f"{B}posts/{pid}/")
         self.assertIn(r.status_code, (401, 403))
         self.assertTrue(ConnectPost.objects.filter(pk=pid).exists())
+
+
+class ConnectStaffApiTests(TestCase):
+    def _user(self, name, **kw):
+        return get_user_model().objects.create_user(name, name + "@example.com", "pw12345!", **kw)
+
+    def setUp(self):
+        self.school = School.objects.create(name="Staff Connect", code="staff-con")
+        self.other = School.objects.create(name="Other Staff Connect", code="staff-other")
+        self.admin = self._user("staff_admin", first_name="School", last_name="Admin")
+        SchoolAdminProfile.objects.create(user=self.admin, school=self.school)
+        self.staff = []
+        for name, role in (("staff_bursar", "bursar"), ("staff_secretary", "secretary")):
+            user = self._user(name, first_name=role.title(), last_name="Staff")
+            StaffProfile.objects.create(user=user, school=self.school, role=role)
+            self.staff.append((user, role))
+        other_user = self._user("other_secretary")
+        StaffProfile.objects.create(user=other_user, school=self.other, role="secretary")
+        self.other_staff = other_user
+        ensure_default_channels(self.school.id)
+        ensure_default_channels(self.other.id)
+        self.notices = ConnectChannel.objects.get(school=self.school, kind="notices")
+        self.community = ConnectChannel.objects.get(school=self.school, kind="community")
+        self.other_notices = ConnectChannel.objects.get(school=self.other, kind="notices")
+
+    def _c(self, user):
+        client = APIClient()
+        client.force_authenticate(user=user)
+        return client
+
+    def _say(self, user, channel, body, **extra):
+        data = {"body": body}
+        data.update(extra)
+        return self._c(user).post(f"{B}channels/{channel.id}/posts/", data, format="json")
+
+    def test_both_staff_roles_can_list_read_and_post_both_channels(self):
+        for user, role in self.staff:
+            listing = self._c(user).get(B + "channels/")
+            self.assertEqual(listing.status_code, 200)
+            self.assertEqual(listing.data["me"]["role"], role)
+            channels = {row["kind"]: row for row in listing.data["channels"]}
+            self.assertTrue(channels["community"]["can_post"])
+            self.assertTrue(channels["notices"]["can_post"])
+            for channel in (self.community, self.notices):
+                self.assertEqual(self._c(user).get(f"{B}channels/{channel.id}/posts/").status_code, 200)
+                response = self._say(user, channel, f"{role} message")
+                self.assertEqual(response.status_code, 201, response.data)
+                self.assertEqual(response.data["author_role"], role)
+
+    def test_both_staff_roles_can_post_attachments(self):
+        jpeg = b"\xff\xd8\xff\xe0" + b"\x00" * 64
+        for user, role in self.staff:
+            upload = SimpleUploadedFile(f"{role}.jpg", jpeg, content_type="image/jpeg")
+            response = self._c(user).post(
+                f"{B}channels/{self.community.id}/posts/",
+                {"body": f"{role} attachment", "files": [upload]},
+                format="multipart",
+            )
+            self.assertEqual(response.status_code, 201, response.data)
+            self.assertEqual(response.data["author_role"], role)
+            self.assertEqual(response.data["attachments"][0]["type"], "image/jpeg")
+
+    def test_both_staff_roles_can_report_and_delete_own_posts(self):
+        reported = self._say(self.admin, self.community, "Please review this post").data["id"]
+        for user, _ in self.staff:
+            report = self._c(user).post(f"{B}posts/{reported}/report/", {"reason": "Needs review"}, format="json")
+            self.assertEqual(report.status_code, 201, report.data)
+            own = self._say(user, self.community, "My own post")
+            self.assertEqual(own.status_code, 201)
+            self.assertEqual(self._c(user).delete(f"{B}posts/{own.data['id']}/").status_code, 204)
+
+    def test_both_staff_roles_are_rejected_from_admin_only_actions(self):
+        for user, _ in self.staff:
+            own = self._say(user, self.community, "Staff moderation test")
+            self.assertEqual(own.status_code, 201)
+            post_url = f"{B}posts/{own.data['id']}/"
+            for field in ("is_pinned", "is_urgent", "hidden"):
+                response = self._c(user).patch(post_url, {field: True}, format="json")
+                self.assertEqual(response.status_code, 403, field)
+            mute = self._c(user).post(f"{B}members/{self.admin.id}/mute/")
+            self.assertEqual(mute.status_code, 403)
+
+    def test_both_staff_roles_are_isolated_from_other_school(self):
+        for user, _ in self.staff:
+            channels = self._c(user).get(B + "channels/")
+            self.assertEqual(channels.status_code, 200)
+            self.assertEqual({row["id"] for row in channels.data["channels"]}, {self.notices.id, self.community.id})
+            self.assertEqual(self._c(user).get(f"{B}channels/{self.other_notices.id}/posts/").status_code, 404)
+            self.assertEqual(self._say(user, self.other_notices, "Cross-school post").status_code, 404)
+        self.assertEqual(self._c(self.other_staff).get(f"{B}channels/{self.notices.id}/posts/").status_code, 404)
