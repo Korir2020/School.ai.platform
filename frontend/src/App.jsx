@@ -49,6 +49,7 @@ import Dash2Act from "./Dash2Act";
 import Help from "./Help";
 import SuperHome from "./SuperHome";
 import TeacherHome from "./TeacherHome";
+import SecretaryHome from "./SecretaryHome";
 import SetupPage from "./SetupPage";
 import Announcements from "./Announcements";
 import Backups from "./Backups";
@@ -76,7 +77,7 @@ function Dash({ onOut }) {
     : role === "school_admin" ? { Home: home, Announcements: <Announcements />, Connect: <Connect />, Feedback: <Feedback />, Calendar: <Calendar />, Approve: <Approvals />, Exams: need(<Exams d={d} />), 'Subject Registration': <SubjectRegistration />, Reports: need(<ReportCards d={d} />), 'Report Cards': <ReportModule />, Analytics: need(<Analytics d={d} />), Attendance: <Attendance />, Fees: <Fees admin />, Documents: <BulkDocuments admin />, 'Migration Centre': <MigrationCentre />, Students: need(<Students d={d} />), Parents: <ParentAccounts />, Promotion: <Promotion />, Transfers: <TeacherTransfers />, Teachers: need(<><Teachers />{me && !me.is_deputy && <Deputies />}</>), Staff: <Staff />, Audit: <AuditLog />, Setup: <SetupPage me={me} d={d} go={setTab} /> }
     : role === "bursar" ? { Home: <BursarDashboard me={me} data={d} />, Fees: <Fees admin />, Announcements: <Announcements />, Connect: <Connect />, Documents: <BulkDocuments />, Calendar: <Calendar /> }
     : role === "parent" ? { Home: <Parent />, Announcements: <Announcements />, Connect: <Connect />, Feedback: <Feedback /> }
-    : role === "secretary" ? { Connect: <Connect /> }
+    : role === "secretary" ? { Home: <SecretaryHome me={me} onNavigate={setTab} />, Connect: <Connect /> }
     : role === "superadmin" ? { Home: home, Schools: <Platform d={d} />, Registrations: <RegistrationReview />, Transfers: <TeacherTransfers />, Admins: <Accounts />, Backups: <Backups />, Audit: <AuditLog />, Feedback: <Feedback owner /> }
     : d ? { Home: home } : {};
   const tabs = d ? { ...baseTabs, Help: <Help /> } : baseTabs;
