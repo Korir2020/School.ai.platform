@@ -71,11 +71,9 @@ class FrameworkRulesTests(TestCase):
         version = create_version(self.school, "cbe_junior_levels", self.real_cbc, 7, 9, self.admin)
         self.assertTrue(version.covers(self.grade8))
 
-    def test_junior_has_no_built_in_percentage_grading_bands(self):
-        from marian_reports.frameworks import get_framework
-        from marian_reports.grading import GradingError
-        with self.assertRaises(GradingError):
-            get_framework("cbe_junior_levels").scheme()
+    def test_junior_keeps_its_built_in_kjsea_bands(self):
+        from marian_reports.frameworks import get_framework, kjsea_scheme
+        self.assertEqual(get_framework("cbe_junior_levels").scheme().bands, kjsea_scheme().bands)
 
     def test_non_admin_refused(self):
         self.assertFalse(is_authorized(self.plain))

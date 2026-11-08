@@ -7,8 +7,8 @@ from rest_framework.test import APIClient
 from api.framework_rules import FrameworkError, assign, create_version
 from api.level_rules import LevelError, create_scale, roster, save_level
 from api.report_source import DjangoConfigStore
-from marian_reports.frameworks import get_framework
-from marian_reports.grading import GradingError, make_scheme
+from marian_reports.frameworks import get_framework, kjsea_scheme
+from marian_reports.grading import make_scheme
 from schools.models import (
     AcademicYear, ClassLevel, Curriculum, Enrollment, Exam, ExamResult,
     LevelResult, Performance, School, SchoolAdminProfile, Stream, Student,
@@ -97,8 +97,7 @@ class CBCJuniorScopeTests(CBCJuniorBase):
         with self.assertRaises(LevelError):
             create_scale(self.school, self.curriculum, 7, 10, self.admin)
         self.assertEqual(self.junior_scale().min_level, 7)
-        with self.assertRaises(GradingError):
-            get_framework("cbe_junior_levels").scheme()
+        self.assertEqual(get_framework("cbe_junior_levels").scheme().bands, kjsea_scheme().bands)
 
     def test_junior_catalogue_is_limited_to_selected_cbc_grade(self):
         math = SubjectDefinition.objects.create(

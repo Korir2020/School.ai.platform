@@ -4,10 +4,25 @@ Every result is an internal school calculation, never an official KNEC result.""
 from dataclasses import dataclass
 from typing import Callable
 
-from .grading import GradingError, GradingScheme
+from .grading import GradingError, GradingScheme, make_scheme
 from .schemes import kcse_scheme
 
 INTERNAL_NOTE = "Internal school result - not an official KNEC result."
+
+# (label, min_pct inclusive, max_pct exclusive, points). Reported KJSEA levels;
+# see docs/RULES.md for status. 10% and below = BE2, 11-20 = BE1, ... 90-100 = EE1.
+KJSEA_BANDS = [
+    ("BE2", 0, 11, 1), ("BE1", 11, 21, 2), ("AE2", 21, 31, 3), ("AE1", 31, 41, 4),
+    ("ME2", 41, 58, 5), ("ME1", 58, 75, 6), ("EE2", 75, 90, 7), ("EE1", 90, 100, 8),
+]
+
+
+def kjsea_scheme(**overrides) -> GradingScheme:
+    kw = dict(pass_pct=0, decimals=2, rounding="half_up", mean_rule="total_over_max",
+              absent_policy="pending", best_n=None)
+    kw.update(overrides)
+    return make_scheme(KJSEA_BANDS, **kw)
+
 
 def primary_school_scheme() -> GradingScheme:
     """CBC Primary has no built-in national percentage bands in Marian.
@@ -51,8 +66,8 @@ FRAMEWORKS = {
     "kcse_844": Framework("kcse_844", "8-4-4 secondary (12-point scale, best 7)",
                           "secondary_844", kcse_scheme),
     "cbe_junior_levels": Framework("cbe_junior_levels",
-                                   "CBC Junior (Grades 7–9; school-configured)",
-                                   "junior", junior_school_scheme),
+                                   'Junior school achievement levels (EE1-BE2, 8 points)',
+                                   "junior", kjsea_scheme),
     "cbe_senior": Framework("cbe_senior",
                              "CBC Senior (Grades 10–12; school-configured)",
                              "senior", senior_school_scheme),
