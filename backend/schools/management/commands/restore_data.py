@@ -1,4 +1,4 @@
-"""Restore a Marian backup created by backup_data or the platform Backups page.
+"""Restore a Marian snapshot created by backup_data or the platform Backups page.
 
     python manage.py restore_data marian-backup-20261104-1200.json.gz            # check only
     python manage.py restore_data FILE --yes                                      # restore into an empty database
@@ -6,7 +6,8 @@
 
 The file is checked (format, checksum, record types, migration state) before
 anything changes. The restore runs in one transaction: it either fully
-succeeds or leaves the database as it was.
+succeeds or leaves the database as it was. New snapshots omit fee records and
+some user-authored message text; a restore cannot recover those omissions.
 """
 import json
 import os
@@ -39,7 +40,12 @@ class Command(BaseCommand):
             self.stderr.write(self.style.WARNING("Warning: " + w))
         if not report["ok"]:
             raise CommandError("The backup failed its checks. Nothing was changed.")
-        self.stdout.write(f"Backup from {meta.get('created_at')}: {meta.get('total')} records, checksum OK.")
+        self.stdout.write(f"Backup from {meta.get('created_at')}: checksum OK.")
+        if meta.get("redactions"):
+            self.stderr.write(self.style.WARNING(
+                "This privacy-redacted snapshot omits fee records and user-authored message text. "
+                "A --replace restore will not restore those records."
+            ))
         if not opts["yes"]:
             self.stdout.write("Check only. Run again with --yes to restore.")
             return
@@ -58,4 +64,4 @@ class Command(BaseCommand):
                 call_command("loaddata", tmp, verbosity=0)
         finally:
             os.remove(tmp)
-        self.stdout.write(self.style.SUCCESS(f"Restored {meta.get('total')} records."))
+        self.stdout.write(self.style.SUCCESS("Restore completed."))

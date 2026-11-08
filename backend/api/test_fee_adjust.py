@@ -87,7 +87,7 @@ class FeeAdjustTests(APITestCase):
         self.assertEqual(r.data["payments"], [])
         self.assertEqual(len(r.data["bills"]), 1)
         self.assertEqual(
-            self.client.get(f"/api/fees/students/{self.outsider.id}/statement/").status_code, 404)
+            self.client.get(f"/api/fees/students/{self.outsider.id}/statement/").status_code, 403)
 
     def test_fee_lists_are_limited_to_the_bursars_school(self):
         other_year = AcademicYear.objects.create(

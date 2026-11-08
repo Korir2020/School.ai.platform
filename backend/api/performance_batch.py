@@ -9,6 +9,7 @@ from schools.models import (
     Stream, SubjectPaper, SubjectRegistration, TeacherAssignment, TeacherProfile,
 )
 from .serializers import PerformanceSerializer
+from .senior_rules import is_cbc_senior, pathway_matches_class, subject_definition_problem
 from .views import _scope
 
 MAX_BATCH_CELLS = 3000
@@ -107,7 +108,8 @@ def performance_batch(request):
 
         subject = Subject.objects.filter(
             pk=subject_id, school_id=exam.school_id, is_active=True,
-        ).first()
+        ).select_related("definition").prefetch_related(
+            "definition__class_levels", "definition__pathways").first()
         if subject is None:
             return Response({"detail": "Assigned subject not found or inactive."}, status=404)
 
@@ -118,7 +120,7 @@ def performance_batch(request):
             class_level=exam.class_level,
             is_active=True,
             student__school_id=exam.school_id,
-        ).select_related("student", "stream"))
+        ).select_related("student", "stream", "class_level__curriculum", "pathway"))
         enrollment_by_student = {enrollment.student_id: enrollment for enrollment in enrollments}
         registered_ids = set(SubjectRegistration.objects.filter(
             student_id__in=student_ids,
@@ -177,6 +179,19 @@ def performance_batch(request):
                     "detail": "Learner is not registered for this subject in this academic year.",
                 })
                 continue
+            if is_cbc_senior(enrollment.class_level):
+                if not pathway_matches_class(enrollment.pathway, enrollment.class_level):
+                    errors.append({
+                        "index": index, "student": student_id, "paper_number": paper_number,
+                        "detail": "Learner needs an active CBC Senior pathway for this academic year.",
+                    })
+                    continue
+                problem = subject_definition_problem(subject.definition, enrollment.class_level,
+                                                     enrollment.pathway)
+                if problem:
+                    errors.append({"index": index, "student": student_id,
+                                   "paper_number": paper_number, "detail": problem})
+                    continue
             if not admin and not request.user.is_superuser and (
                 enrollment.stream_id is None or enrollment.stream_id not in assigned_stream_ids
             ):

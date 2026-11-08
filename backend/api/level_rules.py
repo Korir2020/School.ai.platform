@@ -10,6 +10,7 @@ from schools.models import (
     Enrollment, LevelResult, LevelScale, MarkAuditLog, SubjectRegistration,
     TeacherAssignment,
 )
+from .senior_rules import is_cbc_senior, pathway_matches_class, subject_definition_problem
 
 ASSESSMENT_TYPES = ("opener", "mid", "end")
 
@@ -53,6 +54,10 @@ def create_scale(school, curriculum, min_level, max_level, user, levels=None):
         raise LevelError("Only a school administrator can change level scales.")
     if min_level > max_level:
         raise LevelError("The first level must not be above the last level.")
+    if curriculum.code.upper() == "CBC":
+        allowed = ((1, 6), (7, 9), (10, 12))
+        if not any(min_level >= lo and max_level <= hi for lo, hi in allowed):
+            raise LevelError("CBC achievement scales must stay within Primary (1–6), Junior (7–9), or Senior (10–12).")
     cleaned = clean_levels(levels if levels is not None else DEFAULT_LEVELS)
     last = (LevelScale.objects.filter(school=school, curriculum=curriculum)
             .order_by("-version").first())
@@ -66,6 +71,16 @@ def scale_for(school_id, class_level):
     """Newest scale that covers this class level, or None (not configured)."""
     rows = LevelScale.objects.filter(
         school_id=school_id, curriculum_id=class_level.curriculum_id).order_by("-version")
+    if class_level.curriculum.code.upper() == "CBC":
+        n = class_level.level_number
+        if 1 <= n <= 6:
+            rows = rows.filter(min_level__gte=1, max_level__lte=6)
+        elif 7 <= n <= 9:
+            rows = rows.filter(min_level__gte=7, max_level__lte=9)
+        elif 10 <= n <= 12:
+            rows = rows.filter(min_level__gte=10, max_level__lte=12)
+        else:
+            return None
     for sc in rows:
         if sc.covers(class_level):
             return sc
@@ -74,7 +89,7 @@ def scale_for(school_id, class_level):
 
 def _enrollment(student, year):
     return (Enrollment.objects.filter(student=student, academic_year=year)
-            .select_related("class_level", "stream").first())
+            .select_related("class_level__curriculum", "stream", "pathway").first())
 
 
 def _teacher_ok(user, subject, stream_id):
@@ -99,15 +114,24 @@ def save_level(user, student, subject, year, term, atype, level_key, comment="")
     enr = _enrollment(student, year)
     if enr is None:
         raise LevelError("This learner is not enrolled for that year.")
-    if (enr.class_level.curriculum.code.upper() == "CBC"
-            and 1 <= enr.class_level.level_number <= 6):
+    is_cbc_level_stage = (
+        enr.class_level.curriculum.code.upper() == "CBC"
+        and 1 <= enr.class_level.level_number <= 12
+    )
+    if is_cbc_level_stage:
         if not enr.is_active:
-            raise LevelError("This learner does not have an active Primary enrollment.")
+            raise LevelError("This learner does not have an active CBC enrollment.")
         if not SubjectRegistration.objects.filter(
             student=student, academic_year=year, subject=subject,
             subject__school_id=student.school_id,
         ).exists():
             raise LevelError("This learning area is not registered for this learner and academic year.")
+    if is_cbc_senior(enr.class_level):
+        if not pathway_matches_class(enr.pathway, enr.class_level):
+            raise LevelError("Set a valid CBC Senior pathway for this learner before entering levels.")
+        problem = subject_definition_problem(subject.definition, enr.class_level, enr.pathway)
+        if problem:
+            raise LevelError(problem)
     if not (_is_admin_of(user, student.school_id) or _teacher_ok(user, subject, enr.stream_id)):
         raise LevelError("You are not assigned to this subject and class.")
     scale = scale_for(student.school_id, enr.class_level)
@@ -167,15 +191,18 @@ def roster(user, subject, stream, year, term, atype):
     enrolled = list(Enrollment.objects.filter(
         stream=stream, academic_year=year, is_active=True,
         student__school_id=subject.school_id,
-    ).select_related("student", "class_level__curriculum"))
+    ).select_related("student", "class_level__curriculum", "pathway"))
     if (stream.class_level.curriculum.code.upper() == "CBC"
-            and 1 <= stream.class_level.level_number <= 6):
+            and 1 <= stream.class_level.level_number <= 12):
         registered_ids = set(SubjectRegistration.objects.filter(
             subject=subject, academic_year=year,
             student_id__in=[e.student_id for e in enrolled],
             subject__school_id=subject.school_id,
         ).values_list("student_id", flat=True))
         enrolled = [e for e in enrolled if e.student_id in registered_ids]
+    if is_cbc_senior(stream.class_level):
+        enrolled = [e for e in enrolled if pathway_matches_class(e.pathway, e.class_level)
+                    and not subject_definition_problem(subject.definition, e.class_level, e.pathway)]
     got = {r.student_id: r for r in LevelResult.objects.filter(
         subject=subject, academic_year=year, term=term, assessment_type=atype,
         student_id__in=[e.student_id for e in enrolled])}

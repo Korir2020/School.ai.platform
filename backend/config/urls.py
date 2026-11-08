@@ -13,10 +13,12 @@ from api.views import (
     class_level_list,
     stream_list,
     enrollment_list, subject_list,
-    primary_subject_catalog,
+    primary_subject_catalog, junior_subject_catalog, curriculum_pathway_list,
+    senior_subject_catalog,
 )
 
 from api import setup_views
+from api.setup_catalog import subject_catalog, add_catalog_subjects
 from api import profile_views
 from api import resend_views
 from api.subject_registrations import subject_registration_collection
@@ -35,6 +37,9 @@ urlpatterns = [
     path('api/enrollments/', enrollment_collection),
     path('api/subjects/', subject_collection),
     path('api/subject-definitions/primary/', primary_subject_catalog),
+    path('api/subject-definitions/junior/', junior_subject_catalog),
+    path('api/subject-definitions/senior/', senior_subject_catalog),
+    path('api/curriculum-pathways/', curriculum_pathway_list),
     path('api/subject-registrations/', subject_registration_collection),
     path('api/performance/', performance_list),
     path('api/performance/batch/', performance_batch),
@@ -300,7 +305,31 @@ urlpatterns += [
 
 from api.parent_portal import parent_accounts, parent_children, parent_fees
 from api.documents import bulk_report_cards, fee_receipts
-from api.receipt_verify import receipt_verify
+from api.receipt_verify import ReceiptVerifyThrottle, read_token
+from rest_framework.decorators import api_view, authentication_classes, permission_classes, throttle_classes
+from rest_framework.permissions import AllowAny
+from django.http import HttpResponse
+from schools.models import FeePayment
+
+@api_view(["GET"])
+@authentication_classes([])
+@permission_classes([AllowAny])
+@throttle_classes([ReceiptVerifyThrottle])
+def receipt_verify(request, token):
+    """Public receipt check; reveal validity only, never receipt or school data."""
+    payment_id = read_token(token)
+    valid = payment_id is not None and FeePayment.objects.filter(pk=payment_id).exists()
+    label = "Valid receipt" if valid else "Not valid"
+    response = HttpResponse(
+        "<!doctype html><html lang='en'><head><meta name='robots' content='noindex'>"
+        "<meta name='viewport' content='width=device-width,initial-scale=1'>"
+        "<title>Receipt check</title></head><body><h1>" + label + "</h1></body></html>",
+        status=200 if valid else 404,
+        content_type="text/html; charset=utf-8",
+    )
+    response["Cache-Control"] = "no-store"
+    response["X-Robots-Tag"] = "noindex"
+    return response
 from api.branding import school_branding
 from api.academic_reports import advanced_report
 from api.student_center import student_center
@@ -334,6 +363,11 @@ urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 from api.school_suspension import school_suspension
 urlpatterns += [
     path('api/schools/<int:pk>/suspension/', school_suspension),
+]
+
+urlpatterns += [
+    path('api/setup/subject-catalog/', subject_catalog),
+    path('api/setup/subjects/bulk/', add_catalog_subjects),
 ]
 
 from api.report_urls import report_urlpatterns  # noqa: E402

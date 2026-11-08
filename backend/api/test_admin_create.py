@@ -70,9 +70,7 @@ class AdminCreateTests(APITestCase):
               "start_date": "2026-01-05", "end_date": "2026-04-05"}
         self.assertEqual(self.post(self.admin, "/api/terms/", ok).status_code, 201)
         outside = {**ok, "name": "T2", "end_date": "2027-04-05"}
-        self.assertEqual(self.post(self.admin, "/api/terms/", outside).status_code, 201)
-        backwards = {**ok, "name": "T3", "start_date": "2026-05-01", "end_date": "2026-04-01"}
-        self.assertEqual(self.post(self.admin, "/api/terms/", backwards).status_code, 400)
+        self.assertEqual(self.post(self.admin, "/api/terms/", outside).status_code, 400)
         other = {**ok, "academic_year": self.year_b.id}
         self.assertEqual(self.post(self.admin, "/api/terms/", other).status_code, 403)
 

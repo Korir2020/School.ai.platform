@@ -6,11 +6,15 @@ from django.utils import timezone
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
-from schools.models import BackgroundJob, SchoolAdminProfile, StaffProfile
+from schools.models import BackgroundJob, SchoolAdminProfile
+from .fee_permissions import get_fee_access_school_id
 
 
 def _authorized(request, job):
     user = request.user
+    if job.job_type == "fee_receipts":
+        get_fee_access_school_id(user, school_id=job.school_id)
+        return True
     if user.is_superuser:
         return True
     admin = SchoolAdminProfile.objects.filter(
@@ -18,10 +22,6 @@ def _authorized(request, job):
     ).exists()
     if admin:
         return True
-    if job.job_type == "fee_receipts":
-        return StaffProfile.objects.filter(
-            user=user, school_id=job.school_id, role="bursar",
-        ).exists()
     return False
 
 

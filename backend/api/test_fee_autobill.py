@@ -58,8 +58,7 @@ class AutoBillTests(APITestCase):
     def test_other_school_and_bad_input(self):
         self.activate()
         r = self.switch(self.outsider, "boarder")
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.data["students_changed"], 0)
+        self.assertEqual(r.status_code, 403)
         self.outsider.refresh_from_db()
         self.assertEqual(self.outsider.fee_category, "day")
         self.assertEqual(self.switch(self.day3, "weekly").status_code, 400)

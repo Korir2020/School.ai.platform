@@ -118,12 +118,12 @@ class DjangoDataSource(DataSource):
             rows = rows.filter(student_id__in=student_ids)
         latest = {}
         for e in rows.select_related(
-                "class_level", "stream", "academic_year"
+                "class_level", "stream", "academic_year", "pathway"
         ).order_by("academic_year__start_date", "id"):
             latest[e.student_id] = e  # later years overwrite earlier ones
         return latest
 
-    def _to_student(self, student, enrollment):
+    def _to_student(self, student, enrollment, registrations=()):
         return ReportStudent(
             id=str(student.pk), school_id=str(student.school_id),
             adm_no=student.admission_number,
@@ -132,6 +132,10 @@ class DjangoDataSource(DataSource):
             class_name=enrollment.class_level.name if enrollment else "",
             stream=enrollment.stream.name if enrollment and enrollment.stream else "",
             kcpe_score=None, status="active",
+            pathway_name=enrollment.pathway.name if enrollment and enrollment.pathway else "",
+            pathway_code=enrollment.pathway.code if enrollment and enrollment.pathway else "",
+            subject_combination=tuple(sorted(str(row[0]) for row in registrations)),
+            registered_subject_names=tuple(sorted(row[1] for row in registrations)),
         )
 
     def _to_exam(self, exam, terms):
@@ -147,6 +151,7 @@ class DjangoDataSource(DataSource):
             + ASSESSMENT_ORDER.get(exam.assessment_type, 0),
             closing_date=term.end_date.isoformat(),
             next_term_opens=later[0].start_date.isoformat() if later else "",
+            framework_key=exam.framework_key,
         )
 
     # ---- DataSource ----------------------------------------------------
@@ -164,6 +169,11 @@ class DjangoDataSource(DataSource):
 
     def get_exam(self, school_id, exam_id):
         exam = self._exam_row(school_id, exam_id)
+        if not exam.framework_key and exam.class_level.curriculum.code.upper() == "CBC":
+            from api.framework_rules import resolve
+            version = resolve(exam.school_id, exam.class_level, exam.term.academic_year)
+            if version is not None:
+                exam.framework_key = version.framework_key
         return self._to_exam(exam, self._school_terms(school_id))
 
     def list_exams(self, school_id):
@@ -192,14 +202,15 @@ class DjangoDataSource(DataSource):
         return out
 
     def list_exam_students(self, school_id, exam_id, class_name):
-        """Primary-only exact roster; legacy and other frameworks keep their old population."""
+        """Exact Grade 1–9 CBC cohort; legacy and other frameworks keep their old population."""
         exam = self._exam_row(school_id, exam_id)
         framework_key = exam.framework_key
         if not framework_key and exam.class_level.curriculum.code.upper() == "CBC":
             from api.framework_rules import resolve
             version = resolve(exam.school_id, exam.class_level, exam.term.academic_year)
             framework_key = version.framework_key if version is not None else None
-        if framework_key != "cbe_primary":
+        from marian_reports.frameworks import CBC_REPORT_FRAMEWORKS
+        if framework_key not in CBC_REPORT_FRAMEWORKS:
             return None
         if exam.class_level.name != class_name:
             return []
@@ -207,14 +218,22 @@ class DjangoDataSource(DataSource):
             student__school_id=_pk(school_id), student__status="active",
             academic_year_id=exam.term.academic_year_id,
             class_level_id=exam.class_level_id, is_active=True,
-        ).select_related("student", "class_level", "stream").order_by(
+        ).select_related("student", "class_level", "stream", "pathway").order_by(
             "student__admission_number", "-id")
+        registrations = defaultdict(list)
+        for student_id, subject_id, subject_name in SubjectRegistration.objects.filter(
+            student_id__in=[row.student_id for row in enrollments],
+            academic_year_id=exam.term.academic_year_id,
+            subject__school_id=_pk(school_id),
+        ).values_list("student_id", "subject_id", "subject__name"):
+            registrations[student_id].append((subject_id, subject_name))
         seen, out = set(), []
         for enrollment in enrollments:
             if enrollment.student_id in seen:
                 continue
             seen.add(enrollment.student_id)
-            out.append(self._to_student(enrollment.student, enrollment))
+            out.append(self._to_student(
+                enrollment.student, enrollment, registrations.get(enrollment.student_id, ())))
         return out
 
     def get_entries(self, school_id, exam_id, student_id):
@@ -276,8 +295,9 @@ class DjangoDataSource(DataSource):
             papers_by_subject[paper.subject_id].append(paper)
 
         achievement_by_student_subject = {}
-        is_primary = exam.framework_key == "cbe_primary"
-        if is_primary and subject_ids:
+        from marian_reports.frameworks import CBC_REPORT_FRAMEWORKS
+        is_cbc_level_stage = exam.framework_key in CBC_REPORT_FRAMEWORKS
+        if is_cbc_level_stage and subject_ids:
             for level in LevelResult.objects.filter(
                 student_id__in=ids, subject_id__in=subject_ids,
                 academic_year_id=exam.term.academic_year_id, term=exam.term,

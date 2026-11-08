@@ -16,7 +16,6 @@ import ReportModule from "./ReportModule";
 import MigrationCentre from "./MigrationCentre";
 import TeacherTodo from "./TeacherTodo";
 import Students from "./Students";
-import Setup from "./Setup";
 import Password from "./Password";
 import Deputies from "./Deputies";
 import Intro from "./Intro";
@@ -64,11 +63,11 @@ function Dash({ onOut }) {
   const [me, setMe] = useState(null), [d, setD] = useState(null), [tab, setTab] = useHashTab();
   useEffect(() => { (async () => {
     const a = await api("/api/auth/me/"); if (a.status === 401) return onOut(); const m = await a.json(); setMe(m); if (m.role === "school_admin" && m.setup_complete === false && !m.is_deputy && !window.location.hash) setTab("Setup");
-    if (["none", "secretary"].includes(m.role)) return;
-    if (m.role === "bursar") { setD({ role: "bursar" }); return; }
+    if (m.role === "none") return;
+    if (["bursar", "secretary"].includes(m.role)) { setD({ role: m.role }); return; }
     if (m.role === "parent") { setD({ role: "parent" }); return; }
     const b = await api("/api/dashboard/"); if (b.ok) setD(await b.json());
-  })(); }, []);
+  })(); }, [onOut, setTab]);
   useEffect(() => { const h = async () => { if (!d || !["school_admin", "teacher"].includes(d.role)) return; const b = await api("/api/dashboard/"); if (b.ok) setD(await b.json()); }; window.addEventListener("marian:dashboard-refresh", h); return () => window.removeEventListener("marian:dashboard-refresh", h); }, [d]);
   const role = d && d.role;
   const need = (el) => (d.active_term ? el : <p className="plain">No active term yet. Create one in Setup first.</p>);
@@ -77,11 +76,12 @@ function Dash({ onOut }) {
     : role === "school_admin" ? { Home: home, Announcements: <Announcements />, Connect: <Connect />, Feedback: <Feedback />, Calendar: <Calendar />, Approve: <Approvals />, Exams: need(<Exams d={d} />), 'Subject Registration': <SubjectRegistration />, Reports: need(<ReportCards d={d} />), 'Report Cards': <ReportModule />, Analytics: need(<Analytics d={d} />), Attendance: <Attendance />, Fees: <Fees admin />, Documents: <BulkDocuments admin />, 'Migration Centre': <MigrationCentre />, Students: need(<Students d={d} />), Parents: <ParentAccounts />, Promotion: <Promotion />, Transfers: <TeacherTransfers />, Teachers: need(<><Teachers />{me && !me.is_deputy && <Deputies />}</>), Staff: <Staff />, Audit: <AuditLog />, Setup: <SetupPage me={me} d={d} go={setTab} /> }
     : role === "bursar" ? { Fees: <Fees admin />, Announcements: <Announcements />, Connect: <Connect />, Documents: <BulkDocuments />, Calendar: <Calendar /> }
     : role === "parent" ? { Home: <Parent />, Announcements: <Announcements />, Connect: <Connect />, Feedback: <Feedback /> }
+    : role === "secretary" ? { Connect: <Connect /> }
     : role === "superadmin" ? { Home: home, Schools: <Platform d={d} />, Registrations: <RegistrationReview />, Transfers: <TeacherTransfers />, Admins: <Accounts />, Backups: <Backups />, Audit: <AuditLog />, Feedback: <Feedback owner /> }
     : d ? { Home: home } : {};
   const tabs = d ? { ...baseTabs, Help: <Help /> } : baseTabs;
   const out = async () => { await logout(); onOut(); };
-  if (me && ["none", "secretary"].includes(me.role)) {
+  if (me && me.role === "none") {
     return <JoinStatus me={me} out={out} />;
   }
   const cur = tabs[tab] ? tab : "Home";

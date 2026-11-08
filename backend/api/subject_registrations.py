@@ -6,11 +6,12 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
 from schools.models import (
-    AcademicYear, Enrollment, Exam, MarkAuditLog, Performance,
+    AcademicYear, CurriculumPathway, Enrollment, Exam, MarkAuditLog, Performance,
     SchoolAdminProfile, Student, Subject, SubjectRegistration,
     TeacherAssignment,
 )
 from .pagination import paginated_response
+from .senior_rules import is_cbc_senior, pathway_matches_class, subject_definition_problem
 from .views import _scope
 
 
@@ -100,9 +101,22 @@ def subject_registration_collection(request):
         return Response({"detail": "Records must belong to your school."}, status=403)
     enrollment = Enrollment.objects.filter(
         student=student, academic_year=year, is_active=True
-    ).select_related("class_level").first()
+    ).select_related("class_level__curriculum", "pathway").first()
     if enrollment is None:
         return Response({"detail": "The learner must have an active enrollment in this academic year."}, status=400)
+    senior = is_cbc_senior(enrollment.class_level)
+    requested_pathway = enrollment.pathway
+    raw_pathway = request.data.get("pathway")
+    if senior:
+        if raw_pathway not in (None, ""):
+            pathway_id = _positive_int(raw_pathway)
+            requested_pathway = CurriculumPathway.objects.filter(
+                pk=pathway_id, is_active=True,
+            ).first() if pathway_id else None
+        if requested_pathway is None or not pathway_matches_class(requested_pathway, enrollment.class_level):
+            return Response({"detail": "Choose an active CBC Senior pathway that applies to this grade."}, status=400)
+    elif raw_pathway not in (None, ""):
+        return Response({"detail": "Pathways apply only to CBC Senior Grades 10–12."}, status=400)
 
     subject_ids, categories = [], {}
     errors = []
@@ -128,7 +142,8 @@ def subject_registration_collection(request):
 
     subjects = list(Subject.objects.filter(
         pk__in=subject_ids, school_id=student.school_id, is_active=True
-    ).select_related("definition"))
+    ).select_related("definition").prefetch_related(
+        "definition__class_levels", "definition__pathways"))
     by_id = {subject.id: subject for subject in subjects}
     missing = sorted(set(subject_ids) - set(by_id))
     if missing:
@@ -136,13 +151,22 @@ def subject_registration_collection(request):
                          "subject_ids": missing}, status=400)
     for subject in subjects:
         definition = subject.definition
-        if definition and definition.class_levels.exists() and not definition.class_levels.filter(
+        if senior:
+            problem = subject_definition_problem(definition, enrollment.class_level, requested_pathway)
+            if problem:
+                return Response({"detail": problem}, status=400)
+        elif definition and definition.class_levels.exists() and not definition.class_levels.filter(
             pk=enrollment.class_level_id
         ).exists():
             return Response({"detail": f"{subject.name} is not available for {enrollment.class_level.name}."}, status=400)
 
     with transaction.atomic():
         Student.objects.select_for_update().get(pk=student.pk)
+        locked_enrollment = Enrollment.objects.select_for_update().select_related(
+            "class_level__curriculum", "pathway").get(pk=enrollment.pk)
+        if senior and not pathway_matches_class(requested_pathway, locked_enrollment.class_level):
+            return Response({"detail": "The selected CBC Senior pathway is no longer active for this grade."}, status=409)
+        pathway_changed = senior and locked_enrollment.pathway_id != requested_pathway.pk
         current = list(SubjectRegistration.objects.select_for_update().filter(
             student=student, academic_year=year))
         current_by_subject = {row.subject_id: row for row in current}
@@ -152,7 +176,7 @@ def subject_registration_collection(request):
             sid for sid in wanted & current_ids
             if categories[sid] != current_by_subject[sid].category
         )
-        changed = wanted != current_ids or bool(category_changed)
+        changed = wanted != current_ids or bool(category_changed) or pathway_changed
         enrolled_class_levels = Enrollment.objects.filter(
             student=student, academic_year=year,
         ).values("class_level_id")
@@ -201,6 +225,9 @@ def subject_registration_collection(request):
             SubjectRegistration.objects.bulk_update(to_update, ["category", "registered_by", "updated_at"])
         if to_create:
             SubjectRegistration.objects.bulk_create(to_create)
+        if pathway_changed:
+            locked_enrollment.pathway = requested_pathway
+            locked_enrollment.save(update_fields=["pathway"])
         if changed:
             MarkAuditLog.objects.create(
                 school_id=student.school_id, user=request.user,
@@ -210,6 +237,8 @@ def subject_registration_collection(request):
                     "added": sorted(added),
                     "removed": sorted(removed),
                     "category_changed": category_changed,
+                    "pathway_from": locked_enrollment.pathway_id if not pathway_changed else enrollment.pathway_id,
+                    "pathway_to": requested_pathway.pk if senior else None,
                 },
             )
         result = SubjectRegistration.objects.filter(
@@ -218,6 +247,7 @@ def subject_registration_collection(request):
         return Response({
             "student": student.id,
             "academic_year": year.id,
+            "pathway": requested_pathway.pk if senior else None,
             "count": result.count(),
             "registrations": SubjectRegistrationSerializer(result, many=True).data,
         }, status=200)

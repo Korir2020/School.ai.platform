@@ -1,7 +1,6 @@
 """Public receipt check. The QR on a receipt carries a signed token that proves Marian issued it."""
 from django.core import signing
 from django.http import HttpResponse
-from django.utils import timezone
 from django.utils.html import escape
 from rest_framework.decorators import api_view, authentication_classes, permission_classes, throttle_classes
 from rest_framework.permissions import AllowAny
@@ -91,16 +90,8 @@ def receipt_verify(request, token):
         return _page(False, "Not valid",
                      [],
                      "This code was not issued by Marian, or it was changed. Please check with the school.", 404)
-    school = payment.student_fee.student.school
-    try:
-        when = timezone.localtime(payment.paid_at)
-    except ValueError:
-        when = payment.paid_at
-    rows = [
-        ("Receipt number", f"RCPT-{school.code}-{payment.id:06d}"),
-        ("School", school.name),
-        ("Amount", f"{school.currency or 'KES'} {payment.amount:,.2f}"),
-        ("Date", when.strftime("%d %b %Y")),
-    ]
-    return _page(True, "Valid receipt", rows,
-                 "This confirms the school issued this receipt. It does not show the current fee balance.", 200)
+    return _page(
+        True, "Valid receipt", [],
+        "This receipt token is valid. No receipt or learner details are disclosed.",
+        200,
+    )

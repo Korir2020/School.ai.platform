@@ -1,12 +1,14 @@
 import SetupWizard from "./SetupWizard";
 import Terms from "./Terms";
 import Setup from "./Setup";
+import PaperSetup from "./PaperSetup";
+import SetupSection from "./SetupSection";
 import { SchoolExport } from "./Backups";
 import "./setup2.css";
 
 const NAV = [["setup-progress", "Progress"], ["setup-terms", "Calendar"], ["setup-identity", "Identity"], ["setup-classes", "Classes & subjects"], ["setup-papers", "Papers"], ["setup-export", "Export"]];
 
-export default function SetupPage({ me, d, go }) {
+export default function SetupPage({ me, d }) {
   const jump = (id) => { const el = document.getElementById(id); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); };
   const owner = me && !me.is_deputy;
   return (
@@ -25,6 +27,9 @@ export default function SetupPage({ me, d, go }) {
       <SetupWizard go={jump} />
       <Terms />
       <Setup />
+      <SetupSection id="setup-papers" title="Subject papers" summary="Optional · configure paper weights only when a subject needs more than one paper" complete>
+        <PaperSetup />
+      </SetupSection>
       {owner && <section className="s2-sec" id="setup-export"><SchoolExport /></section>}
     </div>
   );

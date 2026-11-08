@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { startTransition, useCallback, useEffect, useState } from "react";
 import { api, listAll } from "./api";
 import { useToast } from "./toastctx";
 import { Alert, Badge, Button, Card, DataTable, Input, Loading, Select } from "./ui";
@@ -26,17 +26,21 @@ export default function Fees({ admin = false }) {
   const [carryTerm, setCarryTerm] = useState("");
   const [picked, setPicked] = useState([]), [pickCat, setPickCat] = useState("boarder");
   const [terms, setTerms] = useState([]), [billed, setBilled] = useState(null);
-  const load = async () => {
+  const load = useCallback(async () => {
     const [s, i] = await Promise.all([api("/api/fees/summary/"), listAll("/api/fees/invoices/")]);
-    if (!s.ok) { setData({ error: true }); return; }
-    setData(await s.json()); setRows(i);
+    if (!s.ok) {
+      startTransition(() => setData({ error: s.status === 403 ? "You do not have permission to access fee information." : true }));
+      return;
+    }
+    const summary = await s.json();
+    startTransition(() => { setData(summary); setRows(i); });
     if (admin) {
       const [y, f, st, rp] = await Promise.all([listAll("/api/fees/years/"), listAll("/api/fees/structures/"), listAll("/api/fees/students/"), listAll("/api/fees/report/")]);
-      setYears(y); listAll("/api/fees/terms/").then(setTerms).catch(() => {}); setStructures(f); setStudents(st);
-      setReport(rp);
+      startTransition(() => { setYears(y); setStructures(f); setStudents(st); setReport(rp); });
+      listAll("/api/fees/terms/").then((termRows) => startTransition(() => setTerms(termRows))).catch(() => {});
     }
-  };
-  useEffect(() => { load(); }, []);
+  }, [admin]);
+  useEffect(() => { void load(); }, [load]);
   const createStructure = async () => {
     setBusy(true); const r = await api("/api/fees/structures/", "POST", form);
     const j = await r.json().catch(() => ({})); setBusy(false);
@@ -101,7 +105,7 @@ export default function Fees({ admin = false }) {
     if (r.ok) load();
   };
   if (!data) return <Loading />;
-  if (data.error) return <Alert kind="err">Fees are not available for this account.</Alert>;
+  if (data.error) return <Alert kind="err">{typeof data.error === "string" ? data.error : "Fees are not available for this account."}</Alert>;
   const cols = [
     { label: "Student", get: (x) => x.student_name, sort: true },
     { label: "Fee", key: "fee_name" },

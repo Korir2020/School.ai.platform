@@ -1,18 +1,40 @@
 from django.utils.dateparse import parse_date
 from rest_framework.decorators import api_view
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
-from schools.models import MarkAuditLog, SchoolAdminProfile
+from schools.models import MarkAuditLog, SchoolAdminProfile, StaffProfile
 from .permissions import get_user_school_id
+from api.fee_permissions import get_fee_access_school_id
 
 
 @api_view(["GET"])
 def audit_log_list(request):
     logs = MarkAuditLog.objects.select_related("user")
-    if not request.user.is_superuser:
-        if not SchoolAdminProfile.objects.filter(user=request.user).exists():
+    is_admin = SchoolAdminProfile.objects.filter(user=request.user).exists()
+    is_bursar = StaffProfile.objects.filter(user=request.user, role="bursar").exists()
+    if is_bursar and not is_admin and not request.user.is_superuser:
+        try:
+            school_id = get_fee_access_school_id(request.user)
+        except PermissionDenied as exc:
+            return Response({"detail": str(exc.detail)}, status=403)
+        logs = logs.filter(school_id=school_id, action__startswith="fee_")
+    elif not request.user.is_superuser:
+        if not is_admin:
             return Response({"detail": "Admins only."}, status=403)
-        logs = logs.filter(school_id=get_user_school_id(request.user))
+        school_id = get_user_school_id(request.user)
+        logs = logs.filter(school_id=school_id)
+        try:
+            get_fee_access_school_id(request.user, school_id=school_id)
+            fee_logs_allowed = True
+        except PermissionDenied:
+            fee_logs_allowed = False
+        if not fee_logs_allowed:
+            logs = logs.exclude(action__startswith="fee_")
+    else:
+        # Platform operators can retain the existing non-fee audit view, but
+        # school fee amounts are never available to a platform superuser.
+        logs = logs.exclude(action__startswith="fee_")
     performance_id = request.query_params.get("performance")
     if performance_id and performance_id.isdigit():
         logs = logs.filter(performance_id=int(performance_id))

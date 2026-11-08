@@ -8,6 +8,7 @@ const ENROLLMENTS = "/api/enrollments/";
 const STUDENTS = "/api/students/";
 const SUBJECTS = "/api/subjects/";
 const REGISTRATIONS = "/api/subject-registrations/";
+const PATHWAYS = "/api/curriculum-pathways/";
 
 const refId = (value) => value && typeof value === "object" ? value.id : value;
 const sameId = (a, b) => String(refId(a) ?? "") === String(refId(b) ?? "");
@@ -93,6 +94,7 @@ export default function SubjectRegistration() {
   const [retry, setRetry] = useState(0);
   const [yearId, setYearId] = useState("");
   const [enrollmentId, setEnrollmentId] = useState("");
+  const [pathwayId, setPathwayId] = useState("");
   const [categories, setCategories] = useState({});
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState("");
@@ -107,9 +109,10 @@ export default function SubjectRegistration() {
       listChecked(STUDENTS),
       listChecked(SUBJECTS),
       listChecked(REGISTRATIONS),
-    ]).then(([years, enrollments, students, subjects, registrations]) => {
+      listChecked(PATHWAYS),
+    ]).then(([years, enrollments, students, subjects, registrations, pathways]) => {
       if (live) {
-        setData({ years, enrollments, students, subjects, registrations });
+        setData({ years, enrollments, students, subjects, registrations, pathways });
         setYearId((current) => current || String(years.find((year) => isActive(year.is_active))?.id || ""));
       }
     }).catch(() => {
@@ -126,12 +129,38 @@ export default function SubjectRegistration() {
       && sameId(enrollment.academic_year, yearId));
   }, [data, yearId]);
   const enrollment = activeEnrollments.find((item) => String(item.id) === enrollmentId);
+  const isSenior = !!enrollment && enrollment.curriculum_code === "CBC"
+    && Number(enrollment.class_level_number) >= 10 && Number(enrollment.class_level_number) <= 12;
+  const availablePathways = useMemo(() => {
+    if (!data || !enrollment || !isSenior) return [];
+    const classLevelId = refId(enrollment.class_level);
+    return data.pathways.filter((pathway) => pathway.curriculum_code === "CBC"
+      && (pathway.class_levels || []).some((id) => sameId(id, classLevelId)));
+  }, [data, enrollment, isSenior]);
+  const availableSubjects = useMemo(() => {
+    if (!enrollment) return activeSubjects;
+    const classLevelId = refId(enrollment.class_level);
+    return activeSubjects.filter((subject) => {
+      const levels = subject.definition_class_levels || [];
+      if (levels.length && !levels.some((id) => sameId(id, classLevelId))) return false;
+      if (isSenior) {
+        if (subject.definition && subject.curriculum_code !== "CBC") return false;
+        const tagged = subject.definition_pathways || [];
+        return tagged.length === 0 || (!!pathwayId && tagged.some((pathway) => sameId(pathway.id, pathwayId)));
+      }
+      return true;
+    });
+  }, [activeSubjects, enrollment, isSenior, pathwayId]);
   const learnerId = enrollment ? refId(enrollment.student) : "";
   const selectedIds = Object.keys(categories).filter((id) => categories[id] !== undefined);
   const compulsoryCount = selectedIds.filter((id) => categories[id] === "compulsory").length;
   const optionalCount = selectedIds.filter((id) => categories[id] === "optional").length;
   const classifiedCount = compulsoryCount + optionalCount;
   const allClassified = selectedIds.length > 0 && classifiedCount === selectedIds.length;
+
+  useEffect(() => {
+    setPathwayId(enrollment && enrollment.pathway ? String(refId(enrollment.pathway)) : "");
+  }, [enrollmentId]);
 
   useEffect(() => {
     if (!data || !yearId || !enrollment) {
@@ -142,13 +171,13 @@ export default function SubjectRegistration() {
     data.registrations.forEach((row) => {
       if (sameId(row.student, learnerId) && sameId(row.academic_year, yearId)) {
         const subjectId = refId(row.subject);
-        if (subjectId != null && activeSubjects.some((subject) => sameId(subject.id, subjectId))) {
+        if (subjectId != null && availableSubjects.some((subject) => sameId(subject.id, subjectId))) {
           existing[String(subjectId)] = row.category;
         }
       }
     });
     setCategories(existing);
-  }, [data, yearId, enrollmentId, activeSubjects]);
+  }, [data, yearId, enrollmentId, availableSubjects]);
 
   const chooseYear = (value) => {
     setYearId(value);
@@ -159,6 +188,8 @@ export default function SubjectRegistration() {
 
   const chooseEnrollment = (value) => {
     setEnrollmentId(value);
+    const selected = activeEnrollments.find((item) => String(item.id) === String(value));
+    setPathwayId(selected?.pathway ? String(refId(selected.pathway)) : "");
     setCategories({});
     setSaveError("");
   };
@@ -182,10 +213,11 @@ export default function SubjectRegistration() {
     if (!enrollment || selectedIds.length === 0 || !allClassified || busy) return;
     setBusy(true);
     setSaveError("");
-    const selectedSubjects = activeSubjects.filter((subject) => selectedIds.includes(String(subject.id)));
+    const selectedSubjects = availableSubjects.filter((subject) => selectedIds.includes(String(subject.id)));
     const payload = {
       student: learnerId,
       academic_year: refId(yearId),
+      ...(isSenior ? { pathway: Number(pathwayId) } : {}),
       subjects: selectedSubjects.map((subject) => ({
         subject: subject.id,
         category: categories[String(subject.id)],
@@ -201,6 +233,10 @@ export default function SubjectRegistration() {
       }
       setData((current) => ({
         ...current,
+        enrollments: current.enrollments.map((row) => String(row.id) === String(enrollment.id)
+          ? { ...row, pathway: isSenior ? Number(pathwayId) : row.pathway,
+            pathway_name: availablePathways.find((path) => String(path.id) === String(pathwayId))?.name || row.pathway_name }
+          : row),
         registrations: [
           ...current.registrations.filter((row) => !(sameId(row.student, learnerId)
             && sameId(row.academic_year, yearId))),
@@ -260,22 +296,31 @@ export default function SubjectRegistration() {
         {enrollment && <Alert kind="info">
           Selected learner: <strong>{describeEnrollment(enrollment, data.students)}</strong>
         </Alert>}
+        {enrollment && isSenior && <div style={{ marginTop: 12 }}>
+          <Select id="subject-registration-pathway" label="CBC Senior pathway for this academic year" value={pathwayId}
+            onChange={(event) => { setPathwayId(event.target.value); setCategories({}); setSaveError(""); }}>
+            <option value="">Choose a pathway</option>
+            {availablePathways.map((pathway) => <option key={pathway.id} value={pathway.id}>{pathway.name}</option>)}
+          </Select>
+          {availablePathways.length === 0 && <p>No active pathway is configured for this CBC Senior grade.</p>}
+          {enrollment.pathway_name && <p>Current pathway: {enrollment.pathway_name}. Saving a different path replaces the learner’s registered subject combination as one audited change.</p>}
+        </div>}
       </Card>
 
-      {enrollment && <Card title="Subjects">
+      {enrollment && (!isSenior || pathwayId) && <Card title={isSenior ? "Senior pathway subjects" : "Subjects"}>
         <div style={styles.summary} aria-live="polite">
-          <span style={styles.summaryItem}>{selectedIds.length} selected of {activeSubjects.length} active</span>
+          <span style={styles.summaryItem}>{selectedIds.length} selected of {availableSubjects.length} available for this class</span>
           <span style={styles.summaryItem}>{compulsoryCount} compulsory</span>
           <span style={styles.summaryItem}>{optionalCount} optional</span>
           {selectedIds.length > classifiedCount &&
             <span style={styles.summaryItem}>{selectedIds.length - classifiedCount} need a category</span>}
         </div>
-        {activeSubjects.length === 0 ? (
-          <EmptyState title="No active subjects" text="There are no active subjects available to register." />
+        {availableSubjects.length === 0 ? (
+          <EmptyState title="No subjects for this class" text="There are no active subjects defined for this learner’s class level." />
         ) : (
           <>
             <div style={styles.subjectGrid}>
-              {activeSubjects.map((subject) => {
+              {availableSubjects.map((subject) => {
                 const id = String(subject.id);
                 const selected = Object.prototype.hasOwnProperty.call(categories, id);
                 return <div key={subject.id} style={styles.subject}>
@@ -301,7 +346,7 @@ export default function SubjectRegistration() {
             </div>
             {saveError && <p><Alert kind="err">{saveError}</Alert></p>}
             <div style={styles.actions}>
-              <Button kind="teal" busy={busy} disabled={selectedIds.length === 0 || !allClassified}
+              <Button kind="teal" busy={busy} disabled={selectedIds.length === 0 || !allClassified || (isSenior && !availablePathways.some((path) => String(path.id) === String(pathwayId)))}
                 onClick={save}>Save subject registrations</Button>
               {selectedIds.length === 0 && <span>Select at least one subject to save.</span>}
               {selectedIds.length > 0 && !allClassified && <span>Choose compulsory or optional for each selected subject.</span>}

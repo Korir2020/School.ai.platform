@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { api } from "./api";
 import { useToast } from "./toastctx";
 import { Alert, Button, ErrorState, Input, Loading, Select } from "./ui";
+import SetupSection from "./SetupSection";
 
 const STEPS = [
   ["profile", "School profile", "setup-progress"],
@@ -10,7 +11,8 @@ const STEPS = [
   ["stream", "Class stream", "setup-classes"],
   ["subject", "Subject", "setup-classes"],
 ];
-const TYPES = ["primary", "junior", "secondary", "combined"];
+const TYPES = ["primary", "junior", "combined", "senior"];
+const TYPE_ALIASES = { secondary: "senior", "secondary school": "senior", "senior school": "senior" };
 
 export default function SetupWizard({ go }) {
   const toast = useToast();
@@ -18,7 +20,7 @@ export default function SetupWizard({ go }) {
   const [bad, setBad] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
-  const [f, setF] = useState({ location: "", county: "", school_type: "secondary" });
+  const [f, setF] = useState({ location: "", county: "", school_type: "" });
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
 
   const load = async () => {
@@ -27,12 +29,17 @@ export default function SetupWizard({ go }) {
       if (!s.ok || !p.ok) throw new Error("load");
       setSt(await s.json());
       const pj = await p.json();
-      const t = (pj.school_type || "").toLowerCase();
-      setF({ location: pj.location || "", county: pj.county || "", school_type: TYPES.includes(t) ? t : "secondary" });
+      const raw = String(pj.school_type || "").trim().toLowerCase();
+      const t = TYPE_ALIASES[raw] || raw;
+      setF({ location: pj.location || "", county: pj.county || "", school_type: TYPES.includes(t) ? t : "" });
       setBad(false);
     } catch { setBad(true); }
   };
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    // This effect initiates async API reads; state updates happen after the requests resolve.
+    // oxlint-disable-next-line react/set-state-in-effect
+    load();
+  }, []);
   useEffect(() => {
     const h = () => load();
     window.addEventListener("marian:dashboard-refresh", h);
@@ -60,7 +67,7 @@ export default function SetupWizard({ go }) {
   const pct = Math.round((done / STEPS.length) * 100);
 
   return (
-    <section className="s2-sec" id="setup-progress">
+    <SetupSection id="setup-progress" title="Setup progress" summary={`${done} of ${STEPS.length} complete · ${pct}%`} complete={done === STEPS.length}>
       <div className="s2-cols">
         <div className="s2-panel">
           <div className="s2-ph"><h4>Setup progress</h4><span className="s2-mut">{done} of {STEPS.length} · {pct}%</span></div>
@@ -88,15 +95,16 @@ export default function SetupWizard({ go }) {
             <Input label="County" value={f.county} onChange={set("county")} />
           </div>
           <Select label="School type" value={f.school_type} onChange={set("school_type")}>
-            <option value="primary">Primary</option>
+            <option value="">Select school type...</option>
+            <option value="primary">Primary school</option>
             <option value="junior">Junior school</option>
-            <option value="secondary">Senior / Secondary</option>
-            <option value="combined">Combined</option>
+            <option value="combined">Combined (junior and primary)</option>
+            <option value="senior">Senior school</option>
           </Select>
           {err && <Alert kind="err">{err}</Alert>}
           <Button kind="teal" busy={busy} onClick={saveProfile}>Save profile</Button>
         </div>
       </div>
-    </section>
+    </SetupSection>
   );
 }

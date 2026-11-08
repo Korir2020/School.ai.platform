@@ -122,12 +122,14 @@ function QuickPanel({ go, tabs }) {
 }
 
 export default function Dash2Low({ d, go, tabs }) {
+  const hasFeeData = Object.prototype.hasOwnProperty.call(d, "fees")
+    && d.fees !== null && typeof d.fees === "object";
   return (
     <div className="dash2">
       <section className="d2-grid d2-three">
         <AttentionPanel d={d} go={go} />
         <QuickPanel go={go} tabs={tabs} />
-        <FeePanel d={d} go={go} />
+        {hasFeeData && <FeePanel d={d} go={go} />}
       </section>
     </div>
   );

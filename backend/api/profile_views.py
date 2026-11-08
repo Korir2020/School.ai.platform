@@ -4,10 +4,13 @@ from rest_framework.permissions import IsAuthenticated
 from .suspension import SchoolNotSuspended
 from rest_framework.response import Response
 
-from schools.models import MarkAuditLog, School, SchoolAdminProfile
+from schools.models import (
+    MarkAuditLog, School, SchoolAdminProfile, SCHOOL_TYPE_CHOICES,
+    normalize_school_type,
+)
 
 NO = "You are not allowed to do that."
-TYPES = ("primary", "junior", "secondary", "combined")
+TYPES = {value for value, _ in SCHOOL_TYPE_CHOICES}
 LIMITS = {"location": 200, "county": 100, "school_type": 30}
 
 
@@ -48,7 +51,7 @@ def school_profile(request):
             continue
         value = value.strip()
         if key == "school_type":
-            value = value.lower()
+            value = normalize_school_type(value)
         if not value:
             errors[key] = "This field is required."
         elif len(value) > limit:

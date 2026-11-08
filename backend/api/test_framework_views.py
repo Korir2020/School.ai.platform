@@ -24,8 +24,9 @@ class FrameworkViewsTests(TestCase):
         TeacherProfile.objects.create(user=self.teacher, school=self.school)
         self.outsider = U.objects.create_user("fw_out", "o@example.com", "pw12345!")
         SchoolAdminProfile.objects.create(user=self.outsider, school=self.other)
-        self.cur = Curriculum.objects.create(name="Fw CBC", code="FWCBC")
+        self.cur = Curriculum.objects.create(name="Fw CBC", code="CBC")
         self.g3 = ClassLevel.objects.create(curriculum=self.cur, name="Grade 3", level_number=3)
+        self.g8 = ClassLevel.objects.create(curriculum=self.cur, name="Grade 8", level_number=8)
         self.year = AcademicYear.objects.create(
             school=self.school, name="2026", start_date=date(2026, 1, 1), end_date=date(2026, 12, 31))
 
@@ -35,7 +36,7 @@ class FrameworkViewsTests(TestCase):
             c.force_authenticate(user)
         return c
 
-    def _version(self, lo=1, hi=6, key="cbe_junior_levels", user=None):
+    def _version(self, lo=7, hi=9, key="cbe_junior_levels", user=None):
         return self._c(user or self.admin).post(URL + "version/", {
             "framework_key": key, "curriculum_id": self.cur.id,
             "min_level": lo, "max_level": hi}, format="json")
@@ -57,7 +58,7 @@ class FrameworkViewsTests(TestCase):
         a = self._c(self.admin).post(URL + "assign/", {"version_id": r.data["id"]}, format="json")
         self.assertEqual(a.status_code, 200)
         ov = self._c(self.admin).get(URL)
-        row = [e for e in ov.data["effective"] if e["class_level_id"] == self.g3.id][0]
+        row = [e for e in ov.data["effective"] if e["class_level_id"] == self.g8.id][0]
         self.assertEqual(row["framework_key"], "cbe_junior_levels")
 
     def test_unknown_framework_is_refused(self):
@@ -66,10 +67,15 @@ class FrameworkViewsTests(TestCase):
         self.assertEqual(r.data["error"], "framework_error")
 
     def test_version_must_cover_the_class_level(self):
-        r = self._version(lo=1, hi=2)
+        r = self._version()
         a = self._c(self.admin).post(URL + "assign/", {
             "version_id": r.data["id"], "class_level_id": self.g3.id}, format="json")
         self.assertEqual(a.status_code, 400)
+
+    def test_junior_version_rejects_primary_range(self):
+        r = self._version(lo=1, hi=6)
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(r.data["error"], "framework_error")
 
     def test_bad_second_approver_is_refused(self):
         r = self._version()
@@ -87,7 +93,7 @@ class FrameworkViewsTests(TestCase):
     def _freeze(self):
         return self._c(self.admin).post(URL + "version/", {
             "framework_key": "cbe_junior_levels", "curriculum_id": self.cur.id,
-            "min_level": 1, "max_level": 6, "freeze_school_scale": True}, format="json")
+            "min_level": 7, "max_level": 9, "freeze_school_scale": True}, format="json")
 
     def test_freeze_needs_a_school_scale(self):
         r = self._freeze()

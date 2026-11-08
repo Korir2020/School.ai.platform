@@ -9,10 +9,12 @@ from reportlab.lib.units import mm
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib import colors
 from rest_framework.decorators import api_view
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
-from schools.models import Enrollment, Performance, SchoolAdminProfile, StudentFee, Stream, Term
+from schools.models import Enrollment, Performance, SchoolAdminProfile, StaffProfile, StudentFee, Stream, Term
 from .permissions import get_user_school_id
+from api.fee_permissions import get_fee_access_school_id
 from .subject_registration_rules import registered_marks
 
 
@@ -55,14 +57,36 @@ def _avg_map(qs, field):
 
 @api_view(["GET"])
 def advanced_report(request, term_id):
-    if not request.user.is_superuser and not SchoolAdminProfile.objects.filter(user=request.user).exists():
+    is_admin = SchoolAdminProfile.objects.filter(user=request.user).exists()
+    is_bursar = StaffProfile.objects.filter(user=request.user, role="bursar").exists()
+    bursar_only = is_bursar and not is_admin and not request.user.is_superuser
+    if not request.user.is_superuser and not is_admin and not is_bursar:
         return Response({"detail": "Admins only."}, status=403)
-    term = _term_for(request, term_id)
+    if bursar_only:
+        try:
+            fee_school_id = get_fee_access_school_id(request.user)
+        except PermissionDenied as exc:
+            return Response({"detail": str(exc.detail)}, status=403)
+        term = Term.objects.select_related("academic_year").filter(
+            id=term_id, academic_year__school_id=fee_school_id).first()
+    else:
+        term = _term_for(request, term_id)
     if not term:
         return Response({"detail": "Not found."}, status=404)
+    school_id = term.academic_year.school_id
+    if bursar_only:
+        finance = StudentFee.objects.filter(student__school_id=school_id).aggregate(
+            due=Sum("amount_due"), paid=Sum("amount_paid"))
+        due, paid = finance["due"] or 0, finance["paid"] or 0
+        return Response({
+            "term": term.name, "term_id": term.id,
+            "academic_year": term.academic_year.name,
+            "finance": {"billed": str(due), "collected": str(paid),
+                        "outstanding": str(max(due - paid, 0)),
+                        "collection_rate": round(float(paid / due * 100), 1) if due else None},
+        })
     outcomes = _final_rows(term)
     marks = outcomes.filter(mark_status="scored")
-    school_id = term.academic_year.school_id
     enrollment = Enrollment.objects.filter(academic_year=term.academic_year, is_active=True, student__school_id=school_id).select_related("class_level", "stream")
     class_map = {x.student_id: x.class_level.name for x in enrollment}
     stream_map = {x.student_id: x.stream.name if x.stream else "Unassigned" for x in enrollment}
@@ -100,8 +124,16 @@ def advanced_report(request, term_id):
     subjects = [{"subject": x["subject__name"], "average": round(float(x["average"]), 2), "entries": x["entries"], "highest": str(x["highest"]), "lowest": str(x["lowest"])} for x in _avg_map(marks, "subject__name")]
     finalized = marks.count()
     passed = marks.filter(marks__gte=50).count()
-    finance = StudentFee.objects.filter(student__school_id=school_id).aggregate(due=Sum("amount_due"), paid=Sum("amount_paid"))
-    due, paid = finance["due"] or 0, finance["paid"] or 0
+    try:
+        get_fee_access_school_id(request.user, school_id=school_id)
+    except PermissionDenied:
+        fee_finance = None
+    else:
+        finance = StudentFee.objects.filter(student__school_id=school_id).aggregate(due=Sum("amount_due"), paid=Sum("amount_paid"))
+        due, paid = finance["due"] or 0, finance["paid"] or 0
+        fee_finance = {"billed": str(due), "collected": str(paid),
+                       "outstanding": str(max(due - paid, 0)),
+                       "collection_rate": round(float(paid / due * 100), 1) if due else None}
     weakest = sorted(subjects, key=lambda x: x["average"])[:3]
     insights = []
     if finalized: insights.append({"kind": "observation", "title": f"Pass rate is {round(passed / finalized * 100, 1)}%", "evidence": f"{passed} of {finalized} finalized marks are 50% or higher.", "next_step": "Review the subject and class breakdowns below."})
@@ -111,7 +143,9 @@ def advanced_report(request, term_id):
         value: outcomes.filter(mark_status=value).count()
         for value in ("scored", "absent", "exempted", "not_assessed", "pending")
     }
-    payload = {"term": term.name, "term_id": term.id, "academic_year": term.academic_year.name, "classes": grouped(class_rows), "streams": grouped(stream_rows), "subjects": subjects, "improvement": improvement[:50], "at_risk": at_risk, "finalized_entries": finalized, "mark_status_counts": mark_status_counts, "students_with_finalized_marks": len(rows), "previous_term": {"id": prior.id, "name": prior.name} if prior else None, "trend": _trend(school_id, term.academic_year), "distribution": _distribution(marks), "pass_rate": round(passed / finalized * 100, 1) if finalized else None, "insights": insights, "finance": {"billed": str(due), "collected": str(paid), "outstanding": str(max(due - paid, 0)), "collection_rate": round(float(paid / due * 100), 1) if due else None}}
+    payload = {"term": term.name, "term_id": term.id, "academic_year": term.academic_year.name, "classes": grouped(class_rows), "streams": grouped(stream_rows), "subjects": subjects, "improvement": improvement[:50], "at_risk": at_risk, "finalized_entries": finalized, "mark_status_counts": mark_status_counts, "students_with_finalized_marks": len(rows), "previous_term": {"id": prior.id, "name": prior.name} if prior else None, "trend": _trend(school_id, term.academic_year), "distribution": _distribution(marks), "pass_rate": round(passed / finalized * 100, 1) if finalized else None, "insights": insights}
+    if fee_finance is not None:
+        payload["finance"] = fee_finance
     export = request.query_params.get("format") or request.query_params.get("export")
     if not export:
         raw_query = request.META.get("QUERY_STRING", "")

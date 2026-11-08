@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { startTransition, useCallback, useEffect, useState } from "react";
 import { api, listAll } from "./api";
 import { Alert, Badge, Button, Card, EmptyState, Select } from "./ui";
 
@@ -20,7 +20,12 @@ async function allPages(path) {
   const out = [];
   for (let i = 0; i < 200 && url; i += 1) {
     const response = await api(url);
-    if (!response.ok) throw new Error("Could not load eligible documents.");
+    if (!response.ok) {
+      if (response.status === 403 && path.includes("fee-receipts")) {
+        throw new Error("You do not have permission to access fee information.");
+      }
+      throw new Error("Could not load eligible documents.");
+    }
     const data = await response.json();
     if (Array.isArray(data)) return data;
     out.push(...(data.results || data.students || data.payments || []));
@@ -45,28 +50,28 @@ export default function BulkDocuments({ admin = false }) {
     ? "/api/documents/report-cards/"
     : "/api/documents/fee-receipts/";
 
-  const load = async () => {
-    setBad("");
-    setJobProgress(null);
+  const load = useCallback(async () => {
+    startTransition(() => { setBad(""); setJobProgress(null); });
     try {
       const query = mode === "reports" && term
         ? `?term_id=${encodeURIComponent(term)}`
         : "";
       const rows = await allPages(endpoint + query);
-      setItems(rows);
-      setSelected([]);
+      startTransition(() => { setItems(rows); setSelected([]); });
     } catch (error) {
-      setItems([]);
-      setBad(error.message || "Could not load eligible documents.");
+      startTransition(() => {
+        setItems([]);
+        setBad(error.message || "Could not load eligible documents.");
+      });
     }
-  };
+  }, [endpoint, mode, term]);
 
   useEffect(() => {
     if (admin) listAll("/api/terms/").then(setTerms).catch(() => {});
   }, [admin]);
   useEffect(() => {
-    if (mode === "receipts" || term) load();
-  }, [mode, term]);
+    if (mode === "receipts" || term) void load();
+  }, [load, mode, term]);
 
   const toggle = (id) => setSelected((current) => (
     current.includes(id) ? current.filter((value) => value !== id) : [...current, id]

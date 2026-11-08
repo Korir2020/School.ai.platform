@@ -8,6 +8,8 @@ import ReportAdmin from "./ReportAdmin";
 import FrameworkAdmin from "./FrameworkAdmin";
 import ClassTeacherAdmin from "./ClassTeacherAdmin";
 import PrimaryAchievementSettings from "./PrimaryAchievementSettings";
+import JuniorAchievementSettings from "./JuniorAchievementSettings";
+import SeniorAchievementSettings from "./SeniorAchievementSettings";
 
 const P = "/api/report-module/";
 
@@ -55,6 +57,9 @@ export default function ReportModule() {
 
   const qs = (extra) => {
     const q = new URLSearchParams({ exam_id: exam, ...extra });
+    if (selectedExam?.result_mode === "achievement_levels" && selectedExam.assessment_type) {
+      q.set("type", selectedExam.assessment_type);
+    }
     if (prov) q.set("provisional", "1");
     return q.toString();
   };
@@ -161,7 +166,11 @@ export default function ReportModule() {
       {msg && <Alert>{msg}</Alert>}
       {sel && (
         <Card title={sel.population}>
-          {descriptorOnly && <p>School-defined CBC Primary achievement levels. This is an internal school assessment, not an official KNEC result; numeric averages and rankings are not generated.</p>}
+          {descriptorOnly && <p>{selectedExam?.framework_key === "cbe_senior"
+            ? "School-defined CBC Senior achievement levels for Grades 10–12. This is an internal school assessment, not an official KNEC assessment; numeric averages and rankings are not generated."
+            : selectedExam?.framework_key === "cbe_junior_levels"
+              ? "School-defined CBC Junior achievement levels for Grades 7–9. This is an internal school assessment, not an official KNEC assessment; numeric averages and rankings are not generated."
+              : "School-defined CBC Primary achievement levels. This is an internal school assessment, not an official KNEC assessment; numeric averages and rankings are not generated."}</p>}
           <p><Badge>{sel.selected} selected</Badge> <Badge>{sel.eligible} ready</Badge> <Badge kind="warn">{sel.pending} pending</Badge></p>
           {sel.excluded.length > 0 && <p>{sel.excluded.length} student(s) cannot be printed yet. The reason is shown beside each name.</p>}
         </Card>
@@ -173,10 +182,12 @@ export default function ReportModule() {
             {bulk && <p>{bulk}</p>}
           </Card>
         )}
-        {exam && cls && meta.role !== "teacher" && !descriptorOnly && <ReportInsights exam={exam} cls={cls} stream={stream} prov={prov} rankEnabled={selectedExam?.rankings_enabled !== false} />}
+        {exam && cls && meta.role !== "teacher" && !descriptorOnly && <ReportInsights exam={exam} cls={cls} stream={stream} prov={prov} rankEnabled={selectedExam?.rankings_enabled !== false} frameworkKey={selectedExam?.framework_key || ""} />}
         {exam && cls && meta.role !== "teacher" && !descriptorOnly && <ReportComments key={exam + "|" + cls} exam={exam} cls={cls} students={students} />}
         {meta.role !== "teacher" && <ReportAdmin />}
         {meta.role !== "teacher" && <PrimaryAchievementSettings />}
+        {meta.role !== "teacher" && <JuniorAchievementSettings />}
+        {meta.role !== "teacher" && <SeniorAchievementSettings />}
         {meta.role !== "teacher" && <FrameworkAdmin />}
         {meta.role !== "teacher" && <ClassTeacherAdmin />}
     {cls && students.length === 0 && <EmptyState title="No students" text="No students in this class." />}

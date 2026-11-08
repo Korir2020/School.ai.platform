@@ -11,13 +11,15 @@ from schools.models import (
     SchoolAdminProfile, SubjectPaper, SubjectRegistration,
 )
 from .permissions import get_user_school_id
+from marian_reports.frameworks import CBC_REPORT_FRAMEWORKS
+from .senior_rules import is_cbc_senior, pathway_matches_class, subject_definition_problem
 
 HUNDRED = Decimal("100")
 READY = ("approved", "locked")
-
-
-def _publish_primary_levels(request, exam, students, registered_by_student):
-    """Publish a descriptor-only CBC Primary assessment without numeric ranks."""
+def _publish_cbc_levels(request, exam, students, registered_by_student):
+    """Publish school-authored CBC descriptors without numeric scores or ranks."""
+    stage = {"cbe_primary": "Primary", "cbe_junior_levels": "Junior",
+             "cbe_senior": "Senior"}.get(exam.framework_key, "CBC")
     subject_ids = {sid for values in registered_by_student.values() for sid in values}
     rows = list(LevelResult.objects.filter(
         student_id__in=students, subject_id__in=subject_ids,
@@ -40,11 +42,13 @@ def _publish_primary_levels(request, exam, students, registered_by_student):
                   or row.level_key not in row.scale.keys()):
                 problems.append({"admission_number": students[student_id].admission_number,
                                  "subject_id": subject_id,
-                                 "reason": "Achievement scale does not match this Primary grade."})
+                                 "reason": f"Achievement scale does not match this CBC {stage} grade."})
+    if len({row.scale_id for row in ready.values()}) > 1:
+        problems.append({"reason": f"Use one school-authored CBC {stage} descriptor-scale version for this examination."})
     if not ready:
-        return Response({"detail": "No approved CBC Primary achievement levels are available."}, status=400)
+        return Response({"detail": f"No approved CBC {stage} achievement levels are available."}, status=400)
     if problems:
-        return Response({"detail": "Every registered learning area needs an approved school-defined level.",
+        return Response({"detail": f"Every registered CBC {stage} learning area needs an approved school-defined level.",
                          "count": len(problems), "problems": problems[:30]}, status=409)
 
     with transaction.atomic():
@@ -109,19 +113,45 @@ def exam_publish(request, pk):
             class_level=exam.class_level,
             is_active=True,
             student__school_id=exam.school_id,
-        ).select_related("student")
+        ).select_related("student", "class_level__curriculum", "pathway")
     )
     students = {e.student_id: e.student for e in enrollments}
+    enrollment_by_student = {e.student_id: e for e in enrollments}
     stream_of = {e.student_id: e.stream_id for e in enrollments}
+    from api.framework_rules import resolve
+    framework = resolve(exam.school_id, exam.class_level, exam.term.academic_year)
     registered_by_student = defaultdict(set)
     registration_names = {}
+    pathway_problems = []
     for registration in SubjectRegistration.objects.filter(
         academic_year=exam.term.academic_year,
         student_id__in=students.keys(),
         subject__school_id=exam.school_id,
-    ).select_related("subject"):
+    ).select_related("subject__definition").prefetch_related(
+        "subject__definition__class_levels", "subject__definition__pathways"):
+        enrollment = enrollment_by_student.get(registration.student_id)
+        if is_cbc_senior(exam.class_level):
+            if enrollment is None or not pathway_matches_class(enrollment.pathway, exam.class_level):
+                pathway_problems.append({"admission_number": students[registration.student_id].admission_number,
+                                         "reason": "A valid CBC Senior pathway is required."})
+                continue
+            problem = subject_definition_problem(registration.subject.definition,
+                                                 exam.class_level, enrollment.pathway)
+            if problem:
+                pathway_problems.append({"admission_number": students[registration.student_id].admission_number,
+                                         "subject_id": registration.subject_id,
+                                         "reason": problem})
+                continue
         registered_by_student[registration.student_id].add(registration.subject_id)
         registration_names[registration.subject_id] = registration.subject.name
+    if pathway_problems:
+        return Response({"detail": "CBC Senior pathway registrations must be corrected before publication.",
+                         "count": len(pathway_problems), "problems": pathway_problems[:30]}, status=409)
+    if is_cbc_senior(exam.class_level):
+        missing_subject_sets = [students[sid].admission_number for sid in set(students) - set(registered_by_student)]
+        if missing_subject_sets:
+            return Response({"detail": "Every CBC Senior learner needs an individual registered subject combination before publication.",
+                             "admission_numbers": missing_subject_sets[:30]}, status=409)
     if not registered_by_student:
         return Response({
             "detail": "No learners in this class have registered subjects for the academic year."
@@ -133,15 +163,24 @@ def exam_publish(request, pk):
             student_id__in=students.keys(),
         ).select_related("subject")
     )
-    from api.framework_rules import resolve
-    framework = resolve(exam.school_id, exam.class_level, exam.term.academic_year)
-    if framework is not None and framework.framework_key == "cbe_primary" and not marks:
-        return _publish_primary_levels(request, exam, students, registered_by_student)
     # Legacy/imported marks for unregistered subjects remain stored but are
     # deliberately invisible to this exam and its ranks.
     marks = [m for m in marks if m.subject_id in registered_by_student.get(m.student_id, set())]
+    if framework is not None and framework.framework_key in CBC_REPORT_FRAMEWORKS and not marks:
+        exam.framework_key = framework.framework_key
+        return _publish_cbc_levels(request, exam, students, registered_by_student)
     if not marks:
         return Response({"detail": "No marks entered for registered subjects in this exam."}, status=400)
+    if framework is not None and framework.framework_key in CBC_REPORT_FRAMEWORKS:
+        registered_subject_ids = {subject_id for values in registered_by_student.values()
+                                  for subject_id in values}
+        mixed_levels = LevelResult.objects.filter(
+            student_id__in=students, subject_id__in=registered_subject_ids,
+            academic_year_id=exam.term.academic_year_id, term=exam.term,
+            assessment_type=exam.assessment_type, status__in=READY,
+        ).exists()
+        if mixed_levels:
+            return Response({"detail": "Choose either numeric school marks or school-authored achievement levels for this CBC exam; mixed modalities cannot be published together."}, status=409)
 
     papers = defaultdict(dict)
     maxes = defaultdict(dict)
@@ -239,9 +278,9 @@ def exam_publish(request, pk):
 
     primary_ranks = {}
     rankings_enabled = True
-    if framework is not None and framework.framework_key == "cbe_primary":
-        # Use the exact same configured mean, exclusions, rank basis, and tie
-        # policy that the printed Primary report cards will use.
+    if framework is not None and framework.framework_key in CBC_REPORT_FRAMEWORKS:
+        # Use the same configured mean, exclusions, rank basis, and tie policy
+        # that the printed CBC report cards will use.
         try:
             from api.report_views import service as report_service
             from marian_reports.domain import User as ReportUser
@@ -256,7 +295,9 @@ def exam_publish(request, pk):
             from marian_reports.domain import ReportNotReady
             from marian_reports.grading import GradingError
             if isinstance(exc, (ReportNotReady, GradingError)):
-                return Response({"detail": f"CBC Primary school grading rules must be configured before publication: {exc}"}, status=400)
+                stage = {"cbe_primary": "Primary", "cbe_junior_levels": "Junior",
+                         "cbe_senior": "Senior"}.get(framework.framework_key, "CBC")
+                return Response({"detail": f"CBC {stage} school grading rules must be configured before publication: {exc}"}, status=400)
             raise
         overall = {}
         for sid, summary in snapshot.summaries.items():
@@ -280,11 +321,11 @@ def exam_publish(request, pk):
     stream_values = defaultdict(list)
     for sid, value in overall.items():
         stream_values[stream_of[sid]].append(value)
-    class_ranks = _rank_map(class_values) if framework is None or framework.framework_key != "cbe_primary" else {}
+    class_ranks = _rank_map(class_values) if framework is None or framework.framework_key not in CBC_REPORT_FRAMEWORKS else {}
     stream_ranks = ({
         stream_id: _rank_map(values)
         for stream_id, values in stream_values.items()
-    } if framework is None or framework.framework_key != "cbe_primary" else {})
+    } if framework is None or framework.framework_key not in CBC_REPORT_FRAMEWORKS else {})
 
     with transaction.atomic():
         locked = Exam.objects.select_for_update().get(pk=exam.pk)
@@ -294,11 +335,11 @@ def exam_publish(request, pk):
             ExamResult(
                 exam=exam, student_id=sid, overall_average=value,
                 stream_rank=(primary_ranks.get(sid, {}).get("stream")
-                             if framework and framework.framework_key == "cbe_primary"
+                             if framework and framework.framework_key in CBC_REPORT_FRAMEWORKS
                              else (stream_ranks[stream_of[sid]][value]
                                    if stream_of[sid] is not None else None)),
                 class_rank=(primary_ranks.get(sid, {}).get("class")
-                            if framework and framework.framework_key == "cbe_primary"
+                            if framework and framework.framework_key in CBC_REPORT_FRAMEWORKS
                             else class_ranks[value]),
                 subject_scores={
                     names[s]: str(v.quantize(Decimal("0.01")))

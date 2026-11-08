@@ -59,6 +59,9 @@ def _term_check(v):
     bad = _dates(v)
     if bad:
         return bad
+    y = v["academic_year"]
+    if v["start_date"] < y.start_date or v["end_date"] > y.end_date:
+        return "Term dates must fall inside the academic year."
 
 
 def _enrollment_check(v):
@@ -128,9 +131,15 @@ def enrollment_collection(request):
     if resp.status_code == 201:
         try:
             from api.fee_billing import bill_student
+            from api.fee_permissions import get_fee_access_school_id
+            from rest_framework.exceptions import PermissionDenied
             from schools.models import Student
             student = Student.objects.filter(pk=resp.data.get("student")).first()
             if student:
+                try:
+                    get_fee_access_school_id(request.user, school_id=student.school_id)
+                except PermissionDenied:
+                    return resp
                 bill_student(student)
         except Exception:
             import logging

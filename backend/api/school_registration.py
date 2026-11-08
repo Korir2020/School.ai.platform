@@ -18,7 +18,9 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 
-from schools.models import MarkAuditLog, School, SchoolRegistration
+from schools.models import (
+    MarkAuditLog, School, SchoolRegistration, normalize_school_type,
+)
 from .join_throttle import SchoolRegisterThrottle, SchoolRegStatusThrottle
 
 CODE_RE = re.compile(r"^[A-Z0-9][A-Z0-9_-]{2,19}$")
@@ -66,6 +68,7 @@ def validate_submission(d):
         "school_name", "school_type", "school_email", "county", "sub_county",
         "address", "administrator_name", "administrator_username",
         "administrator_email")}
+    c["school_type"] = normalize_school_type(c["school_type"])
     c["proposed_school_code"] = g("proposed_school_code").upper()
     c["school_phone"] = clean_phone(d.get("school_phone"))
     c["administrator_phone"] = clean_phone(d.get("administrator_phone"))

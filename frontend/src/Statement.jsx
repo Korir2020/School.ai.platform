@@ -52,7 +52,12 @@ export default function Statement({ studentId, onClose }) {
       try {
         const r = await api(`/api/fees/students/${studentId}/statement/`);
         if (!live) return;
-        if (!r.ok) { setState({ error: "Could not load the statement. Please try again." }); return; }
+        if (!r.ok) {
+          setState({ error: r.status === 403
+            ? "You do not have permission to access fee information."
+            : "Could not load the statement. Please try again." });
+          return;
+        }
         setState({ data: await r.json() });
       } catch {
         if (live) setState({ error: "Could not load the statement. Please try again." });

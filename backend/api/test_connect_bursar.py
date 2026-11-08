@@ -37,8 +37,10 @@ class BursarConnectTests(TestCase):
         self.assertEqual(r.status_code, 201, r.data)
         self.assertEqual(r.data["author_role"], "bursar")
 
-    def test_bursar_cannot_post_in_notices(self):
-        self.assertEqual(self.post(self.bursar, self.notices, "Hello").status_code, 403)
+    def test_bursar_can_post_in_notices(self):
+        r = self.post(self.bursar, self.notices, "Fee reminder notice.")
+        self.assertEqual(r.status_code, 201, r.data)
+        self.assertEqual(r.data["author_role"], "bursar")
 
     def test_bursar_is_listed_for_admin(self):
         r = self.client_for(self.admin).get(f"{B}members/")
@@ -51,8 +53,23 @@ class BursarConnectTests(TestCase):
         self.assertIn(c.get(f"{B}channels/{self.community.id}/posts/").status_code, (403, 404))
         self.assertIn(self.post(self.other_bursar, self.community, "Hi").status_code, (403, 404))
 
-    def test_secretary_still_has_no_connect(self):
-        self.assertEqual(self.client_for(self.secretary).get(f"{B}channels/").status_code, 403)
+    def test_secretary_can_open_connect(self):
+        r = self.client_for(self.secretary).get(f"{B}channels/")
+        self.assertEqual(r.status_code, 200, r.data)
+        self.assertEqual(r.data["me"]["role"], "secretary")
+        self.assertFalse(r.data["me"]["is_admin"])
+
+    def test_secretary_can_post_in_community_and_notices(self):
+        r = self.post(self.secretary, self.community, "Visitors are welcome on Friday.")
+        self.assertEqual(r.status_code, 201, r.data)
+        self.assertEqual(r.data["author_role"], "secretary")
+        r = self.post(self.secretary, self.notices, "Office notice.")
+        self.assertEqual(r.status_code, 201, r.data)
+        self.assertEqual(r.data["author_role"], "secretary")
+
+    def test_teacher_and_parent_cannot_post_in_notices(self):
+        self.assertEqual(self.post(self.teacher, self.notices, "Hello").status_code, 403)
+        self.assertEqual(self.post(self.parent, self.notices, "Hello").status_code, 403)
 
     def test_admin_can_mute_a_bursar(self):
         r = self.client_for(self.admin).post(f"{B}members/{self.bursar.id}/mute/")

@@ -76,7 +76,18 @@ export default function FrameworkAdmin() {
   levels.forEach((c) => {
     if (!curs.some((x) => x.id === c.curriculum_id)) curs.push({ id: c.curriculum_id, name: c.curriculum_name });
   });
-  const nums = levels.filter((c) => String(c.curriculum_id) === cur).map((c) => c.level_number).sort((a, b) => a - b);
+  const selectedFramework = ov && ov.frameworks.find((f) => f.key === key);
+  const requiredCurriculum = ["cbe_primary", "cbe_junior_levels", "cbe_senior"].includes(key) ? "CBC" : "";
+  const allowedCurricula = curs.filter((c) => !requiredCurriculum
+    || levels.some((level) => String(level.curriculum_id) === String(c.id)
+      && level.curriculum_code === requiredCurriculum));
+  const stageRange = key === "cbe_primary" ? [1, 6]
+    : key === "cbe_junior_levels" ? [7, 9]
+      : key === "cbe_senior" ? [10, 12] : null;
+  const nums = levels.filter((c) => String(c.curriculum_id) === cur
+    && (!stageRange || (c.level_number >= stageRange[0] && c.level_number <= stageRange[1]))
+    && (!requiredCurriculum || c.curriculum_code === requiredCurriculum))
+    .map((c) => c.level_number).sort((a, b) => a - b);
   const target = levels.find((c) => String(c.id) === scope);
   const fits = (v) => !target || (v.curriculum_id === target.curriculum_id
     && v.min_level <= target.level_number && target.level_number <= v.max_level);
@@ -109,13 +120,17 @@ export default function FrameworkAdmin() {
               })}
               <h4>1. Save a framework version</h4>
               <p>A framework only applies to the curriculum and levels you choose. Saving never changes an old version; it makes a new one.</p>
-              <Select id="fw-key" label="Framework" value={key} onChange={(e) => setKey(e.target.value)}>
+              <Select id="fw-key" label="Framework" value={key} onChange={(e) => {
+                setKey(e.target.value); setCur(""); setMinL(""); setMaxL("");
+              }}>
                 <option value="">Choose framework</option>
                 {ov.frameworks.map((f) => <option key={f.key} value={f.key}>{f.name}</option>)}
               </Select>
+              {selectedFramework?.key === "cbe_junior_levels" && <p>CBC Junior applies only to Grades 7–9. Its grading and achievement descriptors are school-configured; Marian does not supply national percentage bands.</p>}
+              {selectedFramework?.key === "cbe_senior" && <p>CBC Senior applies only to Grades 10–12. Subject combinations follow each learner’s registered pathway subjects. Grading and achievement descriptors are school-configured; no national grading bands or rankings are supplied.</p>}
               <Select id="fw-cur" label="Curriculum" value={cur} onChange={(e) => { setCur(e.target.value); setMinL(""); setMaxL(""); }}>
                 <option value="">Choose curriculum</option>
-                {curs.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                {allowedCurricula.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </Select>
               {cur && <Select id="fw-min" label="First level number" value={minL} onChange={(e) => setMinL(e.target.value)}>
                 <option value="">Choose</option>

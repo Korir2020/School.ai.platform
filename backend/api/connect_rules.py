@@ -4,7 +4,6 @@ from django.db.models.functions import Lower
 
 from api import connect_guard as g
 from schools.models import (
-    StaffProfile,
     ConnectChannel,
     ConnectMute,
     Enrollment,
@@ -12,17 +11,23 @@ from schools.models import (
     SchoolAdminProfile,
     Student,
     StudentGuardian,
+    StaffProfile,
     TeacherProfile,
 )
 
-ADMIN, TEACHER, PARENT = "admin", "teacher", "parent"
-BURSAR = "bursar"
+ADMIN, TEACHER, BURSAR, SECRETARY, PARENT = "admin", "teacher", "bursar", "secretary", "parent"
 MAX_POST = 2000
 DEFAULT_CHANNELS = [
-    ("School Notices", "Official notices from the school. Only school administrators post here.", "notices"),
+    ("School Notices", "Official notices from authorized school staff.", "notices"),
     ("Parents Community", "Introductions and discussion between parents and staff.", "community"),
 ]
-ROLE_LABEL = {ADMIN: "School admin", TEACHER: "Teacher", PARENT: "Parent", BURSAR: "Bursar"}
+ROLE_LABEL = {
+    ADMIN: "School admin",
+    TEACHER: "Teacher",
+    BURSAR: "Bursar",
+    SECRETARY: "Secretary",
+    PARENT: "Parent",
+}
 
 
 class ConnectError(Exception):
@@ -39,15 +44,19 @@ def membership(user):
     """Return (school_id, role) for a Connect member, or (None, None)."""
     if not user or not user.is_authenticated:
         return None, None
+    # Platform operators must not inherit school-message access from a school
+    # profile. This check precedes every school role lookup used by Connect.
+    if user.is_superuser:
+        return None, None
     admin = SchoolAdminProfile.objects.filter(user=user).first()
     if admin:
         return admin.school_id, ADMIN
     teacher = TeacherProfile.objects.filter(user=user).first()
     if teacher:
         return teacher.school_id, TEACHER
-    bursar = StaffProfile.objects.filter(user=user, role="bursar").first()
-    if bursar:
-        return bursar.school_id, BURSAR
+    staff = StaffProfile.objects.filter(user=user).first()
+    if staff:
+        return staff.school_id, staff.role
     guardian = GuardianProfile.objects.filter(user=user).first()
     if guardian and linked_children(guardian).exists():
         return guardian.school_id, PARENT
@@ -68,8 +77,8 @@ def ensure_default_channels(school_id):
 
 def can_post(channel, role):
     if channel.kind == "notices":
-        return role == ADMIN
-    return role in (ADMIN, TEACHER, PARENT, BURSAR)
+        return role in (ADMIN, BURSAR, SECRETARY)
+    return role in (ADMIN, TEACHER, BURSAR, SECRETARY, PARENT)
 
 
 def is_muted(school_id, user):
@@ -79,10 +88,10 @@ def is_muted(school_id, user):
 def roles_for(user_ids):
     ids = {i for i in user_ids if i}
     out = {}
+    for uid, role in StaffProfile.objects.filter(user_id__in=ids).values_list("user_id", "role"):
+        out[uid] = role
     for uid in TeacherProfile.objects.filter(user_id__in=ids).values_list("user_id", flat=True):
         out[uid] = TEACHER
-    for uid in StaffProfile.objects.filter(user_id__in=ids, role="bursar").values_list("user_id", flat=True):
-        out[uid] = BURSAR
     for uid in SchoolAdminProfile.objects.filter(user_id__in=ids).values_list("user_id", flat=True):
         out[uid] = ADMIN
     for uid in ids:

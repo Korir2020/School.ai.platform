@@ -1,4 +1,4 @@
-/* ===== Marian Connect — premium redesign (styles only; markup & logic unchanged) ===== */
+/* ===== Marian Connect — calm chat canvas, grouped messages, and mobile composer ===== */
 .cn{
   --cx-ink:#14213d;--cx-navy:#1b2a4a;--cx-accent:#2f5d8a;--cx-accent-2:#3f7cac;--cx-gold:#b8893b;
   --cx-surface:var(--card,#fff);--cx-canvas:var(--bg,#f5f7fa);--cx-line:var(--line,#e3e8ef);
@@ -42,11 +42,18 @@
 .cn-h{display:flex;align-items:center;gap:10px;margin:18px 0 8px;color:var(--cx-mute);font-size:.72rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase}
 .cn-h::after{content:"";flex:1;height:1px;background:var(--cx-line)}
 
+/* Chat canvas and message rhythm */
+.cn-chat{padding:12px;border:1px solid color-mix(in srgb,var(--cx-line) 72%,transparent);border-radius:18px;background:color-mix(in srgb,var(--cx-canvas) 86%,var(--cx-surface));scroll-behavior:smooth}
+.cn-date{display:flex;align-items:center;justify-content:center;margin:16px 0 8px;color:var(--cx-mute);font-size:.72rem;font-weight:700;letter-spacing:.04em}
+.cn-date::before,.cn-date::after{content:"";width:42px;height:1px;background:var(--cx-line)}
+.cn-date span{margin:0 10px}
+
 /* Message / post cards */
 .cn .cn-post{position:relative;width:fit-content;min-width:min(220px,100%);max-width:86%;margin:10px 0;padding:12px 14px;
   border:1px solid var(--cx-line);border-radius:4px 16px 16px 16px;background:var(--cx-surface);box-shadow:var(--cx-shadow);-webkit-touch-callout:none}
 .cn .cn-post.mine{margin-left:auto;border-color:transparent;border-radius:16px 4px 16px 16px;
   background:color-mix(in srgb,var(--cx-accent) 11%,var(--cx-surface))}
+.cn .cn-post.grouped{margin-top:-5px;border-radius:16px}
 .cn .cn-post.urgent{border-left:4px solid var(--cx-danger);background:color-mix(in srgb,var(--cx-danger) 5%,var(--cx-surface))}
 .cn .cn-post.hidden{opacity:.55}
 .cn section[aria-label="Pinned posts"] .cn-post{width:auto;max-width:100%;margin-left:0;border-radius:14px;border-left:4px solid var(--cx-gold);
@@ -55,10 +62,13 @@
   border:0;background:none!important;box-shadow:none;letter-spacing:normal;text-transform:none;font-size:inherit}
 .cn-ph{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .cn .cn-ph b{color:var(--cx-ink);font-size:.88rem;font-weight:700}
+.cn-bubble{min-width:0}
+.cn-post-flags{display:flex;flex-wrap:wrap;gap:5px;margin:0 0 5px}
 .cn-av{flex:0 0 auto;width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;overflow:hidden;
   background:linear-gradient(135deg,var(--cx-navy),var(--cx-accent-2));color:#fff;font-size:.78rem;font-weight:700}
 .cn-av img{width:100%;height:100%;object-fit:cover}
 .cn .cn-time{margin-left:auto;color:var(--cx-mute);font-size:.72rem;font-variant-numeric:tabular-nums}
+.cn-bubble>.cn-time{display:block;width:max-content;max-width:100%;margin:6px 0 -2px auto;text-align:right}
 .cn-tag{padding:2px 8px;border:1px solid var(--cx-line);border-radius:999px;background:var(--cx-canvas);color:var(--cx-mute);font-size:.68rem;font-weight:600}
 .cn-tag.cn-urgent,.cn-urgent{border-color:transparent;background:color-mix(in srgb,var(--cx-danger) 12%,transparent);color:var(--cx-danger)}
 .cn-body{margin:.55em 0 .2em;font-size:.93rem;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}
@@ -88,7 +98,7 @@
 
 /* Composer bar */
 .cn-bar{position:sticky;bottom:0;z-index:5;margin:12px -2px 0;padding:10px 10px calc(10px + env(safe-area-inset-bottom,0px));
-  border:1px solid var(--cx-line);border-radius:16px 16px 0 0;background:color-mix(in srgb,var(--cx-surface) 92%,transparent);
+  border:1px solid var(--cx-line);border-radius:22px;background:color-mix(in srgb,var(--cx-surface) 92%,transparent);
   backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 -6px 20px -12px rgba(20,33,61,.25)}
 .cn-row2{display:flex;align-items:flex-end;gap:6px}
 .cn-msg{flex:1;min-width:0;box-sizing:border-box;min-height:44px;max-height:140px;padding:11px 16px;border:1px solid var(--cx-line);border-radius:22px;
@@ -124,9 +134,10 @@
 
 @media (min-width:900px){.cn h2{padding:24px 24px 24px 84px;font-size:1.4rem}.cn .cn-post{max-width:74%}}
 @media (max-width:700px){
+  .cn-chat{padding:8px;border-radius:14px}
   .cn h2{padding:16px 16px 16px 70px;font-size:1.1rem;border-radius:14px}
   .cn h2::before{left:14px;width:40px;height:40px}
   .cn .cn-post{max-width:92%}
-  .cn-row2{padding-right:58px}
+  .cn-row2{padding-right:0}
   .cn .cn-tab{padding:8px 13px}
 }
