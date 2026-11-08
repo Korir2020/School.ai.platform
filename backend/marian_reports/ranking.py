@@ -25,6 +25,7 @@ class RankingResult:
     population_size: int
     ranks: dict = field(default_factory=dict)       # student_id -> rank
     excluded: dict = field(default_factory=dict)    # student_id -> reason
+    population_sizes: dict = field(default_factory=dict)  # student_id -> group denominator
 
 
 def rank(candidates: Sequence[Candidate], *, population: str, tie_policy: str = "competition",

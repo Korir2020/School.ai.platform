@@ -38,6 +38,10 @@ class Student:
     stream: str                           # e.g. "East"
     kcpe_score: Optional[int] = None
     status: str = "active"                # active | withdrawn
+    pathway_name: str = ""
+    pathway_code: str = ""
+    subject_combination: tuple = ()
+    registered_subject_names: tuple = ()
 
 
 @dataclass(frozen=True)
@@ -51,6 +55,7 @@ class Exam:
     sequence: int                         # chronological order, for history
     closing_date: str = ""
     next_term_opens: str = ""
+    framework_key: Optional[str] = None
 
 
 @dataclass(frozen=True)
