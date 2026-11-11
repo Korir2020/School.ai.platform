@@ -1463,3 +1463,40 @@ class BackgroundJob(models.Model):
                 name="background_job_progress_lte_total",
             ),
         ]
+
+
+class OffsiteBackupRun(models.Model):
+    STATUSES = [(value, value.title()) for value in ("queued", "running", "succeeded", "failed")]
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    status = models.CharField(max_length=12, choices=STATUSES, default="queued", db_index=True)
+    requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
+                                     on_delete=models.SET_NULL, related_name="offsite_backup_runs")
+    created_at = models.DateTimeField(auto_now_add=True)
+    started_at = models.DateTimeField(null=True, blank=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+    lease_token = models.UUIDField(null=True, blank=True)
+    lease_expires_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    retry_after = models.DateTimeField(null=True, blank=True, db_index=True)
+    attempts = models.PositiveSmallIntegerField(default=0)
+    archive_keys = models.JSONField(default=dict, blank=True)
+    manifest_key = models.CharField(max_length=500, blank=True)
+    error = models.TextField(blank=True)
+    result = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+
+class OfflineMarkOperation(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+                             related_name="offline_mark_operations")
+    operation_id = models.UUIDField()
+    payload_sha256 = models.CharField(max_length=64)
+    response = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(
+            fields=["user", "operation_id"], name="unique_user_offline_mark_operation",
+        )]
+        indexes = [models.Index(fields=["user", "created_at"], name="offline_mark_user_created_idx")]

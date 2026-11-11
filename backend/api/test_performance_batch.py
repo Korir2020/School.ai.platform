@@ -1,5 +1,6 @@
 from datetime import date
 from decimal import Decimal
+from uuid import uuid4
 
 from django.contrib.auth.models import User
 from rest_framework.test import APITestCase
@@ -285,3 +286,55 @@ class PerformanceBatchTests(APITestCase):
         self.assertEqual(invalid_id.status_code, 400)
         self.assertEqual(invalid_mark.status_code, 400)
         self.assertEqual(Performance.objects.count(), 0)
+
+    def test_offline_operation_replay_is_idempotent_and_payload_bound(self):
+        operation_id = str(uuid4())
+        entries = [{"student": self.learners[0].id, "paper_number": 1, "marks": "42"}]
+        first = self.batch(entries, offline_operation_id=operation_id)
+        replay = self.batch(entries, offline_operation_id=operation_id)
+        changed = self.batch([{
+            "student": self.learners[0].id, "paper_number": 1, "marks": "43",
+        }], offline_operation_id=operation_id)
+        self.assertEqual(first.status_code, 200, first.content)
+        self.assertEqual(replay.status_code, 200, replay.content)
+        self.assertEqual(replay.json(), first.json())
+        self.assertEqual(changed.status_code, 409)
+        self.assertEqual(Performance.objects.get().marks, Decimal("42.00"))
+        self.assertEqual(MarkAuditLog.objects.filter(action="created").count(), 1)
+
+    def test_offline_expected_updated_at_rejects_stale_and_null_versions(self):
+        mark = Performance.objects.create(
+            student=self.learners[0], subject=self.subject, academic_year=self.year,
+            term=self.term, assessment_type="end", paper_number=1, marks=20,
+            status="draft",
+        )
+        stale = self.batch([{
+            "student": self.learners[0].id, "paper_number": 1, "marks": "30",
+            "expected_updated_at": "2000-01-01T00:00:00Z",
+        }])
+        absent = self.batch([{
+            "student": self.learners[0].id, "paper_number": 1, "marks": "30",
+            "expected_updated_at": None,
+        }])
+        self.assertEqual(stale.status_code, 409)
+        self.assertEqual(absent.status_code, 409)
+        mark.refresh_from_db()
+        self.assertEqual(mark.marks, Decimal("20.00"))
+        current = self.batch([{
+            "student": self.learners[0].id, "paper_number": 1, "marks": "30",
+            "expected_updated_at": mark.updated_at.isoformat(),
+        }])
+        self.assertEqual(current.status_code, 200, current.content)
+        mark.refresh_from_db()
+        self.assertEqual(mark.marks, Decimal("30.00"))
+
+    def test_offline_expected_null_allows_only_a_new_mark_and_uuid_is_validated(self):
+        accepted = self.batch([{
+            "student": self.learners[0].id, "paper_number": 1, "marks": "0",
+            "expected_updated_at": None,
+        }])
+        bad_id = self.batch([{
+            "student": self.learners[1].id, "paper_number": 1, "marks": "20",
+        }], offline_operation_id="not-a-uuid")
+        self.assertEqual(accepted.status_code, 200, accepted.content)
+        self.assertEqual(bad_id.status_code, 400)

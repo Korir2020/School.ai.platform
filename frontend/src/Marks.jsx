@@ -3,6 +3,9 @@ import { api } from "./api";
 import { useToast } from "./toastctx";
 import { Button, Select, Card, Badge, EmptyState, Loading, ErrorState, Alert, ConfirmDialog } from "./ui";
 import PasteMarks from "./PasteMarks";
+import { getOfflineMetadata, loadOfflinePayload, saveOfflinePayload, updateOfflinePayload } from "./offline/offlineStore";
+import { createDraftOperation, retryOperation } from "./offline/operationQueue";
+import "./offline/offline.css";
 
 const ASSESSMENTS = { opener: "Opener", mid: "Mid-term", end: "End-term" };
 const STATUSES = { draft: "info", submitted: "warn", approved: "ok", locked: "teal" };
@@ -80,30 +83,41 @@ const styles = {
   action: { minWidth: 130 },
 };
 
-export default function Marks({ d }) {
+export default function Marks({ _d, offlineMode = false, offlinePayload = null, offlineIdentity = null,
+  offlinePassphrase = "", onOfflinePrepared, onForget }) {
   const toast = useToast();
-  const [data, setData] = useState(null);
-  const [markRows, setMarkRows] = useState([]);
+  const cacheSchoolId = offlineIdentity?.school?.id ?? offlineIdentity?.school_id ?? offlineIdentity?.schoolId ?? offlineIdentity?.school?.slug ?? null;
+  const [data, setData] = useState(() => offlineMode ? offlinePayload?.data || null : null);
+  const [markRows, setMarkRows] = useState(() => offlineMode ? offlinePayload?.markRows || [] : []);
   const [marksError, setMarksError] = useState("");
   const [marksLoading, setMarksLoading] = useState(false);
-  const [registrationRows, setRegistrationRows] = useState([]);
+  const [registrationRows, setRegistrationRows] = useState(() => offlineMode ? offlinePayload?.registrationRows || [] : []);
   const [registrationsError, setRegistrationsError] = useState("");
   const [registrationsLoading, setRegistrationsLoading] = useState(false);
   const [loadingError, setLoadingError] = useState("");
   const [retry, setRetry] = useState(0);
   const [marksReload, setMarksReload] = useState(0);
   const [registrationsReload, setRegistrationsReload] = useState(0);
-  const [examGroupId, setExamGroupId] = useState("");
-  const [classId, setClassId] = useState("");
-  const [streamId, setStreamId] = useState("");
-  const [subjectId, setSubjectId] = useState("");
+  const [examGroupId, setExamGroupId] = useState(() => offlineMode ? offlinePayload?.context?.examGroupId || "" : "");
+  const [classId, setClassId] = useState(() => offlineMode ? String(offlinePayload?.context?.classId || "") : "");
+  const [streamId, setStreamId] = useState(() => offlineMode ? String(offlinePayload?.context?.streamId || "") : "");
+  const [subjectId, setSubjectId] = useState(() => offlineMode ? String(offlinePayload?.context?.subjectId || "") : "");
   const [values, setValues] = useState({});
   const [dispositions, setDispositions] = useState({});
   const [saveError, setSaveError] = useState("");
   const [busy, setBusy] = useState(false);
   const [ask, setAsk] = useState(null);
+  const [preparedOffline, setPreparedOffline] = useState(() => offlineMode ? offlinePayload : null);
+  const [passphrase, setPassphrase] = useState("");
+  const [passphraseAgain, setPassphraseAgain] = useState("");
+  const [existingPassphrase, setExistingPassphrase] = useState("");
+  const [offlineMetadata, setOfflineMetadata] = useState(null);
+  const [offlineError, setOfflineError] = useState("");
+  const [offlineExpiry, setOfflineExpiry] = useState(() => offlineMode ? offlinePayload?.offlineMetadata?.expiresAt || null : null);
+  const [offlineStoragePersistent, setOfflineStoragePersistent] = useState(null);
 
   const load = async () => {
+    if (offlineMode) return;
     setLoadingError("");
     try {
       const pairs = Object.entries(API_LISTS);
@@ -114,7 +128,38 @@ export default function Marks({ d }) {
     }
   };
 
-  useEffect(() => { load(); }, [retry]);
+  useEffect(() => { load(); }, [retry, offlineMode]);
+
+  useEffect(() => {
+    if (offlineMode) return undefined;
+    let alive = true;
+    (async () => {
+      try {
+        const metadata = await getOfflineMetadata();
+        if (alive) setOfflineMetadata(metadata);
+        if (offlinePassphrase && metadata && !metadata.expired) {
+          const schoolId = offlineIdentity?.school?.id ?? offlineIdentity?.school_id
+            ?? offlineIdentity?.schoolId ?? offlineIdentity?.school?.slug;
+          const restored = await loadOfflinePayload(offlinePassphrase, offlineIdentity?.username, schoolId);
+          if (alive) { setPreparedOffline(restored); setOfflineExpiry(restored.offlineMetadata?.expiresAt || metadata.expiresAt); }
+        }
+      } catch { /* The passphrase is never persisted; ask the teacher to unlock explicitly if needed. */ }
+    })();
+    return () => { alive = false; };
+  }, [offlineMode, offlinePassphrase, offlineIdentity]);
+
+  useEffect(() => {
+    if (offlineMode || !offlinePassphrase) return undefined;
+    let alive = true;
+    const refreshVault = async () => {
+      try {
+        const payload = await loadOfflinePayload(offlinePassphrase, offlineIdentity?.username, cacheSchoolId);
+        if (alive) { setPreparedOffline(payload); setOfflineExpiry(payload.offlineMetadata?.expiresAt || null); }
+      } catch { /* Keep the existing status visible if the device copy is unavailable. */ }
+    };
+    window.addEventListener("marian:offline-queue-updated", refreshVault);
+    return () => { alive = false; window.removeEventListener("marian:offline-queue-updated", refreshVault); };
+  }, [offlineMode, offlinePassphrase, offlineIdentity, cacheSchoolId]);
 
   const examGroups = useMemo(() => {
     if (!data) return [];
@@ -158,6 +203,8 @@ export default function Marks({ d }) {
   }, [data, selectedGroup]);
   const selectedExam = selectedGroup?.exams.find((exam) => same(exam.class_level, classId));
   const selectedTerm = selectedExam ? data.terms.find((term) => same(term.id, selectedExam.term)) : null;
+  const selectedStream = data?.streams.find((stream) => same(stream.id, streamId));
+  const selectedClass = data?.classes.find((item) => same(item.id, classId));
 
   const streamOptions = useMemo(() => {
     if (!data || !selectedExam || !selectedTerm) return [];
@@ -181,6 +228,7 @@ export default function Marks({ d }) {
   const subject = data?.subjects.find((item) => same(item.id, subjectId));
 
   useEffect(() => {
+    if (offlineMode) return undefined;
     if (!data || !selectedExam || !selectedTerm || !subject) {
       setMarkRows([]);
       setMarksError("");
@@ -207,6 +255,7 @@ export default function Marks({ d }) {
     streamId, subject?.id, marksReload]);
 
   useEffect(() => {
+    if (offlineMode) return undefined;
     if (!data || !selectedTerm || !subject) {
       setRegistrationRows([]);
       setRegistrationsError("");
@@ -226,6 +275,20 @@ export default function Marks({ d }) {
       .finally(() => { if (current) setRegistrationsLoading(false); });
     return () => { current = false; };
   }, [data, selectedTerm?.academic_year, subject?.id, registrationsReload]);
+
+  useEffect(() => {
+    if (!preparedOffline || !offlinePassphrase) return undefined;
+    const refreshCached = async () => {
+      try {
+        const latest = await loadOfflinePayload(offlinePassphrase, offlineIdentity?.username,
+          offlineIdentity?.school?.id ?? offlineIdentity?.school_id ?? offlineIdentity?.schoolId ?? offlineIdentity?.school?.slug);
+        setPreparedOffline(latest);
+      } catch { /* A bad or expired cache remains visible through the next explicit save/unlock. */ }
+    };
+    const changed = () => refreshCached();
+    window.addEventListener("marian:offline-queue-updated", changed);
+    return () => window.removeEventListener("marian:offline-queue-updated", changed);
+  }, [preparedOffline, offlinePassphrase, offlineIdentity]);
 
   const paperDefinitions = useMemo(() => {
     if (!data || !subject) return [];
@@ -335,6 +398,139 @@ export default function Marks({ d }) {
     }
   }
 
+  let hasRememberedUsername = false;
+  try { hasRememberedUsername = localStorage.getItem("marian:remembered-username")?.toLowerCase() === String(offlineIdentity?.username || "").toLowerCase(); } catch { /* storage blocked */ }
+  const prepareOffline = async () => {
+    if (!selectedExam || !selectedTerm || !selectedStream || !selectedClass || !subject || learners.length === 0
+      || !offlineIdentity?.username || cacheSchoolId == null || !navigator.onLine || pendingEntries.length > 0
+      || marksLoading || registrationsLoading || marksError || registrationsError || !hasRememberedUsername || hasUnresolvedOperation) return;
+    if (passphrase.length < 10) { setOfflineError("Use an offline passphrase of at least 10 characters."); return; }
+    if (passphrase !== passphraseAgain) { setOfflineError("The offline passphrases do not match."); return; }
+    setBusy(true); setOfflineError("");
+    try {
+      const roster = learners.map((learner) => ({
+        id: learner.id, first_name: learner.first_name || "", middle_name: learner.middle_name || "",
+        last_name: learner.last_name || "", full_name: learner.full_name || "",
+        admission_number: learner.admission_number || "",
+      }));
+      const ids = new Set(roster.map((learner) => String(learner.id)));
+      const assignmentsInScope = data.assignments.filter((assignment) => same(assignment.stream, streamId)
+        && same(assignment.subject, subject.id)).map((assignment) => ({ id: assignment.id, stream: assignment.stream, subject: assignment.subject }));
+      const scopedExam = { id: selectedExam.id, term: selectedExam.term, assessment_type: selectedExam.assessment_type,
+        name: selectedExam.name, status: selectedExam.status, class_level: selectedExam.class_level };
+      const scopedTerm = { id: selectedTerm.id, name: selectedTerm.name, academic_year: selectedTerm.academic_year,
+        academic_year_name: selectedTerm.academic_year_name || "", start_date: selectedTerm.start_date || "" };
+      const scopedData = {
+        exams: [scopedExam], assignments: assignmentsInScope,
+        enrollments: data.enrollments.filter((enrollment) => ids.has(String(enrollment.student))
+          && same(enrollment.stream, selectedStream.id) && same(enrollment.class_level, selectedClass.id)
+          && same(enrollment.academic_year, selectedTerm.academic_year))
+          .map((enrollment) => ({ id: enrollment.id, student: enrollment.student, stream: enrollment.stream,
+            class_level: enrollment.class_level, academic_year: enrollment.academic_year, is_active: enrollment.is_active })),
+        students: roster, terms: [scopedTerm],
+        subjects: [{ id: subject.id, name: subject.name, code: subject.code || "", is_active: subject.is_active }],
+        streams: [{ id: selectedStream.id, class_level: selectedStream.class_level, name: selectedStream.name }],
+        classes: [{ id: selectedClass.id, name: selectedClass.name }],
+        papers: paperDefinitions.map((paper) => ({ subject: paper.subject, paper_number: paper.paper_number,
+          max_marks: paper.max_marks, weight: paper.weight })),
+      };
+      const payload = {
+        version: 1,
+        identity: { username: String(offlineIdentity.username), schoolId: String(cacheSchoolId),
+          schoolName: offlineIdentity.school?.name || offlineIdentity.school_name || "School", role: "teacher" },
+        context: { examGroupId: selectedGroup.id, examId: selectedExam.id, classId: selectedExam.class_level,
+          streamId: selectedStream.id, subjectId: subject.id, termId: selectedTerm.id, term: scopedTerm,
+          className: selectedClass.name, streamName: selectedStream.name, subjectName: subject.name },
+        data: scopedData,
+        registrationRows: registrationRows.filter((row) => ids.has(String(row.student))
+          && same(row.subject, subject.id) && same(row.academic_year, selectedTerm.academic_year)),
+        markRows: markRows.filter((row) => ids.has(String(row.student)) && same(row.subject, subject.id)
+          && same(row.term, selectedExam.term) && same(row.academic_year, selectedTerm.academic_year)
+          && same(row.assessment_type, selectedExam.assessment_type)).map((row) => ({ id: row.id,
+            student: row.student, paper_number: row.paper_number, subject: row.subject, term: row.term,
+            academic_year: row.academic_year, assessment_type: row.assessment_type, marks: row.marks,
+            mark_status: row.mark_status, status: row.status, updated_at: row.updated_at || null })),
+        operations: [],
+      };
+      const metadata = await saveOfflinePayload(payload, passphrase);
+      setPreparedOffline(payload); setOfflineExpiry(metadata.expiresAt);
+      setOfflineStoragePersistent(metadata.persistent);
+      onOfflinePrepared?.(passphrase);
+      setPassphrase(""); setPassphraseAgain("");
+    } catch (error) {
+      setOfflineError(error?.message || "Could not prepare encrypted marks for offline use.");
+    } finally { setBusy(false); }
+  };
+
+  const resumeOffline = async () => {
+    if (!existingPassphrase || !offlineMetadata || offlineMetadata.expired) return;
+    setBusy(true); setOfflineError("");
+    try {
+      const payload = await loadOfflinePayload(existingPassphrase, offlineIdentity?.username, cacheSchoolId);
+      setPreparedOffline(payload);
+      setOfflineExpiry(payload.offlineMetadata?.expiresAt || offlineMetadata.expiresAt);
+      setOfflineStoragePersistent(offlineMetadata.storagePersistent);
+      setExamGroupId(String(payload.context.examGroupId));
+      setClassId(String(payload.context.classId));
+      setStreamId(String(payload.context.streamId));
+      setSubjectId(String(payload.context.subjectId));
+      onOfflinePrepared?.(existingPassphrase);
+      setExistingPassphrase("");
+    } catch (error) { setOfflineError(error?.message || "Could not unlock the prepared offline copy."); }
+    finally { setBusy(false); }
+  };
+
+  const saveOfflineDraft = async () => {
+    const secret = offlinePassphrase || passphrase;
+    if (!preparedOffline || !secret) throw new Error("Prepare this exact class, stream, and subject for offline use first.");
+    if (!offlineMode && (!same(preparedOffline.context.examId, selectedExam?.id)
+      || !same(preparedOffline.context.subjectId, subject?.id) || !same(preparedOffline.context.streamId, streamId))) {
+      throw new Error("This marks context was not prepared for offline use. Reconnect to prepare the selected context.");
+    }
+    const active = (preparedOffline.operations || []).find((operation) => ["pending", "waiting", "failed", "conflict"].includes(operation.status));
+    if (active) throw new Error("A draft batch for this prepared context is still unsynced. Reconnect or resolve its conflict before saving another batch.");
+    if (offlineMode && (preparedOffline.operations || []).some((operation) => operation.status === "synced")) {
+      throw new Error("This offline batch has already synced. Return online, sign in, refresh marks, and prepare a fresh copy before making another batch.");
+    }
+    const entries = pendingEntries.map((entry) => ({ ...entry,
+      expected_updated_at: oldMark(entry.student, entry.paper_number)?.updated_at || null }));
+    const operation = createDraftOperation({ exam: selectedExam.id, subject: subject.id, entries });
+    const localRows = entries.map((entry) => {
+      const previous = oldMark(entry.student, entry.paper_number) || {};
+      return { ...previous, id: previous.id || `offline:${operation.offline_operation_id}:${entry.student}:${entry.paper_number}`,
+        student: entry.student, paper_number: entry.paper_number, marks: entry.marks, mark_status: entry.mark_status,
+        term: selectedExam.term, academic_year: selectedTerm.academic_year, subject: subject.id,
+        assessment_type: selectedExam.assessment_type, status: "draft" };
+    });
+    const next = await updateOfflinePayload(secret, (current) => ({ ...current,
+      markRows: [...(current.markRows || []).filter((mark) => !entries.some((entry) => same(mark.student, entry.student)
+        && Number(mark.paper_number) === Number(entry.paper_number))), ...localRows],
+      operations: [...(current.operations || []), operation],
+    }), offlineIdentity?.username || preparedOffline.identity.username, cacheSchoolId || preparedOffline.identity.schoolId);
+    setPreparedOffline(next); setMarkRows(next.markRows || []);
+    const changedValues = { ...values }, changedDispositions = { ...dispositions };
+    entries.forEach((entry) => {
+      const key = cellKey(entry.student, entry.paper_number);
+      changedValues[key] = entry.marks === null ? "" : String(entry.marks);
+      changedDispositions[key] = entry.mark_status;
+    });
+    setValues(changedValues); setDispositions(changedDispositions);
+    setOfflineError("");
+    if (navigator.onLine) window.dispatchEvent(new CustomEvent("marian:offline-sync-request"));
+  };
+
+  const retryOfflineOperation = async (operationId) => {
+    const secret = offlinePassphrase;
+    if (!secret || !preparedOffline) return;
+    try {
+      const next = await updateOfflinePayload(secret, (current) => ({ ...current,
+        operations: retryOperation(current.operations || [], operationId) }),
+      offlineIdentity?.username || preparedOffline.identity.username, cacheSchoolId || preparedOffline.identity.schoolId);
+      setPreparedOffline(next);
+      window.dispatchEvent(new CustomEvent("marian:offline-sync-request"));
+    } catch (error) { setOfflineError(error?.message || "Could not retry this saved batch."); }
+  };
+
   const updateCell = (studentId, paperNumber, value) => {
     setValues((current) => ({ ...current, [cellKey(studentId, Number(paperNumber))]: value }));
     setSaveError("");
@@ -353,6 +549,11 @@ export default function Marks({ d }) {
     setBusy(true);
     setSaveError("");
     try {
+      if (offlineMode || !navigator.onLine) {
+        await saveOfflineDraft();
+        toast("Draft batch saved on this device. It is unsynced and has not been submitted, approved, or locked.", "ok");
+        return;
+      }
       const response = await api("/api/performance/batch/", "POST", {
         exam: selectedExam.id,
         subject: subject.id,
@@ -444,6 +645,8 @@ export default function Marks({ d }) {
   const pendingDraftCount = markRows.filter((mark) =>
     rosterIds.has(String(mark.student)) && mark.status === "draft"
     && mark.mark_status === "pending").length;
+  const queuedOperations = preparedOffline?.operations || [];
+  const hasUnresolvedOperation = queuedOperations.some((operation) => operation.status !== "synced");
   const rowTotals = (learner) => {
     let total = 0, maxTotal = 0, weighted = 0, activeWeight = 0, hasValue = false;
     visiblePapers.forEach((paper) => {
@@ -475,22 +678,22 @@ export default function Marks({ d }) {
           <EmptyState title="No draft examinations available" text="A school admin must create a draft examination for a class where you have an active teaching assignment." />
         ) : (
           <div style={styles.selectors}>
-            <Select id="mk-exam" label="Examination" value={examGroupId}
+            <Select id="mk-exam" label="Examination" value={examGroupId} disabled={offlineMode}
               onChange={(event) => { setExamGroupId(event.target.value); setClassId(""); setStreamId(""); setSubjectId(""); setValues({}); }}>
               <option value="">Choose examination</option>
               {examGroups.map((group) => <option key={group.id} value={group.id}>{groupLabel(group)}</option>)}
             </Select>
-            <Select id="mk-class" label="Class" value={classId} disabled={!selectedGroup}
+            <Select id="mk-class" label="Class" value={classId} disabled={offlineMode || !selectedGroup}
               onChange={(event) => { setClassId(event.target.value); setStreamId(""); setSubjectId(""); setValues({}); }}>
               <option value="">{selectedGroup ? "Choose class" : "Choose an examination first"}</option>
               {classOptions.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
             </Select>
-            <Select id="mk-stream" label="Stream" value={streamId} disabled={!selectedExam}
+            <Select id="mk-stream" label="Stream" value={streamId} disabled={offlineMode || !selectedExam}
               onChange={(event) => { setStreamId(event.target.value); setSubjectId(""); setValues({}); }}>
               <option value="">{selectedExam ? "Choose stream" : "Choose a class first"}</option>
               {streamOptions.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
             </Select>
-            <Select id="mk-subject" label="Assigned subject" value={subjectId} disabled={!streamId}
+            <Select id="mk-subject" label="Assigned subject" value={subjectId} disabled={offlineMode || !streamId}
               onChange={(event) => { setSubjectId(event.target.value); setValues({}); }}>
               <option value="">{streamId ? "Choose assigned subject" : "Choose a stream first"}</option>
               {assignments.map((item) => <option key={item.id} value={item.id}>{item.code ? `${item.name} (${item.code})` : item.name}</option>)}
@@ -503,6 +706,50 @@ export default function Marks({ d }) {
       </Card>
 
       {subject && selectedExam && <Card title={`${subject.name} — ${className}${streamName ? ` / ${streamName}` : ""}`}>
+        {!offlineMode && <section className="offline-prep" aria-label="Prepare marks for offline use">
+          <h3>Prepare this marks context for offline</h3>
+          <p>Only this examination, class, stream, assigned subject, registered roster, and currently saved marks will be encrypted on this device. Preparing is explicit; each copy expires after seven days.</p>
+          {preparedOffline && <div className="offline-notice">A prepared copy is on this device{offlineExpiry ? ` until ${new Date(offlineExpiry).toLocaleString()}` : ""}. Browser storage is {offlineStoragePersistent ? "marked persistent" : "best-effort and may be evicted"}. Preparing another context will replace that copy.</div>}
+          {offlineMetadata && !offlineMetadata.expired && !preparedOffline &&
+            <div className="offline-resume">
+              <strong>Existing encrypted copy found</strong>
+              <span>Saved for {offlineMetadata.username}; expires {new Date(offlineMetadata.expiresAt).toLocaleString()}. Storage is {offlineMetadata.storagePersistent ? "marked persistent" : "best-effort and may be evicted"}. Unlock it to view its context and pending sync status.</span>
+              <label htmlFor="marks-offline-existing-passphrase">Offline passphrase</label>
+              <input id="marks-offline-existing-passphrase" type="password" autoComplete="current-password" minLength={10}
+                value={existingPassphrase} onChange={(event) => setExistingPassphrase(event.target.value)} />
+              <Button kind="secondary" busy={busy} disabled={!existingPassphrase} onClick={resumeOffline}>Unlock existing copy</Button>
+            </div>}
+          {offlineMetadata?.expired && <div className="offline-notice warn">The previous encrypted copy expired. Prepare a fresh copy after confirming this context and its saved marks.</div>}
+          <div className="offline-prep__fields">
+            <label>Offline passphrase (10+ characters)<input type="password" autoComplete="new-password" minLength={10} value={passphrase}
+              onChange={(event) => setPassphrase(event.target.value)} /></label>
+            <label>Confirm offline passphrase<input type="password" autoComplete="new-password" minLength={10} value={passphraseAgain}
+              onChange={(event) => setPassphraseAgain(event.target.value)} /></label>
+          </div>
+          <Button kind="secondary" busy={busy} disabled={!navigator.onLine || pendingEntries.length > 0 || marksLoading || registrationsLoading
+            || !!marksError || !!registrationsError || !learners.length || !offlineIdentity?.username || cacheSchoolId == null
+            || !hasRememberedUsername || hasUnresolvedOperation || (!!offlineMetadata && !offlineMetadata.expired && !preparedOffline)}
+            onClick={prepareOffline}>Prepare offline</Button>
+          {offlineMetadata && !offlineMetadata.expired && !preparedOffline && <div className="offline-notice warn">Unlock the existing encrypted copy first, or explicitly forget it before preparing another context. This prevents accidental loss of unsynced work.</div>}
+          {!navigator.onLine && <div className="offline-notice warn">Connect before preparing a fresh offline copy. Existing prepared data is not replaced while offline.</div>}
+          {pendingEntries.length > 0 && <div className="offline-notice warn">Save or clear online changes before preparing; offline preparation copies only currently saved marks.</div>}
+          {!hasRememberedUsername && <div className="offline-notice warn">Offline boot requires this teacher’s remembered-session username. Choose “Remember me for 7 days” when signing in.</div>}
+          {hasUnresolvedOperation && <div className="offline-notice conflict">An unsynced or conflicted batch is retained. Resolve or retry it before preparing a replacement context.</div>}
+          {preparedOffline && onForget && <div className="offline-device-action"><button type="button" onClick={onForget}>Forget this device and sign out</button></div>}
+          {offlineError && <div className="offline-alert" role="alert">{offlineError}</div>}
+        </section>}
+        {offlineMode && offlineExpiry && <div className="offline-notice warn">Prepared copy expiry: {new Date(offlineExpiry).toLocaleString()}. This copy is limited to the context shown here.</div>}
+        {queuedOperations.length > 0 && <section aria-label="Offline draft batch status">
+          {queuedOperations.map((operation) => {
+            const labels = { pending: "Unsynced draft batch", waiting: "Waiting to sync", failed: "Sync failed", conflict: "Conflict — review required", synced: "Draft batch synced" };
+            const message = operation.last_error || (operation.status === "synced" ? `Synced ${new Date(operation.synced_at).toLocaleString()}.` : "It has not been submitted, approved, or locked.");
+            return <div className={`offline-notice ${operation.status === "conflict" || operation.status === "failed" ? "conflict" : ""}`} key={operation.offline_operation_id}>
+              <strong>{labels[operation.status] || "Offline draft batch"}</strong> · {operation.body.entries.length} mark change(s). {message}
+              {(operation.status === "failed" || operation.status === "conflict") && navigator.onLine && offlinePassphrase
+                && <button type="button" onClick={() => retryOfflineOperation(operation.offline_operation_id)}>Retry same batch</button>}
+            </div>;
+          })}
+        </section>}
         {tooManyPapers && <Alert kind="err">This subject has a paper numbered above Paper 3. This entry grid supports Paper 1, Paper 2, and optional Paper 3; update the subject paper setup before entering these marks.</Alert>}
         {badWeight && <Alert kind="warn">Configured paper weights total {expectedWeight.toFixed(2)}%, not 100%. Marks can be saved as drafts, but the examination cannot be published until the weights are corrected.</Alert>}
         {registrationsError && <Alert kind="err">Could not load registered learners: {registrationsError}</Alert>}
@@ -536,7 +783,6 @@ export default function Marks({ d }) {
                   const savedStatuses = visiblePapers.map((paper) => ({
                     paper, mark: oldMark(learner.id, paper.paper_number),
                   })).filter((item) => item.mark);
-                  const hasPendingChange = pendingEntries.some((entry) => same(entry.student, learner.id));
                   return <tr key={learner.id}>
                     <td>
                       <strong>{makeName(learner)}</strong>
@@ -587,17 +833,19 @@ export default function Marks({ d }) {
             </div>
             <p>Totals include scored marks and count an explicit absence as zero. Exempted and not-assessed papers are excluded from the percentage denominator. Pending papers contribute nothing until resolved. A scored zero remains a scored zero.</p>
             {saveError && <Alert kind="err">{saveError}</Alert>}
+            {offlineError && offlineMode && <div className="offline-alert" role="alert">{offlineError}</div>}
             {countInvalid > 0 && <Alert kind="err">Fix {countInvalid} invalid cell{countInvalid === 1 ? "" : "s"} before saving. Each paper has its own maximum mark.</Alert>}
             <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 12, marginTop: 14 }}>
               <Button kind="teal" busy={busy} onClick={save}
-                disabled={pendingEntries.length === 0 || countInvalid > 0 || tooManyPapers || marksLoading || registrationsLoading || !!marksError || !!registrationsError}>
-                Save draft batch{pendingEntries.length ? ` (${pendingEntries.length} cell${pendingEntries.length === 1 ? "" : "s"})` : ""}
+                disabled={pendingEntries.length === 0 || countInvalid > 0 || tooManyPapers || marksLoading || registrationsLoading
+                  || !!marksError || !!registrationsError || ((offlineMode || !navigator.onLine) && !preparedOffline)}>
+                {offlineMode || !navigator.onLine ? "Save offline draft batch" : "Save draft batch"}{pendingEntries.length ? ` (${pendingEntries.length} cell${pendingEntries.length === 1 ? "" : "s"})` : ""}
               </Button>
-              <Button kind="secondary" disabled={busy || marksLoading || registrationsLoading || !!marksError || !!registrationsError || pendingEntries.length > 0 || readyDraftCount === 0}
+              {!offlineMode && <Button kind="secondary" disabled={!navigator.onLine || busy || marksLoading || registrationsLoading || !!marksError || !!registrationsError || pendingEntries.length > 0 || readyDraftCount === 0}
                 onClick={() => setAsk(true)}>
                 Submit resolved drafts{readyDraftCount ? ` (${readyDraftCount})` : ""}
-              </Button>
-              <Button kind="secondary" disabled={busy} onClick={() => { setMarksReload((count) => count + 1); setRegistrationsReload((count) => count + 1); }}>Refresh saved marks</Button>
+              </Button>}
+              {!offlineMode && <Button kind="secondary" disabled={!navigator.onLine || busy} onClick={() => { setMarksReload((count) => count + 1); setRegistrationsReload((count) => count + 1); }}>Refresh saved marks</Button>}
               {pendingEntries.length > 0 && <span>{pendingEntries.length} changed mark cell{pendingEntries.length === 1 ? "" : "s"} ready to save.</span>}
               {pendingDraftCount > 0 && <span>{pendingDraftCount} explicitly pending draft cell{pendingDraftCount === 1 ? "" : "s"} will stay in draft.</span>}
             </div>
