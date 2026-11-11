@@ -29,7 +29,7 @@ nav button.on{color:#fff;background:var(--line)}
 .stat span{color:var(--mut);font-size:.8rem;text-transform:capitalize}
 
 @media print{
-  header,nav,select,button,.splash{display:none!important}
+  header,nav,select,button,#boot{display:none!important}
   body{background:var(--m-card)!important}
   *{color:#000!important;background:none!important;border:0!important;box-shadow:none!important}
   main{max-width:none;padding:0}
@@ -103,10 +103,6 @@ header .ghost{font-size:.8rem;padding:6px 12px;border-radius:999px}
 .more button{margin:0;text-align:left;padding:13px 14px;background:transparent;color:var(--txt);border-radius:10px}
 .more button.on{color:var(--blue-hi);background:var(--m-info-bg)}
 @media print{.dock,.more{display:none!important}}
-/* Splash text spacing */
-.brand h1{line-height:1.25;margin:0 0 10px}
-.brand p{line-height:1.4;margin:0}
-.brand>div{display:flex;flex-direction:column;align-items:center}
 /* App background (set in backgrounds.css) */
 body{background:var(--m-bg)}
 body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:var(--bg-app)}
