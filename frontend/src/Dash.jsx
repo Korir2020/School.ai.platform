@@ -59,6 +59,7 @@ function schoolIdFor(me) {
 }
 
 export default function Dash({ onOut, onOfflineBoot, offlineSession, onForget, onOfflinePrepared, onReconnect }) {
+  useEffect(() => { document.body.classList.add("in-app"); return () => document.body.classList.remove("in-app"); }, []);
   const initialTerm = offlineSession?.payload?.context?.term || null;
   const [me, setMe] = useState(offlineSession?.payload?.identity || null);
   const [d, setD] = useState(offlineSession ? { role: "teacher", active_term: initialTerm } : null);
