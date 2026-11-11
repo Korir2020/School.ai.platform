@@ -16,7 +16,6 @@ import MigrationCentre from "./MigrationCentre";
 import Students from "./Students";
 import Password from "./Password";
 import Deputies from "./Deputies";
-import Intro from "./Intro";
 import Landing from "./Landing";
 import LegalPage from "./LegalPage";
 import Join from "./Join";
@@ -92,7 +91,7 @@ function Dash({ onOut }) {
 
 export default function App() {
   const [ok, setOk] = useState(!!localStorage.getItem("in"));
-  const [scr, setScr] = useState(() => window.location.search.includes("recovery=1") ? "recovery" : window.location.hash ? "landing" : "intro");
+  const [scr, setScr] = useState(() => window.location.search.includes("recovery=1") ? "recovery" : "landing");
   const [blocked, setBlocked] = useState(null);
   useEffect(() => {
     const h = (e) => setBlocked(e.detail || "This school account is suspended.");
@@ -123,8 +122,5 @@ export default function App() {
   }
   if (scr === "privacy") return <LegalPage kind="privacy" onBack={to("landing")} />;
   if (scr === "terms-of-service") return <LegalPage kind="terms" onBack={to("landing")} />;
-  if (scr === "landing") {
-    return <Landing onPrivacy={to("privacy")} onTerms={to("terms-of-service")} onStatus={to("school-status")} onStart={to("join")} onRegister={to("school-register")} onSignIn={to("login")} />;
-  }
-  return <Intro onStart={to("landing")} />;
+  return <Landing onPrivacy={to("privacy")} onTerms={to("terms-of-service")} onStatus={to("school-status")} onStart={to("join")} onRegister={to("school-register")} onSignIn={to("login")} />;
 }
