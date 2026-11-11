@@ -459,7 +459,7 @@ def _serialize(run):
     return {"id": str(run.id), "status": run.status, "requested_by": run.requested_by_id,
             "created_at": run.created_at, "started_at": run.started_at,
             "finished_at": run.finished_at, "attempts": run.attempts, "error": run.error,
-            "manifest_key": run.manifest_key, "result": run.result}
+            'verified': bool((run.result or {}).get('remote_readback_verified'))}
 
 
 @api_view(["GET"])
