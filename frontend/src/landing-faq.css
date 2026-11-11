@@ -1,0 +1,9 @@
+.mw-faq-list{max-width:820px;margin:28px auto 0;border-top:1px solid var(--w-line)}
+/* Keep the existing connection banner in normal flow on the public landing
+   only, so it cannot cover navigation or touch targets. */
+body:has(.mw) .offline-status{position:relative;inset:auto;flex-wrap:wrap}
+.mw-faq-list details{border-bottom:1px solid var(--w-line);padding:20px 0}
+.mw-faq-list summary{cursor:pointer;font-weight:600;color:var(--m-text);line-height:1.5}
+.mw-faq-list summary:focus-visible{outline:2px solid var(--m-action);outline-offset:5px}
+.mw-faq-list details p{color:var(--m-muted);padding:14px 0 0;line-height:1.7}
+@media(max-width:560px){.mw-faq-list details{padding:18px 0}}

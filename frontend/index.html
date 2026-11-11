@@ -19,7 +19,7 @@
     <style>
       /* Opening screen: painted before the app loads, removed by Root.jsx. */
       #boot{position:fixed;inset:0;z-index:2147483000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;color:#0A3326;cursor:pointer;
-        background:radial-gradient(120% 85% at 50% 38%,#FFFDF3 0%,#FBF6E2 46%,#EFE7C6 100%);transition:opacity .6s ease,visibility .6s ease}
+        background:radial-gradient(120% 85% at 50% 38%,#FFFDF3 0%,#FBF6E2 46%,#EFE7C6 100%);transition:opacity .15s ease,visibility .15s ease}
       #boot::after{content:"";position:absolute;inset:14px;border:1px solid rgba(10,51,38,.14);border-radius:4px;pointer-events:none}
       #boot.out{opacity:0;visibility:hidden}
       html.boot-seen #boot{display:none}
@@ -30,7 +30,7 @@
       #boot .b-tag{margin:0;font:600 11px/1 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;letter-spacing:.42em;padding-left:.42em;text-transform:uppercase;color:#4C6A5D;animation:b-in .7s ease .55s both}
       @keyframes b-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
       @keyframes b-rule{from{transform:scaleX(0)}to{transform:scaleX(1)}}
-      @media (prefers-reduced-motion:reduce){#boot *{animation:none!important}#boot{transition-duration:.2s}}
+      @media (prefers-reduced-motion:reduce){#boot *{animation:none!important}#boot{transition-duration:0s}}
     </style>
     <script>try{if(sessionStorage.getItem("marian-boot"))document.documentElement.classList.add("boot-seen")}catch(e){}</script>
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
@@ -44,7 +44,11 @@
     </div>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script>
+/* Font Awesome only draws the support button icons, which are hidden on the landing page.
+   Load it after the page has finished loading so it never delays the first screen. */
+window.addEventListener("load",function(){setTimeout(function(){var l=document.createElement("link");l.rel="stylesheet";l.href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css";document.head.appendChild(l);},1500);});
+</script>
 <style>
 #sw{position:fixed;right:16px;bottom:20px;z-index:9999;display:flex;flex-direction:column;align-items:flex-end;gap:10px}
 #sw .sw-item{display:none;align-items:center;gap:8px;text-decoration:none}

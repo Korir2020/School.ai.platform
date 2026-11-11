@@ -18,6 +18,7 @@ function check(f) {
 }
 
 export default function DemoRequestForm() {
+  const [more, setMore] = useState(false);
   const [f, setF] = useState(EMPTY), [err, setErr] = useState({}), [st, setSt] = useState("idle"), [msg, setMsg] = useState("");
   const set = (k) => (e) => { setF({ ...f, [k]: e.target.value }); if (err[k]) setErr({ ...err, [k]: undefined }); };
 
@@ -25,6 +26,7 @@ export default function DemoRequestForm() {
     e.preventDefault();
     const v = check(f);
     setErr(v);
+    if (v.county || v.learners || v.message) setMore(true);
     if (Object.keys(v).length) {
       const first = document.getElementById("dr-" + Object.keys(v)[0]);
       if (first) first.focus();
@@ -39,7 +41,7 @@ export default function DemoRequestForm() {
       if (!r.ok) {
         const fe = {};
         Object.entries(j).forEach(([k, val]) => { fe[k] = Array.isArray(val) ? val[0] : String(val); });
-        setErr(fe); setSt("error"); setMsg(j.detail || "Please check the highlighted fields."); return;
+        setErr(fe); if (fe.county || fe.learners || fe.message) setMore(true); setSt("error"); setMsg(j.detail || "Please check the highlighted fields."); return;
       }
       setSt("done"); setMsg(j.detail || "Thank you. We will be in touch."); setF(EMPTY);
     } catch {
@@ -75,11 +77,14 @@ export default function DemoRequestForm() {
         {fld("role", "Your role *", <select {...ip("role")}><option value="">Choose…</option>{ROLES.map(([v, t]) => <option key={v} value={v}>{t}</option>)}</select>)}
       </div>
       {fld("school_name", "School name *", <input {...ip("school_name", { autoComplete: "organization", maxLength: 200 })} />)}
-      <div className="mw-row">
-        {fld("county", "County", <input {...ip("county", { maxLength: 100 })} />)}
-        {fld("learners", "Number of learners", <input {...ip("learners", { type: "number", min: 1, inputMode: "numeric" })} />)}
-      </div>
-      {fld("message", "What would you like to see?", <textarea rows={3} {...ip("message", { maxLength: 1000 })} />, "Optional")}
+      <details className="mw-more" open={more} onToggle={(e) => setMore(e.currentTarget.open)}>
+        <summary>Add more details (optional)</summary>
+        <div className="mw-row">
+          {fld("county", "County", <input {...ip("county", { maxLength: 100 })} />)}
+          {fld("learners", "Number of learners", <input {...ip("learners", { type: "number", min: 1, inputMode: "numeric" })} />)}
+        </div>
+        {fld("message", "What would you like to see?", <textarea rows={3} {...ip("message", { maxLength: 1000 })} />, "Optional")}
+      </details>
       <div className="mw-hp" aria-hidden="true"><label htmlFor="dr-website">Website</label><input {...ip("website", { tabIndex: -1, autoComplete: "off" })} /></div>
       {st === "error" && msg && <p className="mw-alert" role="alert">{msg}</p>}
       <button type="submit" className="mw-btn lg full" disabled={st === "busy"} aria-busy={st === "busy"}>

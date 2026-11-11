@@ -249,3 +249,15 @@
 .mw .mw-copy{margin:48px auto 0}
 .mw-mc,.mw-mc b{color:var(--m-text)}
 @media (max-width:560px){.mw-kpis{gap:6px}.mw-kpis div{padding:10px}.mw-kpis small{font-size:.62rem;letter-spacing:.03em}.mw-kpis em{font-size:.7rem}}
+
+/* Landing-only fixes */
+body:has(.mw) #sw{display:none!important}
+.mw .mw-eb-short{display:none}
+@media (max-width:420px){.mw .mw-eb-long{display:none}.mw .mw-eb-short{display:inline}}
+.mw-an-card svg path{stroke:var(--m-action)}
+.mw-an-card svg circle{fill:var(--m-action)}
+.mw-an-card svg line{stroke:var(--w-line)}
+.mw-an-card svg text{fill:var(--m-muted)}
+.mw-more{display:grid;gap:12px}
+.mw-more>summary{cursor:pointer;color:var(--m-action);font-weight:600;font-size:.9rem;padding:6px 0;list-style-position:inside}
+.mw-more[open]>summary{margin-bottom:4px}
