@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import "./site.css";
+import "./landing-faq.css";
 import { Mark, Wordmark } from "./brand";
 import Ic from "./icons";
 import Demo from "./Demo";
@@ -20,7 +21,7 @@ const MIGRATE_STEPS = [
 const PREVIEW_ROWS = [
   ["Grace Otieno", "2417", "Grade 7 East", "ok"],
   ["Brian Mwangi", "2402", "Grade 7 East", "ok"],
-  ["Amina Hassan", "—", "Grade 7 West", "warn"],
+  ["Amina Hassan", "n/a", "Grade 7 West", "warn"],
   ["Kevin Kiprop", "2411", "Grade 7 West", "ok"],
   ["Faith Njeri", "2402", "Grade 7 East", "dup"],
 ];
@@ -85,7 +86,7 @@ export default function Landing({ onStart, onRegister, onSignIn, onStatus, onPri
           </nav>
           <div className="mw-bar-act">
             <button type="button" className="mw-btn text" onClick={onSignIn}>Sign In</button>
-            <button type="button" className="mw-btn" onClick={onStart}>Get Started</button>
+            <button type="button" className="mw-btn" onClick={onRegister}>Get Started</button>
           </div>
           <button type="button" className="mw-burger" aria-expanded={open} aria-controls="mw-menu" aria-label={open ? "Close menu" : "Open menu"} onClick={() => setOpen(!open)}>
             <span /><span /><span />
@@ -95,7 +96,7 @@ export default function Landing({ onStart, onRegister, onSignIn, onStatus, onPri
           {NAV.map(([id, t]) => <a key={id} href={"#" + id} onClick={nav(id)}>{t}</a>)}
           <div className="mw-menu-act">
             <button type="button" className="mw-btn ghost" onClick={onSignIn}>Sign In</button>
-            <button type="button" className="mw-btn" onClick={onStart}>Get Started</button>
+            <button type="button" className="mw-btn" onClick={onRegister}>Get Started</button>
           </div>
         </div>
       </header>
@@ -105,7 +106,7 @@ export default function Landing({ onStart, onRegister, onSignIn, onStatus, onPri
         <section id="top" className="mw-hero">
           <div className="mw-wrap mw-hero-in">
             <div className="mw-hero-copy">
-              <p className="mw-eyebrow">School management for Kenyan schools</p>
+              <p className="mw-eyebrow"><span className="mw-eb-long">School management for Kenyan schools</span><span className="mw-eb-short">For Kenyan schools</span></p>
               <h1>The trusted record for every learner, mark and fee.</h1>
               <p className="mw-lead">
                 Marks, report cards, attendance, fees and parents in one secure platform,
@@ -194,7 +195,7 @@ export default function Landing({ onStart, onRegister, onSignIn, onStatus, onPri
             <div className="mw-head">
               <p className="mw-eyebrow">The platform</p>
               <h2>Everything your school runs on, connected.</h2>
-              <p>A mark entered once flows to rankings, analytics and report cards — no copying between systems.</p>
+              <p>A mark entered once flows to rankings, analytics and report cards, with no copying between systems.</p>
             </div>
             <div className="mw-modules">
               {MODULES.map(([icon, t, d]) => (
@@ -255,6 +256,20 @@ export default function Landing({ onStart, onRegister, onSignIn, onStatus, onPri
           </div>
         </section>
 
+        <section id="questions" className="mw-sec">
+          <div className="mw-wrap">
+            <div className="mw-head">
+              <p className="mw-eyebrow">Common questions</p>
+              <h2>Before your school gets started.</h2>
+            </div>
+            <div className="mw-faq-list">
+              <details><summary>Does Marian work offline?</summary><p>Teachers can prepare a marks workspace while online, then enter marks drafts offline on that device. The encrypted copy is available for up to seven days and is unlocked with an offline passphrase. Reconnect to sync saved draft batches. Attendance, reports, receipts and attachments still require an internet connection.</p></details>
+              <details><summary>How is our school’s data protected?</summary><p>School records are kept separate, with access controlled by account roles and permissions. Marks are reviewed and approved before report cards are published. Prepared offline marks are encrypted and unlocked with a separate passphrase; the device does not store your account password or encryption key.</p></details>
+              <details><summary>How do we move from our current system?</summary><p>Use the Migration Centre to upload a learner list or paste existing records. Review matched columns and correct missing or duplicate entries before confirming the import. You can request a walkthrough to plan the move with your school.</p></details>
+            </div>
+          </div>
+        </section>
+
         {/* Demo + final call to action */}
         <section id="demo" className="mw-sec mw-cta">
           <div className="mw-wrap mw-split">
@@ -263,7 +278,7 @@ export default function Landing({ onStart, onRegister, onSignIn, onStatus, onPri
               <h2>See Marian with your school in mind.</h2>
               <p className="mw-lead">
                 Tell us about your school. We'll arrange a walkthrough, help you plan your migration and share a
-                quote — pricing is agreed with each school.
+                quote. Pricing is agreed with each school.
               </p>
               <div className="mw-act">
                 <button type="button" className="mw-btn lg" onClick={onRegister}>Register your school</button>
@@ -272,6 +287,7 @@ export default function Landing({ onStart, onRegister, onSignIn, onStatus, onPri
               <dl className="mw-contact">
                 <div><dt>Email</dt><dd><a href="mailto:korirmartin42@gmail.com">korirmartin42@gmail.com</a></dd></div>
                 <div><dt>Phone</dt><dd><a href="tel:+254703702690">+254 703 702 690</a></dd></div>
+                <div><dt>WhatsApp</dt><dd><a href="https://wa.me/254703702690" target="_blank" rel="noopener noreferrer">Chat on WhatsApp</a></dd></div>
               </dl>
               <p className="mw-small">We use these details only to contact you about Marian. See our <button type="button" className="mw-link" onClick={onPrivacy}>Privacy Policy</button>.</p>
             </div>
@@ -292,6 +308,7 @@ export default function Landing({ onStart, onRegister, onSignIn, onStatus, onPri
             <a href="#platform" onClick={nav("platform")}>Platform</a>
             <a href="#analytics" onClick={nav("analytics")}>Analytics</a>
             <a href="#demo" onClick={nav("demo")}>Request a demo</a>
+            <a href="#questions" onClick={nav("questions")}>Common questions</a>
           </div>
           <div>
             <h4>Get started</h4>
@@ -304,6 +321,7 @@ export default function Landing({ onStart, onRegister, onSignIn, onStatus, onPri
             <h4>Contact</h4>
             <a href="mailto:korirmartin42@gmail.com">korirmartin42@gmail.com</a>
             <a href="tel:+254703702690">+254 703 702 690</a>
+            <a href="https://wa.me/254703702690" target="_blank" rel="noopener noreferrer">Chat on WhatsApp</a>
           </div>
           <div>
             <h4>Legal</h4>
