@@ -106,3 +106,5 @@ psycopg==3.3.6
 psycopg-binary==3.3.6
 openpyxl==3.1.5
 reportlab==4.4.4
+boto3>=1.35,<2
+cryptography>=44,<47

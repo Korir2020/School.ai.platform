@@ -88,6 +88,7 @@ export async function logout() {
   try { await post("/api/auth/logout/", {}); } catch (e) {}
   access = null;
   mark(false);
+  try { localStorage.removeItem("marian:remembered-username"); } catch (e) {}
 }
 
 // Fetch every page of a list endpoint (also accepts plain arrays).

@@ -1,12 +1,17 @@
 from django.db import transaction
 from django.utils import timezone
-from uuid import uuid4
+from django.utils.dateparse import parse_datetime
+from django.contrib.auth import get_user_model
+from hashlib import sha256
+import json
+from uuid import uuid4, UUID
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
 from schools.models import (
     Enrollment, Exam, MarkAuditLog, Performance, SchoolAdminProfile, Subject,
     Stream, SubjectPaper, SubjectRegistration, TeacherAssignment, TeacherProfile,
+    OfflineMarkOperation,
 )
 from .serializers import PerformanceSerializer
 from .senior_rules import is_cbc_senior, pathway_matches_class, subject_definition_problem
@@ -57,6 +62,17 @@ def performance_batch(request):
             "detail": f"A batch may contain at most {MAX_BATCH_CELLS} mark cells."
         }, status=400)
 
+    offline_operation_id = request.data.get("offline_operation_id")
+    payload_hash = None
+    if offline_operation_id is not None:
+        try:
+            offline_operation_id = UUID(str(offline_operation_id))
+        except (TypeError, ValueError, AttributeError):
+            return Response({"detail": "offline_operation_id must be a UUID."}, status=400)
+        payload = json.dumps({"exam": exam_id, "subject": subject_id, "entries": entries},
+                             sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+        payload_hash = sha256(payload.encode("utf-8")).hexdigest()
+
     raw_rows = []
     seen_keys = set()
     problems = []
@@ -85,11 +101,34 @@ def performance_batch(request):
         seen_keys.add(key)
         student_ids.add(student_id)
         paper_numbers.add(paper_number)
-        raw_rows.append((index, item, student_id, paper_number, key))
+        expected_supplied = "expected_updated_at" in item
+        expected_updated_at = item.get("expected_updated_at")
+        if expected_supplied and expected_updated_at is not None:
+            if not isinstance(expected_updated_at, str):
+                problems.append({"index": index, "detail": "expected_updated_at must be an ISO timestamp or null."})
+                continue
+            expected_updated_at = parse_datetime(expected_updated_at)
+            if expected_updated_at is None or not timezone.is_aware(expected_updated_at):
+                problems.append({"index": index, "detail": "expected_updated_at must be a timezone-aware ISO timestamp or null."})
+                continue
+        raw_rows.append((index, item, student_id, paper_number, key,
+                         expected_supplied, expected_updated_at))
     if problems:
         return Response({"detail": "Correct the invalid mark entries.", "errors": problems}, status=400)
 
     with transaction.atomic():
+        if offline_operation_id is not None:
+            # Serialize this user's operations so concurrent retries observe the
+            # original result before doing any writes or applying stale checks.
+            get_user_model().objects.select_for_update().get(pk=request.user.pk)
+            prior = OfflineMarkOperation.objects.filter(
+                user=request.user, operation_id=offline_operation_id,
+            ).first()
+            if prior:
+                if prior.payload_sha256 != payload_hash:
+                    return Response({"detail": "offline_operation_id was already used with a different payload."}, status=409)
+                return Response(prior.response, status=200)
+
         exam_qs = Exam.objects.select_for_update().select_related("term__academic_year")
         if school_id is not None:
             exam_qs = exam_qs.filter(school_id=school_id)
@@ -162,10 +201,10 @@ def performance_batch(request):
             (row.student_id, row.paper_number): row for row in existing_rows
         }
 
-        errors, conflicts, forbidden = [], [], []
+        errors, conflicts, stale_conflicts, forbidden = [], [], [], []
         creates, updates, deletes = [], [], []
         audit_rows = []
-        for index, item, student_id, paper_number, key in raw_rows:
+        for index, item, student_id, paper_number, key, expected_supplied, expected_updated_at in raw_rows:
             enrollment = enrollment_by_student.get(student_id)
             if enrollment is None:
                 errors.append({
@@ -202,6 +241,14 @@ def performance_batch(request):
                 continue
 
             existing = existing_by_key.get(key)
+            if expected_supplied and (existing.updated_at if existing else None) != expected_updated_at:
+                stale_conflict = {
+                    "index": index, "student": student_id, "paper_number": paper_number,
+                    "detail": "This mark changed since it was queued offline. Refresh before saving.",
+                }
+                conflicts.append(stale_conflict)
+                stale_conflicts.append(stale_conflict)
+                continue
             if existing and existing.status != "draft":
                 conflicts.append({
                     "index": index, "student": student_id, "paper_number": paper_number,
@@ -312,7 +359,9 @@ def performance_batch(request):
                 ))
 
         if conflicts or errors or forbidden:
-            status = 403 if forbidden else (409 if conflicts and not errors else 400)
+            status = 403 if forbidden else (
+                409 if stale_conflicts or conflicts and not errors else 400
+            )
             return Response({
                 "detail": "Some mark entries could not be saved; no changes were applied.",
                 "errors": errors + conflicts + forbidden,
@@ -338,14 +387,21 @@ def performance_batch(request):
                     row.performance = created_by_key[key]
             MarkAuditLog.objects.bulk_create(audit_rows, batch_size=500)
 
-    return Response({
+        response_body = {
         "exam": exam.id,
         "subject": subject.id,
         "saved": len(creates) + len(updates),
         "created": len(creates),
         "updated": len(updates),
         "deleted": len(deletes),
-    }, status=200)
+        }
+        if offline_operation_id is not None:
+            OfflineMarkOperation.objects.create(
+                user=request.user, operation_id=offline_operation_id,
+                payload_sha256=payload_hash, response=response_body,
+            )
+
+    return Response(response_body, status=200)
 
 
 @api_view(["POST"])

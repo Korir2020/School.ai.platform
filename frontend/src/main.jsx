@@ -6,9 +6,11 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './Root.jsx'
+import { OfflineStatus } from './offline/OfflineComponents'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
+    <OfflineStatus />
     <App />
   </StrictMode>,
 )

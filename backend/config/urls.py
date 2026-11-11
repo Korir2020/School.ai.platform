@@ -394,6 +394,10 @@ from api.announcements import (
     alert_preferences, announcement_detail, announcement_preview, announcement_read,
     announcement_retry, announcement_send, announcements)
 from api.backup import backup_status, full_backup, school_export_view, validate_backup
+from api.offsite_backup import (
+    offsite_backup_history, offsite_backup_retry, offsite_backup_status,
+    offsite_backup_trigger,
+)
 
 urlpatterns += [
     path('api/announcements/', announcements),
@@ -404,6 +408,10 @@ urlpatterns += [
     path('api/announcements/<int:pk>/read/', announcement_read),
     path('api/me/alert-preferences/', alert_preferences),
     path('api/backups/status/', backup_status),
+    path('api/backups/offsite/status/', offsite_backup_status),
+    path('api/backups/offsite/history/', offsite_backup_history),
+    path('api/backups/offsite/trigger/', offsite_backup_trigger),
+    path('api/backups/offsite/<uuid:pk>/retry/', offsite_backup_retry),
     path('api/backups/full/', full_backup),
     path('api/backups/validate/', validate_backup),
     path('api/school/export/', school_export_view),
