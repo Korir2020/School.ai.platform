@@ -21,6 +21,10 @@ from marian_reports.pdf import report_pdf
 
 from api.report_access import build_report_user
 from api.report_source import DjangoConfigStore, DjangoDataSource
+from marian_reports.comment_templates import (
+    clean_templates, default_templates, level_templates, merge_templates,
+    numeric_templates, render_template, stage_for_scale,
+)
 
 
 def _err(code, message, status):
@@ -94,6 +98,9 @@ def service(school_id, exam_id=None):
     if scheme is None:
         raise ReportNotReady("no_grading_scale",
                              "This school has not set a grading scale yet.")
+    saved_templates = store.saved_comment_templates()
+    cfg.comment_templates = numeric_templates(
+        scheme, saved_templates.get("grading"))
     if framework_key in CBC_REPORT_FRAMEWORKS:
         # CBC school rankings are opt-in. A saved school preference wins.
         preset = STAGE_PRESETS[framework_key]
@@ -110,12 +117,17 @@ def service(school_id, exam_id=None):
     return ReportService(DjangoDataSource(), scheme, cfg, framework_key=framework_key)
 
 
-def ctx(request):
+def report_user(request):
     try:
         user = build_report_user(request.user)
     except PermissionDenied:
         from api.class_teacher_access import class_teacher_user
         user = class_teacher_user(request)
+    return user
+
+
+def ctx(request):
+    user = report_user(request)
     return user, service(user.school_id, request.query_params.get("exam_id"))
 
 
@@ -275,23 +287,47 @@ def report_selection(request):
 @permission_classes([IsAuthenticated, SchoolNotSuspended])
 @guard
 def report_student_pdf(request, student_id):
-    user, svc = ctx(request)
-    st = svc.ds.get_student(user.school_id, str(student_id))
-    svc.authorize_student(user, st)
+    user = report_user(request)
+    from api.report_source import DjangoDataSource
+    from marian_reports.assembler import authorize_student
+    st = DjangoDataSource().get_student(user.school_id, str(student_id))
+    authorize_student(user, st)
     if user.role == "teacher":
         from api.class_teacher_access import enforce_student
         enforce_student(request, user, st)
+    exam_id = request.query_params.get("exam_id", "")
+    from api.published_reports import find_published_report, response_for_published_report
+    try:
+        archived = find_published_report(user.school_id, int(exam_id), int(st.id))
+    except (TypeError, ValueError):
+        archived = None
+    if archived is not None:
+        return response_for_published_report(request, archived)
     from api.level_report import level_pdf_response
     lv = level_pdf_response(request, user, st)
     if lv is not None:
         return lv
-    snap = svc.snapshot(user, request.query_params.get("exam_id", ""), st.class_name)
+    svc = service(user.school_id, exam_id)
+    snap = svc.snapshot(user, exam_id, st.class_name)
     prov = request.query_params.get("provisional") == "1"
     rd = svc.build_report(user, snap, st.id, provisional_ok=prov)
-    resp = HttpResponse(report_pdf(rd, verify_base()), content_type="application/pdf")
+    pdf = report_pdf(rd, verify_base())
+    if snap.exam.published and not rd.provisional:
+        from schools.models import Exam, Student
+        from api.published_reports import archive_published_report
+        exam_row = Exam.objects.filter(pk=int(snap.exam.id), school_id=user.school_id).first()
+        student_row = Student.objects.filter(pk=int(st.id), school_id=user.school_id).first()
+        if exam_row is not None and student_row is not None:
+            artifact = archive_published_report(
+                exam=exam_row, student=student_row, report_no=rd.report_no,
+                result_mode="marks", pdf=pdf, source_digest=rd.snapshot_id)
+            if artifact is not None:
+                return response_for_published_report(request, artifact)
+    resp = HttpResponse(pdf, content_type="application/pdf")
     kind = "attachment" if request.query_params.get("download") == "1" else "inline"
     resp["Content-Disposition"] = f'{kind}; filename="{safe_name(rd.report_no)}.pdf"'
     resp["Cache-Control"] = "private, no-store"
+    resp["X-Report-Reference"] = rd.report_no
     return resp
 
 
@@ -388,20 +424,40 @@ def report_verify(request, report_no):
     try:
         sid = request.query_params.get("s", "")
         tok = request.query_params.get("t", "")
-        _p, year, term, adm = report_no.split("-", 3)
-        year, term = int(year), int(term[1:])
-        svc = service(sid)
-        sysu = User("system", sid, "admin")
-        stu = next(s for s in svc.ds.list_students(sid) if s.adm_no == adm)
         want = request.query_params.get("e", "")
-        for e in svc.ds.list_exams(sid):
-            if want and str(e.id) != want:
-                continue
-            if e.year == year and e.term == term:
-                snap = svc.snapshot(sysu, e.id, stu.class_name)
-                if sign(report_no, snap.snapshot_id) == tok:
-                    ok = True
-                    break
+        qualified = re.fullmatch(r"RPT-E([0-9]+)-(.+)", report_no)
+        from schools.models import PublishedReportArtifact
+        if qualified:
+            exam_id, adm = qualified.group(1), qualified.group(2)
+            if want and want != exam_id:
+                raise ValueError("exam mismatch")
+            artifact = PublishedReportArtifact.objects.filter(
+                school_id=sid, exam_id=exam_id, report_no=report_no).first()
+            if artifact is not None:
+                ok = tok == artifact.verification_token
+            else:
+                svc = service(sid)
+                sysu = User("system", sid, "admin")
+                stu = next(s for s in svc.ds.list_students(sid) if s.adm_no == adm)
+                exam = next((e for e in svc.ds.list_exams(sid)
+                             if str(e.id) == exam_id and e.published), None)
+                if exam is not None:
+                    snap = svc.snapshot(sysu, exam.id, stu.class_name)
+                    ok = sign(report_no, snap.snapshot_id) == tok
+        else:
+            _p, year, term, adm = report_no.split("-", 3)
+            year, term = int(year), int(term[1:])
+            svc = service(sid)
+            sysu = User("system", sid, "admin")
+            stu = next(s for s in svc.ds.list_students(sid) if s.adm_no == adm)
+            for e in svc.ds.list_exams(sid):
+                if want and str(e.id) != want:
+                    continue
+                if e.year == year and e.term == term:
+                    snap = svc.snapshot(sysu, e.id, stu.class_name)
+                    if sign(report_no, snap.snapshot_id) == tok:
+                        ok = True
+                        break
     except Exception:
         ok = False
     if ok:
@@ -447,8 +503,117 @@ def report_comments_list(request):
     user, svc = ctx(request)
     cs = comment_service(user, svc)
     q = request.query_params
+    exam_id, class_name = q.get("exam_id", ""), q.get("class_name", "")
+    rows = cs.listing(user, exam_id, class_name)
+    if user.role == "teacher":
+        from api.class_teacher_access import enforce_selection
+        from schools.models import Enrollment, Exam
+        stream, _ids = enforce_selection(request, user, exam_id, class_name,
+                                         q.get("stream") or None, [])
+        exam = Exam.objects.get(pk=int(exam_id), school_id=user.school_id)
+        allowed = set(str(value) for value in Enrollment.objects.filter(
+            student__school_id=user.school_id, academic_year_id=exam.term.academic_year_id,
+            class_level=exam.class_level, stream__name=stream, is_active=True,
+        ).values_list("student_id", flat=True))
+        rows = [row for row in rows if row["student_id"] in allowed]
     return Response({"comments": jsonable(
-        cs.listing(user, q.get("exam_id", ""), q.get("class_name", "")))})
+        rows)})
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated, SchoolNotSuspended])
+@guard
+def report_comment_defaults(request):
+    """Return editable scale-based suggestions only; never persist or print them here."""
+    user, svc = ctx(request)
+    exam_id = str(request.query_params.get("exam_id", ""))
+    student_id = str(request.query_params.get("student_id", ""))
+    if not exam_id or not student_id:
+        return _err("invalid_comment", "Choose an exam and learner.", 400)
+    student = svc.ds.get_student(user.school_id, student_id)
+    svc.authorize_student(user, student)
+    from schools.models import Exam, ExamResult, LevelResult
+    try:
+        exam_pk = int(exam_id)
+    except (TypeError, ValueError):
+        raise NotFound("exam")
+    exam = Exam.objects.filter(pk=exam_pk, school_id=user.school_id).select_related(
+        "term__academic_year", "class_level").first()
+    if exam is None:
+        raise NotFound("exam")
+    if user.role == "teacher":
+        from api.class_teacher_access import enforce_comment
+        enforce_comment(request, user, student_id, exam_id)
+    atype = request.query_params.get("type", exam.assessment_type)
+    if atype not in ("opener", "mid", "end"):
+        return _err("invalid_comment", "Unknown assessment type.", 400)
+    store = DjangoConfigStore(str(user.school_id))
+    saved = store.saved_comment_templates()
+    from marian_reports.frameworks import CBC_REPORT_FRAMEWORKS
+    if exam.framework_key in CBC_REPORT_FRAMEWORKS and not ExamResult.objects.filter(exam=exam).exists():
+        rows = list(LevelResult.objects.filter(
+            student_id=student.id, academic_year=exam.term.academic_year,
+            term=exam.term, assessment_type=atype, status__in=["approved", "locked"],
+        ).select_related("subject", "scale").order_by("subject__name"))
+        if rows:
+            scale = rows[0].scale
+            key = f"level:{scale.pk}"
+            templates = level_templates(scale, saved.get(key))
+            stage = {"cbe_primary": "Primary", "cbe_junior_levels": "Junior",
+                     "cbe_senior": "Senior"}.get(exam.framework_key, "CBC")
+            level_labels = {item.get("key"): item.get("label", item.get("key"))
+                            for item in scale.levels if isinstance(item, dict)}
+            order = [item.get("key") for item in scale.levels if isinstance(item, dict)]
+            recorded = []
+            subject_suggestions = []
+            for row in rows:
+                level_label = level_labels.get(row.level_key, row.level_key)
+                if row.level_key not in recorded:
+                    recorded.append(row.level_key)
+                template = templates.get(row.level_key, {}).get("subject", "")
+                subject_suggestions.append({
+                    "subject": row.subject.name,
+                    "text": render_template(template, level=level_label,
+                                            subject=row.subject.name,
+                                            scale="school-defined achievement scale",
+                                            stage=stage),
+                })
+            recorded_labels = ", ".join(level_labels.get(k, k) for k in order if k in recorded)
+            overall = templates.get("__overall__", {})
+            return Response({
+                "mode": "achievement_levels", "stage": stage,
+                "comments": {
+                    field: render_template(overall.get(field, ""),
+                                           levels=recorded_labels or "the recorded descriptors",
+                                           scale="school-defined achievement scale", stage=stage)
+                    for field in ("class_teacher", "principal")
+                },
+                "subject_comments": subject_suggestions,
+            })
+
+    snap = svc.snapshot(user, exam_id, student.class_name)
+    summary = snap.summaries.get(student.id)
+    if summary is None:
+        raise ReportNotReady("no_results", "No results are recorded for this learner.")
+    level = summary.mean_points_grade or "recorded school result"
+    row_templates = svc.cfg.comment_templates.get(level, {})
+    comments = {
+        field: render_template(row_templates.get(field, ""), level=level,
+                              scale="school grading scale", stage="school")
+        for field in ("class_teacher", "principal")
+    }
+    return Response({
+        "mode": "marks", "stage": "School",
+        "comments": comments,
+        "subject_comments": [
+            {"subject": row.subject,
+             "text": render_template(
+                 svc.cfg.comment_templates.get(row.grade or "", {}).get("subject", ""),
+                 level=row.grade or "recorded result", subject=row.subject,
+                 scale="school grading scale", stage="school")}
+            for row in summary.subjects if row.status == "scored"
+        ],
+    })
 
 
 @api_view(["POST"])
@@ -457,9 +622,24 @@ def report_comments_list(request):
 def report_comment_draft(request):
     user, svc = ctx(request)
     b = cbody(request)
+    exam_id, student_id = str(b.get("exam_id", "")), str(b.get("student_id", ""))
+    if user.role == "teacher":
+        from api.class_teacher_access import enforce_comment
+        enforce_comment(request, user, student_id, exam_id)
     return comment_call(comment_service(user, svc).draft, user,
-                        str(b.get("exam_id", "")), str(b.get("student_id", "")),
+                        exam_id, student_id,
                         b.get("field", "class_teacher"), b.get("text"))
+
+
+def _authorize_comment_scope(request, user, cid):
+    if user.role != "teacher":
+        return
+    from api.class_teacher_access import enforce_comment
+    from schools.models import ReportComment
+    row = ReportComment.objects.filter(id=cid, school_id=user.school_id).first()
+    if row is None:
+        raise NotFound("comment")
+    enforce_comment(request, user, row.student_id, row.exam_id)
 
 
 @api_view(["PUT"])
@@ -467,6 +647,7 @@ def report_comment_draft(request):
 @guard
 def report_comment_edit(request, cid):
     user, svc = ctx(request)
+    _authorize_comment_scope(request, user, cid)
     return comment_call(comment_service(user, svc).edit, user, cid,
                         cbody(request).get("text"))
 
@@ -476,6 +657,7 @@ def report_comment_edit(request, cid):
 @guard
 def report_comment_approve(request, cid):
     user, svc = ctx(request)
+    _authorize_comment_scope(request, user, cid)
     return comment_call(comment_service(user, svc).approve, user, cid)
 
 
@@ -484,6 +666,7 @@ def report_comment_approve(request, cid):
 @guard
 def report_comment_reject(request, cid):
     user, svc = ctx(request)
+    _authorize_comment_scope(request, user, cid)
     return comment_call(comment_service(user, svc).reject, user, cid)
 
 
@@ -621,3 +804,100 @@ def report_grading_scale(request):
     d = scheme_json(s)
     d.pop("options", None)
     return Response(d)
+
+
+def _comment_scale_catalog(school_id, store):
+    """Return the school's current numeric scale and saved CBC level-scale versions."""
+    from schools.models import LevelScale
+    saved = store.saved_comment_templates()
+    scales = []
+    scheme = store.load_scheme()
+    if scheme is not None:
+        labels = [(band.label, band.label)
+                  for band in sorted(scheme.bands, key=lambda row: row.min_pct, reverse=True)]
+        defaults = default_templates(labels, kind="numeric", scale_name="school grading scale")
+        scales.append({
+            "key": "grading", "label": "School grading scale", "mode": "marks",
+            "entries": [{"key": key, "label": label, "fields": list(defaults[key])}
+                        for key, label in labels],
+            "templates": merge_templates(defaults, saved.get("grading")),
+        })
+    for scale in LevelScale.objects.filter(school_id=school_id).order_by(
+            "curriculum__name", "min_level", "version"):
+        stage = stage_for_scale(scale.min_level, scale.max_level)
+        labels = [(item.get("key", ""), item.get("label", item.get("key", "")))
+                  for item in scale.levels if isinstance(item, dict) and item.get("key")]
+        defaults = default_templates(labels, kind="level", stage=stage)
+        curriculum_name = scale.curriculum.name
+        label = f"CBC {stage} · {curriculum_name} · Grades {scale.min_level}–{scale.max_level} · v{scale.version}"
+        key = f"level:{scale.pk}"
+        scales.append({
+            "key": key, "label": label, "mode": "achievement_levels", "stage": stage,
+            "entries": [
+                *[{"key": entry_key, "label": entry_label, "fields": list(defaults[entry_key])}
+                  for entry_key, entry_label in labels],
+                {"key": "__overall__", "label": "Overall feedback", "fields": list(defaults["__overall__"])},
+            ],
+            "templates": merge_templates(defaults, saved.get(key)),
+        })
+    return scales
+
+
+@api_view(["GET", "PUT"])
+@permission_classes([IsAuthenticated, SchoolNotSuspended])
+@guard
+def report_comment_templates(request):
+    """Editable defaults; GET is available to assigned school staff, PUT to admins only."""
+    if request.method == "PUT":
+        user = admin_user(request)
+    else:
+        user, _svc = ctx(request)
+    store = DjangoConfigStore(str(user.school_id))
+    scales = _comment_scale_catalog(user.school_id, store)
+    if request.method == "GET":
+        key = request.query_params.get("scale_key")
+        if key:
+            scales = [row for row in scales if row["key"] == key]
+        return Response({"templates": scales})
+
+    body = cbody(request)
+    scale_key = str(body.get("scale_key", ""))
+    scale = next((row for row in scales if row["key"] == scale_key), None)
+    if scale is None:
+        return _err("invalid_comment_templates", "Choose a scale belonging to this school.", 400)
+    defaults = default_templates(
+        [(entry["key"], entry["label"]) for entry in scale["entries"]
+         if entry["key"] != "__overall__"],
+        kind="level" if scale["mode"] == "achievement_levels" else "numeric",
+        stage=scale.get("stage", "CBC"),
+    )
+    if scale["mode"] == "achievement_levels":
+        defaults["__overall__"] = default_templates(
+            [(entry["key"], entry["label"]) for entry in scale["entries"]
+             if entry["key"] != "__overall__"], kind="level", stage=scale.get("stage", "CBC"),
+        )["__overall__"]
+    try:
+        cleaned = clean_templates(defaults, body.get("templates"))
+    except ValueError as exc:
+        return _err("invalid_comment_templates", str(exc), 400)
+    saved = store.saved_comment_templates()
+    existing = saved.get(scale_key, {}) if isinstance(saved.get(scale_key), dict) else {}
+    updated = {key: dict(value) for key, value in existing.items() if isinstance(value, dict)}
+    for entry_key, fields in cleaned.items():
+        row = dict(updated.get(entry_key, {}))
+        for field, text in fields.items():
+            if text:
+                row[field] = text
+            else:
+                row.pop(field, None)
+        if row:
+            updated[entry_key] = row
+        else:
+            updated.pop(entry_key, None)
+    saved[scale_key] = updated
+    store.save_comment_templates(saved)
+    DjangoAuditLog().record(user, "comment_templates.changed", scale_key,
+                            {"entries": len(cleaned)})
+    fresh = next(row for row in _comment_scale_catalog(user.school_id, store)
+                 if row["key"] == scale_key)
+    return Response({"template": fresh})

@@ -118,11 +118,14 @@ class MigrationRulesTests(SimpleTestCase):
         self.assertTrue(any(i["code"] == "ambiguous_columns" for i in out["file_issues"]))
         self.assertEqual(out["rows"], [])
 
-    def test_existing_student_blocks_same_admission_and_asks_about_same_name(self):
+    def test_existing_student_is_a_duplicate_and_same_name_asks(self):
+        # A learner already in Marian is skipped, not treated as an error: the
+        # administrator is not asked to fix a row that must not be imported.
         existing = [{"admission_number": "A1", "first_name": "Jane", "last_name": "Otieno"}]
         rows = [["a1", "Ann", "Kamau", "Grade 9", "East", ""], ["B7", "Jane", "Otieno", "Grade 9", "West", ""]]
         out = {r["row"]: r for r in run(rows, existing=existing)["rows"]}
-        self.assertEqual(out[2]["status"], "blocked")
+        self.assertEqual(out[2]["status"], "duplicate")
+        self.assertIn("Jane Otieno", [i["message"] for i in out[2]["issues"] if i["code"] == "admission_number_exists"][0])
         self.assertEqual(out[3]["status"], "needs_confirmation")
 
     def test_handwritten_similar_name_asks_but_typed_file_does_not(self):

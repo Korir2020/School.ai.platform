@@ -131,12 +131,13 @@ export default function BulkDocuments({ admin = false }) {
 
   return <div className="documents-page">
     <h2>Bulk documents</h2>
-    <p className="sub">Generate verified documents from approved results and saved payments. Every output remains linked to the original record.</p>
+    <p className="sub">Generate term-wide bulk documents from approved results and saved payments. For an authoritative report for one Opener, Mid-term, or End-term examination, use <b>Exam Reports</b> instead.</p>
     {admin && <div className="doc-switch">
       <Button kind={mode === "reports" ? "teal" : "secondary"} onClick={() => setMode("reports")}>Report cards</Button>
       <Button kind={mode === "receipts" ? "teal" : "secondary"} onClick={() => setMode("receipts")}>Fee receipts</Button>
     </div>}
-    {mode === "reports" && <Card title="Report-card filters">
+    {mode === "reports" && <Card title="Term-wide report-card filters">
+      <p className="sub">This legacy term-wide export is a convenience document and may aggregate approved results across the selected term; it is not the per-examination report route.</p>
       <Select label="Academic term" value={term} onChange={(event) => setTerm(event.target.value)}>
         <option value="">Select term</option>
         {terms.map((row) => <option key={row.id} value={row.id}>{row.name} · {row.academic_year}</option>)}

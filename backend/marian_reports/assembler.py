@@ -21,6 +21,11 @@ def sign(report_no: str, snapshot_id: str) -> str:
     return hmac.new(_secret(), f"{report_no}|{snapshot_id}".encode(), hashlib.sha256).hexdigest()[:12]
 
 
+def published_report_reference(exam_id: str, admission_number: str) -> str:
+    """Stable reference that always binds the printed report to one exam."""
+    return f"RPT-E{exam_id}-{admission_number}"
+
+
 @dataclass
 class Snapshot:
     """Consistent view of one exam for one class level, used for ALL rankings in a run."""
@@ -131,6 +136,19 @@ def _rank_grouped(candidates, *, population, tie_policy, include_incomplete=Fals
     return result
 
 
+def authorize_student(user: User, student: Student):
+    """Apply the standard tenant-first learner report permission policy."""
+    if student.school_id != user.school_id:
+        raise NotFound("student")
+    if user.role == "admin":
+        return
+    if user.role == "teacher" and ("*" in user.class_names or student.class_name in user.class_names):
+        return
+    if user.role in ("guardian", "student") and student.id in user.student_ids:
+        return
+    raise PermissionDenied("not permitted for this student")
+
+
 class ReportService:
     def __init__(self, ds: DataSource, scheme: GradingScheme, config: Optional[ReportConfig] = None,
                  framework_key: Optional[str] = None):
@@ -139,15 +157,7 @@ class ReportService:
 
     # ---------- authorization (tenancy first; 404 on foreign ids to avoid leaking existence)
     def authorize_student(self, user: User, student: Student):
-        if student.school_id != user.school_id:
-            raise NotFound("student")
-        if user.role == "admin":
-            return
-        if user.role == "teacher" and ("*" in user.class_names or student.class_name in user.class_names):
-            return
-        if user.role in ("guardian", "student") and student.id in user.student_ids:
-            return
-        raise PermissionDenied("not permitted for this student")
+        return authorize_student(user, student)
 
     def authorize_class(self, user: User, class_name: str):
         if user.role == "admin" or (user.role == "teacher" and ("*" in user.class_names or class_name in user.class_names)):
@@ -296,7 +306,15 @@ class ReportService:
             if res and r.counted:
                 population = res.population_sizes.get(str(sid), res.population_size)
                 pos = f"{res.ranks.get(sid, '—')}/{population}"
-            remark = r.remarks or (self.cfg.remark_for_pct(r.pct) if r.pct is not None else "")
+            template = self.cfg.comment_templates.get(r.grade or "", {}).get("subject", "")
+            if template and r.pct is not None:
+                from .comment_templates import render_template
+                default_remark = render_template(
+                    template, level=r.grade, subject=r.subject,
+                    scale="school grading scale", stage="school")
+            else:
+                default_remark = self.cfg.remark_for_pct(r.pct) if r.pct is not None else ""
+            remark = r.remarks or default_remark
             label = {"scored": "", "missing": "Pending", "pending": "Pending",
                      "absent": "Absent", "exempt": "Exempt",
                      "withdrawn": "Withdrawn", "not_assessed": "Not assessed"}[r.status]
@@ -315,7 +333,7 @@ class ReportService:
         if not snap.exam.published:
             warnings.insert(0, "UNPUBLISHED results (preview only).")
         fee = self.ds.get_fee_note(user.school_id, sid) if (user.can_view_fees and self.cfg.sections.get("fees")) else None
-        report_no = f"RPT-{snap.exam.year}-T{snap.exam.term}-{student.adm_no}"
+        report_no = published_report_reference(snap.exam.id, student.adm_no)
         att_view = None
         if self.cfg.sections.get("attendance"):
             att_view = _attendance_view(self.ds.get_attendance(user.school_id, snap.exam.id, sid), warnings)
@@ -334,13 +352,17 @@ class ReportService:
 
     def _history(self, school_id, exam, student, current: StudentSummary) -> list:
         out = []
-        prior = [e for e in self.ds.list_exams(school_id) if e.sequence < exam.sequence and e.published]
+        framework = self.framework_key or getattr(exam, "framework_key", None)
+        prior = [e for e in self.ds.list_exams(school_id)
+                 if e.sequence < exam.sequence and e.published
+                 and getattr(e, "framework_key", None) == framework]
         for e in prior[-(self.cfg.history_limit - 1):]:
             ents = self.ds.get_entries(school_id, e.id, student.id)
             sm = evaluate_student(ents, self.scheme) if ents else None
             ok = sm and sm.subjects_completed
-            out.append({"exam": _short(e), "mean": sm.mean_points if ok else None,
-                        "grade": (sm.mean_points_grade if ok else None) or "—"})
+            if ok:
+                out.append({"exam": _short(e), "mean": sm.mean_points,
+                            "grade": sm.mean_points_grade or "—"})
         out.append({"exam": _short(exam), "mean": current.mean_points, "grade": current.mean_points_grade or "—"})
         return out
 

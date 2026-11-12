@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { api } from "./api";
 import ReportOptions from "./ReportOptions";
+import ReportCommentTemplates from "./ReportCommentTemplates";
 import { Button, Card, Badge, Alert, EmptyState, Loading } from "./ui";
 
 const P = "/api/report-module/";
@@ -77,6 +78,7 @@ export default function ReportAdmin() {
             </div>
           )}
           <ReportOptions />
+          <ReportCommentTemplates />
         <h4>Recent activity</h4>
           <p><input type="text" value={action} onChange={(e) => setAction(e.target.value)} placeholder="Filter by action, e.g. comment.approved (optional)" style={{ width: "100%", padding: 8, boxSizing: "border-box" }} /></p>
           <p><Button busy={busy === "au"} onClick={loadAudit}>Show recent activity</Button></p>

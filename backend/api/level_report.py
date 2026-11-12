@@ -1,29 +1,20 @@
 """Level-based report card for the level grades: no marks, percentages,
 grades or ranks. Only approved or locked levels are printed.
 Level wording is set by the school, not official."""
-import io
+import hashlib
+import json
 import re
 
 from django.http import HttpResponse
-from reportlab.lib.pagesizes import A4
-from reportlab.lib.utils import simpleSplit
-from reportlab.pdfgen import canvas
 from rest_framework.response import Response
 
 from api.level_rules import _enrollment, scale_for
 from marian_reports.frameworks import CBC_REPORT_FRAMEWORKS
+from marian_reports.cbc_level_pdf import render_level_report
 from schools.models import Exam, LevelResult, Performance, School, Student, SubjectRegistration
 
 PRINTABLE = ("approved", "locked")
 ATYPES = {"opener": "Opener", "mid": "Mid-term", "end": "End-term"}
-W, H = A4
-M = 28.0
-FONT, BOLD = "Helvetica", "Helvetica-Bold"
-C1, C2, C3 = M, M + 150, M + 270
-
-
-def _safe(s):
-    return str(s or "").encode("cp1252", "replace").decode("cp1252")
 
 
 def _pk(v):
@@ -44,84 +35,19 @@ def approved_rows(student, year, term, atype):
 
 
 def build_pdf(school_name, learner, adm, class_name, year_name, term_name, atype, levels, rows,
-              is_primary=False, is_junior=False, is_senior=False):
-    is_cbc_level_stage = is_primary or is_junior or is_senior
-    labels = {x.get("key"): x.get("label", x.get("key")) for x in levels}
-    buf = io.BytesIO()
-    c = canvas.Canvas(buf, pagesize=A4)
-
-    def footer():
-        c.setFont(FONT, 7.5)
-        c.drawString(M, M + 14, "Achievement wording is set by your school; no national thresholds are applied.")
-        if is_cbc_level_stage:
-            c.drawString(M, M + 4, "Internal school assessment; not an official KNEC assessment. No numeric ranking applied.")
-        else:
-            c.drawString(M, M + 4, "This stage reports levels only: no marks, percentages, grades or positions.")
-
-    def head(y):
-        c.setLineWidth(0.8)
-        c.line(M, y + 12, W - M, y + 12)
-        c.setFont(BOLD, 9)
-        c.drawString(C1, y, "Subject")
-        c.drawString(C2, y, "Level")
-        c.drawString(C3, y, "Comment")
-        c.line(M, y - 6, W - M, y - 6)
-        return y - 20
-
-    y = H - M - 14
-    c.setFont(BOLD, 16)
-    c.drawString(M, y, _safe(school_name))
-    y -= 20
-    c.setFont(BOLD, 11)
-    title = ("SENIOR SCHOOL LEARNING PROGRESS REPORT" if is_senior else
-             "JUNIOR SCHOOL LEARNING PROGRESS REPORT" if is_junior else
-             "PRIMARY SCHOOL LEARNING PROGRESS REPORT" if is_primary else
-             "LEARNING PROGRESS REPORT")
-    c.drawString(M, y, title)
-    c.setFont(FONT, 9.5)
-    for line in (
-        "Learner: " + learner + "     Adm: " + adm,
-        "Class: " + class_name,
-        "Year: " + year_name + "     Term: " + term_name + "     Assessment: " + ATYPES.get(atype, atype),
-    ):
-        y -= 15
-        c.drawString(M, y, _safe(line))
-    y = head(y - 28)
-    cw = W - M - C3
-    if is_cbc_level_stage:
-        counts = {item.get("key"): 0 for item in levels}
-        for row in rows:
-            counts[row.level_key] = counts.get(row.level_key, 0) + 1
-        summary = "Overall progress: " + " · ".join(
-            f"{labels.get(item.get('key'), item.get('key'))}: {counts.get(item.get('key'), 0)}"
-            for item in levels if counts.get(item.get("key"), 0)
-        )
-        c.setFont(BOLD, 8.5)
-        c.drawString(M, y, _safe(summary)[:110])
-        y -= 19
-    for r in rows:
-        descriptor = next((item.get("description", "") for item in levels
-                           if item.get("key") == r.level_key), "")
-        note = " — ".join(part for part in (descriptor, r.comment) if part)
-        lines = simpleSplit(_safe(note), FONT, 8.5, cw) or [""]
-        need = max(18, 11 * len(lines) + 7)
-        if y - need < M + 36:
-            footer()
-            c.showPage()
-            y = head(H - M - 10)
-        c.setFont(FONT, 9)
-        c.drawString(C1, y, _safe(r.subject.name)[:34])
-        c.setFont(BOLD, 9)
-        c.drawString(C2, y, _safe(labels.get(r.level_key, r.level_key))[:28])
-        c.setFont(FONT, 8.5)
-        for i, ln in enumerate(lines):
-            c.drawString(C3, y - 11 * i, ln)
-        y -= need
-        c.setLineWidth(0.3)
-        c.line(M, y + 8, W - M, y + 8)
-    footer()
-    c.save()
-    return buf.getvalue()
+              is_primary=False, is_junior=False, is_senior=False, **details):
+    stage = "senior" if is_senior else "junior" if is_junior else "primary" if is_primary else "primary"
+    return render_level_report(
+        school_name=school_name, learner=learner, adm=adm,
+        learner_id=details.get("learner_id", ""), class_name=class_name,
+        year_name=year_name, term_name=term_name,
+        assessment=ATYPES.get(atype, atype), stage=stage, levels=levels, rows=rows,
+        progress=details.get("progress", {}), remarks=details.get("remarks", {}),
+        address=details.get("address", ""), phone=details.get("phone", ""),
+        motto=details.get("motto", ""), pathway=details.get("pathway", ""),
+        combination=details.get("combination", ()), report_no=details.get("report_no", ""),
+        verification_token=details.get("verification_token", ""),
+    )
 
 
 def _exam_for(user, exam_id):
@@ -139,11 +65,60 @@ def _level_scale(exam, student):
     return enr, scale_for(student.school_id, enr.class_level)
 
 
+def _prior_level_map(student, rows, exam, atype):
+    """Return the latest earlier approved descriptor for each subject."""
+    if not rows:
+        return {}
+    previous_rows = list(LevelResult.objects.filter(
+        student=student, subject_id__in={row.subject_id for row in rows},
+        status__in=PRINTABLE,
+    ).exclude(pk__in=[row.pk for row in rows]).select_related(
+        "scale", "term__academic_year").order_by(
+            "academic_year__start_date", "term__start_date", "id"))
+    type_order = {"opener": 0, "mid": 1, "end": 2}
+    current_key = (exam.term.academic_year.start_date, exam.term.start_date,
+                   type_order.get(atype, 2))
+    by_subject = {}
+    for prior in previous_rows:
+        key = (prior.academic_year.start_date, prior.term.start_date,
+               type_order.get(prior.assessment_type, 2))
+        if key < current_key:
+            by_subject.setdefault(prior.subject_id, []).append((key, prior))
+    for history in by_subject.values():
+        history.sort(key=lambda item: item[0])
+    out = {}
+    for row in rows:
+        choices = by_subject.get(row.subject_id, [])
+        if not choices:
+            out[row.subject_id] = "First approved record in this report history."
+            continue
+        prior = choices[-1][1]
+        level = next((entry for entry in prior.scale.levels
+                      if entry.get("key") == prior.level_key), {})
+        label = level.get("label", prior.level_key)
+        out[row.subject_id] = (
+            f"Earlier approved descriptor: {label} · {prior.term.name} "
+            f"{prior.academic_year.name}. Scale versions may differ."
+        )
+    return out
+
+
 def level_pdf_response(request, user, st):
     """PDF for one learner if the class uses level wording, else None."""
     exam = _exam_for(user, request.query_params.get("exam_id", ""))
     student = Student.objects.filter(pk=_pk(st.id), school_id=user.school_id).first()
     if exam is None or student is None:
+        return None
+    if exam.status != "published":
+        return _err("report_not_ready", "This exam is not published yet.", 422)
+    requested_type = request.query_params.get("type")
+    if requested_type and requested_type != exam.assessment_type:
+        return _err("report_not_ready", "Report assessment type must match the published exam.", 422)
+    from api.published_reports import find_published_report, response_for_published_report
+    archived = find_published_report(user.school_id, exam.pk, student.pk)
+    if archived is not None:
+        if archived.result_mode == "achievement_levels":
+            return response_for_published_report(request, archived)
         return None
     enr, scale = _level_scale(exam, student)
     if scale is None:
@@ -155,9 +130,7 @@ def level_pdf_response(request, user, st):
     if is_cbc_level_stage and (enr is None or enr.class_level_id != exam.class_level_id):
         stage = "Senior" if is_senior else "Junior" if is_junior else "Primary"
         return _err("report_not_ready", f"Learner is not enrolled in this examination's CBC {stage} grade.", 422)
-    if exam.status != "published":
-        return _err("report_not_ready", "This exam is not published yet.", 422)
-    atype = request.query_params.get("type", exam.assessment_type)
+    atype = exam.assessment_type
     if atype not in ATYPES:
         return _err("report_not_ready", "Unknown assessment type.", 422)
     year, term = exam.term.academic_year, exam.term
@@ -184,18 +157,54 @@ def level_pdf_response(request, user, st):
     if is_cbc_level_stage and (report_scale.school_id != student.school_id
                               or not report_scale.covers(exam.class_level)):
         return _err("report_not_ready", "The saved achievement scale does not match this examination grade.", 422)
+    school = School.objects.get(pk=user.school_id)
+    registrations = list(SubjectRegistration.objects.filter(
+        student=student, academic_year=year, subject__school_id=student.school_id,
+    ).select_related("subject").order_by("subject__name"))
+    combination = [registration.subject.name for registration in registrations]
+    from api.report_source import DjangoDataSource
+    remarks = DjangoDataSource().get_remarks(str(user.school_id), str(exam.pk), str(student.pk))
+    progress = _prior_level_map(student, rows, exam, atype)
+    from marian_reports.assembler import published_report_reference, sign
+    report_no = published_report_reference(exam.pk, student.admission_number)
+    source = {
+        "exam": [exam.pk, exam.published_at, exam.framework_key, exam.assessment_type],
+        "school": [school.pk, school.name, school.location, school.phone, school.motto],
+        "student": [student.pk, student.admission_number, student.first_name, student.last_name],
+        "enrollment": [enr.class_level_id, enr.stream_id, enr.pathway_id],
+        "year_term": [year.pk, year.name, term.pk, term.name],
+        "scale": [report_scale.pk, report_scale.version, report_scale.levels],
+        "results": [[row.pk, row.subject_id, row.level_key, row.comment, row.status,
+                     row.updated_at] for row in rows],
+        "progress": progress,
+        "remarks": remarks,
+        "combination": combination if is_senior else [],
+    }
+    source_digest = hashlib.sha256(json.dumps(
+        source, sort_keys=True, separators=(",", ":"), default=str).encode("utf-8")).hexdigest()
+    verification_token = sign(report_no, source_digest)
     pdf = build_pdf(
-        School.objects.get(pk=user.school_id).name,
+        school.name,
         (student.first_name + " " + student.last_name).strip(), student.admission_number,
-        enr.class_level.name + " " + enr.stream.name
-        + (" · " + enr.pathway.name if is_senior and enr.pathway else ""),
+        enr.class_level.name + " / " + enr.stream.name,
         year.name, term.name, atype, report_scale.levels, rows,
-        is_primary=is_primary, is_junior=is_junior, is_senior=is_senior)
+        is_primary=is_primary, is_junior=is_junior, is_senior=is_senior,
+        learner_id=student.pk, pathway=enr.pathway.name if is_senior and enr.pathway else "",
+        combination=combination if is_senior else (), progress=progress, remarks=remarks,
+        address=school.location, phone=school.phone, motto=school.motto,
+        report_no=report_no, verification_token=verification_token)
+    from api.published_reports import archive_published_report
+    artifact = archive_published_report(
+        exam=exam, student=student, report_no=report_no,
+        result_mode="achievement_levels", pdf=pdf, source_digest=source_digest)
+    if artifact is not None:
+        return response_for_published_report(request, artifact)
     resp = HttpResponse(pdf, content_type="application/pdf")
     kind = "attachment" if request.query_params.get("download") == "1" else "inline"
-    name = re.sub(r"[^A-Za-z0-9_.-]", "_", str(student.admission_number)) + "-levels.pdf"
+    name = re.sub(r"[^A-Za-z0-9_.-]", "_", report_no) + ".pdf"
     resp["Content-Disposition"] = kind + '; filename="' + name + '"'
     resp["Cache-Control"] = "private, no-store"
+    resp["X-Report-Reference"] = report_no
     return resp
 
 

@@ -12,6 +12,8 @@ from reportlab.graphics.shapes import Drawing
 from reportlab.graphics import renderPDF
 from .assembler import ReportData
 from .domain import ReportNotReady
+from .cbc_pdf import draw_cbc_numeric
+from .frameworks import CBC_REPORT_FRAMEWORKS
 
 W, H = A4
 M = 28.0
@@ -98,7 +100,8 @@ def _logo(c, school, x, t, size):
 
 
 def validate_for_render(rd: ReportData):
-    if len(rd.subjects) > MAX_SUBJECTS:
+    is_cbc = getattr(rd.exam, "framework_key", None) in CBC_REPORT_FRAMEWORKS
+    if len(rd.subjects) > MAX_SUBJECTS and not is_cbc:
         raise ReportNotReady("too_many_subjects", f"{len(rd.subjects)} subjects exceed the one-page limit of {MAX_SUBJECTS}.")
     if not rd.subjects:
         raise ReportNotReady("no_subjects", "No subjects to print.")
@@ -106,6 +109,9 @@ def validate_for_render(rd: ReportData):
 
 def draw_report(c: canvas.Canvas, rd: ReportData, page_no: int = 1, page_total: int = 1, verify_base: str = "http://localhost:5000"):
     validate_for_render(rd)
+    if getattr(rd.exam, "framework_key", None) in CBC_REPORT_FRAMEWORKS:
+        draw_cbc_numeric(c, rd, verify_base, page_no, page_total)
+        return
     sec, sch, st, ex = rd.sections, rd.school, rd.student, rd.exam
     term_title = f"STUDENT PROGRESS REPORT — TERM {ex.term}, {ex.year}"
     if rd.provisional or not ex.published:

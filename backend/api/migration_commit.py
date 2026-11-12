@@ -2,8 +2,14 @@
 
 The upload is checked again on the server, so nothing from the browser is trusted.
 Only learners whose status is "ready" are added, all in one transaction.
+
+Repeating the same request is safe: the browser sends a request id, and a second
+request with the same id returns the first result instead of adding the learners
+twice. This covers a dropped connection after the save had already committed.
 """
-from django.db import DatabaseError, transaction
+import re
+
+from django.db import DatabaseError, IntegrityError, transaction
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiTypes
 from rest_framework.decorators import api_view, parser_classes
 from rest_framework.parsers import FormParser, MultiPartParser
@@ -11,12 +17,14 @@ from rest_framework.response import Response
 
 from schools.models import AcademicYear, Enrollment, MarkAuditLog, School, Student
 
-from .migration_check import UploadError, _confirmations, _fixes, build_existing, build_structure, parse_table
+from .migration_check import UploadError, build_existing, build_structure, read_request
 from .migration_rules import analyse_upload
 from .student_import import _admin
 from .views import _scope
 
 CHUNK = 400
+AUDIT_ACTION = "student_migration_import"
+REQUEST_ID = re.compile(r"^[A-Za-z0-9_-]{8,64}$")
 
 
 class SaveError(Exception):
@@ -45,10 +53,27 @@ def _save(school_id, year, ready):
         for r in ready], batch_size=CHUNK)
 
 
+def _summary(result, ready):
+    by_class = {}
+    for r in ready:
+        by_class[r["class_label"]] = by_class.get(r["class_label"], 0) + 1
+    return {
+        "created": len(ready),
+        "skipped": result["summary"]["skipped"],
+        "duplicates": result["summary"]["duplicates"],
+        "blocked": result["summary"]["blocked"],
+        "needs_confirmation": result["summary"]["needs_confirmation"],
+        "temporary_admission": sum(1 for r in ready if r["provisional_admission"]),
+        "by_class": by_class,
+    }
+
+
 @extend_schema(request=OpenApiTypes.OBJECT, responses={
     201: OpenApiResponse(description="Ready learners were added."),
+    200: OpenApiResponse(description="This import was already saved earlier."),
     400: OpenApiResponse(description="Nothing was added."),
-    403: OpenApiResponse(description="Administrator authorization required.")})
+    403: OpenApiResponse(description="Administrator authorization required."),
+    409: OpenApiResponse(description="The learners were added by someone else in the meantime.")})
 @api_view(["POST"])
 @parser_classes([MultiPartParser, FormParser])
 def migration_commit(request):
@@ -62,43 +87,52 @@ def migration_commit(request):
         if not str(raw or "").isdigit() or not School.objects.filter(pk=int(raw)).exists():
             return Response({"detail": "Choose a school."}, status=400)
         school_id = int(raw)
-    upload = request.FILES.get("file")
-    text = request.data.get("text", "")
-    if upload is None and not str(text).strip():
-        return Response({"detail": "Attach a file or paste the table."}, status=400)
-    source = request.data.get("source", "digital")
-    if source not in ("digital", "paper"):
-        return Response({"detail": "Unknown source."}, status=400)
     try:
-        matrix = parse_table(upload, text)
-        confirmations = _confirmations(request.data.get("confirmations"))
-        fixes = _fixes(request.data.get("fixes"))
+        data = read_request(request)
     except UploadError as exc:
         return Response({"detail": str(exc)}, status=400)
+    request_id = str(request.data.get("request_id") or "").strip()
+    if request_id and not REQUEST_ID.match(request_id):
+        return Response({"detail": "The import id was not valid."}, status=400)
     year = AcademicYear.objects.filter(school_id=school_id, is_active=True).first()
     if year is None:
         return Response({"detail": "Set an active academic year before adding learners. Nothing was added."}, status=400)
     try:
         with transaction.atomic():
             School.objects.select_for_update().filter(pk=school_id).first()
+            if request_id:
+                done = MarkAuditLog.objects.filter(
+                    school_id=school_id, action=AUDIT_ACTION, details__request_id=request_id).first()
+                if done is not None:
+                    previous = dict(done.details.get("result") or {})
+                    previous["already_saved"] = True
+                    return Response(previous, status=200)
             result = analyse_upload(
-                matrix, build_structure(school_id), existing=build_existing(school_id), source=source,
-                name_order=request.data.get("name_order") or None,
-                default_class=str(request.data.get("default_class") or ""),
-                confirmations=confirmations, fixes=fixes)
+                data["matrix"], build_structure(school_id), existing=build_existing(school_id),
+                source=data["source"], name_order=data["name_order"],
+                default_class=data["default_class"], confirmations=data["confirmations"],
+                fixes=data["fixes"], mapping=data["mapping"], header_row=data["header_row"])
             if any(i.get("severity") == "block" for i in result["file_issues"]):
-                return Response({"detail": "The file has problems. Check the list again and fix them first. Nothing was added."}, status=400)
+                return Response({"detail": "The file still has a problem. Check the list again and fix it first. Nothing was added."}, status=400)
             ready = [r for r in result["rows"] if r["status"] == "ready"]
-            skipped = len(result["rows"]) - len(ready)
             if not ready:
                 return Response({"detail": "No learners are ready to add. Nothing was added."}, status=400)
+            summary = _summary(result, ready)
             _save(school_id, year, ready)
+            summary["request_id"] = request_id or ""
+            summary["committed"] = True
             MarkAuditLog.objects.create(
-                school_id=school_id, user=request.user, action="student_migration_import",
-                details={"added": len(ready), "left_out": skipped, "source": source,
-                         "file": getattr(upload, "name", "") or "pasted text"})
+                school_id=school_id, user=request.user, action=AUDIT_ACTION,
+                details={"added": len(ready), "left_out": summary["skipped"],
+                         "duplicates": summary["duplicates"], "source": data["source"],
+                         "classes": summary["by_class"], "request_id": request_id or "",
+                         "file": getattr(data["upload"], "name", "") or "pasted text",
+                         "result": summary})
+    except IntegrityError:
+        return Response({"detail": "Some of these admission numbers were added while you were working. "
+                                   "Nothing was added now. Check the list again to see what is left."}, status=409)
     except SaveError as exc:
         return Response({"detail": str(exc)}, status=500)
     except DatabaseError:
         return Response({"detail": "Saving failed, so nothing was added. Check the list and try again."}, status=500)
-    return Response({"created": len(ready), "skipped": skipped, "committed": True}, status=201)
+    return Response(summary, status=201)

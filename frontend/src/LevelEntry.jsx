@@ -22,6 +22,7 @@ export default function LevelEntry({ d }) {
   const [kind, setKind] = useState("end");
   const [ros, setRos] = useState(null);
   const [edits, setEdits] = useState({});
+  const [levelTemplates, setLevelTemplates] = useState({});
   const [busy, setBusy] = useState(false);
   const [ask, setAsk] = useState(false);
   const [tries, setTries] = useState(0);
@@ -54,11 +55,25 @@ export default function LevelEntry({ d }) {
         if (!live) return;
         if (!r.ok) { const m = await errText(r); if (live) setRos({ url, error: m }); return; }
         const j = await r.json();
-        if (live) setRos({ url, levels: j.levels || [], rows: j.rows || [] });
+        if (live) setRos({ url, scaleId: j.scale_id || null, levels: j.levels || [], rows: j.rows || [] });
       })
       .catch(() => { if (live) setRos({ url, error: "Could not load learners." }); });
     return () => { live = false; };
   }, [url, tries]);
+
+  const templateScaleId = ros && ros.url === url ? ros.scaleId : null;
+  useEffect(() => {
+    if (!templateScaleId) { setLevelTemplates({}); return undefined; }
+    let live = true;
+    const q = new URLSearchParams({ scale_key: "level:" + templateScaleId });
+    api("/api/report-module/comment-templates/?" + q.toString())
+      .then(async (r) => {
+        if (!live || !r.ok) return;
+        const result = await r.json();
+        if (live) setLevelTemplates((result.templates || []).find((row) => row.key === "level:" + templateScaleId)?.templates || {});
+      }).catch(() => {});
+    return () => { live = false; };
+  }, [templateScaleId]);
 
   if (bad) return <ErrorState text="Could not load your classes." onRetry={() => { setBad(false); setBt(bt + 1); }} />;
   if (!data) return <Loading />;
@@ -80,6 +95,27 @@ export default function LevelEntry({ d }) {
   const levelOf = (r) => mine(r).level ?? r.level;
   const commentOf = (r) => mine(r).comment ?? r.comment ?? "";
   const setE = (r, patch) => setEdits({ ...edits, [r.student_id]: { ...mine(r), ...patch } });
+  const subjectName = a ? (pick(data.sj, a.subject).name || "this learning area") : "this learning area";
+  const defaultComment = (key) => {
+    const item = levels.find((level) => level.key === key) || {};
+    const template = (levelTemplates[key] || {}).subject;
+    const levelNumber = Number(a && pick(data.cl, a.class_level).level_number);
+    const stageName = levelNumber >= 10 && levelNumber <= 12 ? "Senior" :
+      levelNumber >= 7 && levelNumber <= 9 ? "Junior" :
+        levelNumber >= 1 && levelNumber <= 6 ? "Primary" : "CBC";
+    if (template) return template.replaceAll("{level}", item.label || key)
+      .replaceAll("{subject}", subjectName).replaceAll("{scale}", "school-defined achievement scale")
+      .replaceAll("{stage}", stageName);
+    return "For " + subjectName + ", use the recorded " + (item.label || key)
+      + " descriptor and available work to plan a suitable next learning activity.";
+  };
+  const chooseLevel = (row, level) => {
+    const oldLevel = levelOf(row);
+    const current = commentOf(row);
+    const patch = { level: level.key };
+    if (!current || current === defaultComment(oldLevel)) patch.comment = defaultComment(level.key);
+    setE(row, patch);
+  };
   const dirty = rows.filter((r) => editable(r) && edits[r.student_id] && levelOf(r)
     && (levelOf(r) !== r.level || commentOf(r) !== (r.comment || "")));
   const drafts = rows.filter((r) => r.status === "draft" && r.id);
@@ -153,12 +189,13 @@ export default function LevelEntry({ d }) {
                   <div style={wrap}>
                     {levels.map((l) => (
                       <Button key={l.key} size="sm" kind={levelOf(r) === l.key ? "teal" : "ghost"}
-                        onClick={() => setE(r, { level: l.key })}>{l.label}</Button>
+                        onClick={() => chooseLevel(r, l)}>{l.label}</Button>
                     ))}
                   </div>
                   {desc(levelOf(r)) && <p className="sub">{desc(levelOf(r))}</p>}
                   <p><input type="text" style={box} value={commentOf(r)} aria-label={"Comment for " + r.name}
-                    placeholder="Comment (optional)" onChange={(e) => setE(r, { comment: e.target.value })} /></p>
+                    placeholder={levelOf(r) ? defaultComment(levelOf(r)) : "Choose a level to load an editable school-scale comment suggestion."}
+                    onChange={(e) => setE(r, { comment: e.target.value })} /></p>
                 </div>
               ) : (
                 <div>

@@ -103,7 +103,7 @@ class SuspensionOnProtectedEndpointsTests(APITestCase):
 
     def test_every_protected_view_declares_the_suspension_rule(self):
         found = protected_views()
-        self.assertEqual(len(found), 30, sorted(found))
+        self.assertEqual(len(found), 32, sorted(found))
         for name, info in found.items():
             perms = list(info["cls"].permission_classes)
             with self.subTest(view=name):

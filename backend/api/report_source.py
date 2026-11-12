@@ -534,6 +534,17 @@ class DjangoConfigStore:
         ReportSettings.objects.update_or_create(
             school_id=self.school_id, defaults={"options": merged})
 
+    def saved_comment_templates(self):
+        saved = self.saved_options().get("comment_templates", {})
+        return saved if isinstance(saved, dict) else {}
+
+    def save_comment_templates(self, body):
+        self._require_school()
+        options = self.saved_options()
+        options["comment_templates"] = body if isinstance(body, dict) else {}
+        ReportSettings.objects.update_or_create(
+            school_id=self.school_id, defaults={"options": options})
+
     def apply_to(self, cfg):
         from api.report_options import apply_options
         saved = self.saved_sections()

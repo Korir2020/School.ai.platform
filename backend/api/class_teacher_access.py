@@ -18,7 +18,8 @@ def _pk(v):
 
 def _route_ok(path):
     return (path.endswith("/meta/") or path.endswith("/selection/")
-            or ("/student/" in path and path.endswith("/pdf/")))
+            or ("/student/" in path and path.endswith("/pdf/"))
+            or "/comments/" in path)
 
 
 def _rows(django_user, year_id=None):
@@ -107,3 +108,23 @@ def enforce_student(request, user, st):
     pairs = _pairs(_rows(request.user, exam.term.academic_year_id))
     if (st.class_name, st.stream) not in pairs:
         raise PermissionDenied("not your stream")
+
+
+def enforce_comment(request, user, student_id, exam_id):
+    """Authorize a class-teacher comment against the exam-year stream assignment."""
+    _no_provisional(request)
+    exam = _exam(user, exam_id)
+    student_pk = _pk(student_id)
+    if student_pk is None:
+        raise NotFound("student")
+    enrollment = Enrollment.objects.filter(
+        student_id=student_pk, student__school_id=_pk(user.school_id),
+        academic_year_id=exam.term.academic_year_id, is_active=True,
+    ).select_related("class_level", "stream").first()
+    if enrollment is None:
+        raise PermissionDenied("not your stream")
+    pairs = _pairs(_rows(request.user, exam.term.academic_year_id))
+    pair = (enrollment.class_level.name, enrollment.stream.name)
+    if pair not in pairs or enrollment.class_level_id != exam.class_level_id:
+        raise PermissionDenied("not your stream")
+    return exam, enrollment

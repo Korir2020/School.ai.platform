@@ -95,6 +95,9 @@ export default function ReportModule() {
 
   const selectedExam = meta.exams.find((row) => String(row.id) === String(exam));
   const descriptorOnly = selectedExam?.result_mode === "achievement_levels";
+  const stageLabel = selectedExam?.framework_key === "cbe_senior" ? "CBC Senior" :
+    selectedExam?.framework_key === "cbe_junior_levels" ? "CBC Junior" :
+      selectedExam?.framework_key === "cbe_primary" ? "CBC Primary" : "school";
   const students = meta.students.filter((s) => (s.class ?? s.class_name) === cls
     && (!stream || s.stream === stream)
     && (!sel?.cohort_ids || sel.cohort_ids.includes(String(s.id))));
@@ -139,7 +142,8 @@ export default function ReportModule() {
 
   return (
     <div>
-      <Card title="Report cards">
+      <Card title="Examination reports">
+        <p className="sub">This is the authoritative per-examination report route. Choose the exact Opener, Mid-term, or End-term examination before checking readiness or downloading a report.</p>
         <Select id="rm-exam" label="Exam" value={exam} onChange={(e) => { setExam(e.target.value); setSel(null); }}>
           <option value="">Choose exam</option>
           {meta.exams.map((x) => <option key={x.id} value={x.id}>{x.name}{x.published ? "" : " (not published)"}</option>)}
@@ -164,13 +168,15 @@ export default function ReportModule() {
         </Card>
       )}
       {msg && <Alert>{msg}</Alert>}
-      {sel && (
-        <Card title={sel.population}>
+        {sel && (
+          <Card title={sel.population}>
+          {selectedExam?.framework_key && <p><Badge>{stageLabel} · {descriptorOnly ? "school-defined achievement levels" : "school grading scale"}</Badge></p>}
           {descriptorOnly && <p>{selectedExam?.framework_key === "cbe_senior"
             ? "School-defined CBC Senior achievement levels for Grades 10–12. This is an internal school assessment, not an official KNEC assessment; numeric averages and rankings are not generated."
             : selectedExam?.framework_key === "cbe_junior_levels"
               ? "School-defined CBC Junior achievement levels for Grades 7–9. This is an internal school assessment, not an official KNEC assessment; numeric averages and rankings are not generated."
               : "School-defined CBC Primary achievement levels. This is an internal school assessment, not an official KNEC assessment; numeric averages and rankings are not generated."}</p>}
+          {selectedExam?.framework_key && !descriptorOnly && <p>This report uses the school-authored {stageLabel} grading scale and format. It is an internal school assessment, not an official KNEC result or template.</p>}
           <p><Badge>{sel.selected} selected</Badge> <Badge>{sel.eligible} ready</Badge> <Badge kind="warn">{sel.pending} pending</Badge></p>
           {sel.excluded.length > 0 && <p>{sel.excluded.length} student(s) cannot be printed yet. The reason is shown beside each name.</p>}
         </Card>
@@ -183,7 +189,8 @@ export default function ReportModule() {
           </Card>
         )}
         {exam && cls && meta.role !== "teacher" && !descriptorOnly && <ReportInsights exam={exam} cls={cls} stream={stream} prov={prov} rankEnabled={selectedExam?.rankings_enabled !== false} frameworkKey={selectedExam?.framework_key || ""} />}
-        {exam && cls && meta.role !== "teacher" && !descriptorOnly && <ReportComments key={exam + "|" + cls} exam={exam} cls={cls} students={students} />}
+        {exam && cls && <ReportComments key={exam + "|" + cls + "|" + stream} exam={exam} cls={cls}
+          stream={stream} students={students} role={meta.role} assessmentType={selectedExam?.assessment_type} />}
         {meta.role !== "teacher" && <ReportAdmin />}
         {meta.role !== "teacher" && <PrimaryAchievementSettings />}
         {meta.role !== "teacher" && <JuniorAchievementSettings />}

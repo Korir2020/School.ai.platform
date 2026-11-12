@@ -1,6 +1,8 @@
+import hashlib
 import uuid
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models.functions import Lower, Trim
 from django.core.validators import MinValueValidator, MaxValueValidator
@@ -500,6 +502,80 @@ class ExamResult(models.Model):
 
     def __str__(self):
         return f"{self.student} - {self.exam} - {self.overall_average}"
+
+
+class PublishedReportArtifact(models.Model):
+    """Immutable, durable PDF issued for one learner in one published exam."""
+    RESULT_MODES = [("marks", "Numerical marks"),
+                    ("achievement_levels", "Achievement levels")]
+    school = models.ForeignKey(School, on_delete=models.PROTECT,
+                               related_name="published_report_artifacts")
+    exam = models.ForeignKey(Exam, on_delete=models.PROTECT,
+                             related_name="published_report_artifacts")
+    student = models.ForeignKey(Student, on_delete=models.PROTECT,
+                                related_name="published_report_artifacts")
+    report_no = models.CharField(max_length=200)
+    result_mode = models.CharField(max_length=24, choices=RESULT_MODES)
+    pdf = models.BinaryField(editable=False)
+    sha256 = models.CharField(max_length=64)
+    source_digest = models.CharField(max_length=64)
+    verification_token = models.CharField(max_length=12)
+    renderer_version = models.PositiveSmallIntegerField(default=1)
+    issued_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["exam_id", "student_id"]
+        constraints = [models.UniqueConstraint(
+            fields=["exam", "student"], name="unique_published_report_artifact")]
+        indexes = [models.Index(fields=["school", "issued_at"],
+                                name="pub_report_school_date_idx")]
+
+    def save(self, *args, **kwargs):
+        if self.pk and type(self).objects.filter(pk=self.pk).exists():
+            raise ValidationError("Published report artifacts are immutable.")
+        content = bytes(self.pdf or b"")
+        digest = hashlib.sha256(content).hexdigest()
+        if self.sha256 != digest:
+            raise ValidationError("Published report PDF checksum does not match its content.")
+        return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise ValidationError("Published report artifacts cannot be deleted.")
+
+    def __str__(self):
+        return f"{self.report_no} ({self.sha256[:12]})"
+
+
+class FinalSubjectMark(models.Model):
+    MARK_STATUS_CHOICES = Performance.MARK_STATUS_CHOICES
+    STATUS_CHOICES = Performance.STATUS_CHOICES
+    exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name="final_subject_marks")
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="final_subject_marks")
+    subject = models.ForeignKey(Subject, on_delete=models.PROTECT, related_name="final_subject_marks")
+    marks = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True,
+                                validators=[MinValueValidator(0), MaxValueValidator(100)])
+    mark_status = models.CharField(max_length=16, choices=MARK_STATUS_CHOICES, default="scored")
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="draft")
+    entered_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+                                   null=True, blank=True, related_name="+")
+    updated_at = models.DateTimeField(auto_now=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["exam", "student", "subject"],
+                                    name="unique_final_subject_mark_per_exam_student_subject"),
+            models.CheckConstraint(
+                condition=(models.Q(mark_status="scored", marks__isnull=False,
+                                     marks__gte=0, marks__lte=100)
+                           | models.Q(mark_status__in=["absent", "exempted", "not_assessed", "pending"],
+                                      marks__isnull=True)),
+                name="final_subject_mark_status_valid",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.student} - {self.subject} - {self.exam} - {self.marks}"
 
 
 class JoinRequest(models.Model):

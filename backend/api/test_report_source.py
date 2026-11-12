@@ -455,7 +455,7 @@ class CommentFlowTests(SourceCase):
         ids = (str(self.school.id), exam, stu)
         row = self.service().draft(user, exam, stu, "class_teacher", text="Good work.")
         self.assertEqual(self.ds.get_remarks(*ids), {})  # a draft never prints
-        self.service().approve(user, row["id"])  # a fresh instance, as a new request
+        self.service().approve(User(id="1", school_id=str(self.school.id), role="admin", class_names=()), row["id"])  # a fresh instance, as a new request
         self.assertEqual(self.ds.get_remarks(*ids), {"class_teacher": "Good work."})
         self.service().edit(user, row["id"], "Better.")
         self.assertEqual(self.ds.get_remarks(*ids), {})  # edit pulls it back to draft

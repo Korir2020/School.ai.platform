@@ -10,6 +10,7 @@ export default function Exams({ d }) {
   const toast = useToast();
   const [x, setX] = useState(null), [bad, setBad] = useState(false);
   const [name, setName] = useState(""), [lvl, setLvl] = useState("");
+  const [assessmentType, setAssessmentType] = useState("end");
   const [res, setRes] = useState(null), [ask, setAsk] = useState(null);
   const [busy, setBusy] = useState(false);
   const [scope, setScope] = useState("class");
@@ -26,10 +27,10 @@ export default function Exams({ d }) {
   const create = async () => {
     setBusy(true);
     const r = await api("/api/exams/", "POST", { name, term: d.active_term.id,
-      assessment_type: "end", class_level: lvl });
+      assessment_type: assessmentType, class_level: lvl });
     const j = await r.json().catch(() => ({}));
     setBusy(false);
-    if (r.ok) { toast("Exam created", "ok"); setName(""); load(); }
+    if (r.ok) { toast("Exam created", "ok"); setName(""); setAssessmentType("end"); load(); }
     else toast("Failed: " + JSON.stringify(j), "err");
   };
   const publish = async (e) => {
@@ -50,6 +51,8 @@ export default function Exams({ d }) {
   if (!x) return <Loading />;
   const cols = [
     { label: "Exam", key: "name", sort: true },
+    { label: "Assessment", key: "assessment_type", sort: true,
+      render: (e) => ({ opener: "Opener", mid: "Mid-term", end: "End-term" }[e.assessment_type] || e.assessment_type) },
     { label: "Status", key: "status", sort: true, render: (e) => (
       <Badge kind={e.status === "draft" ? "info" : "ok"}>{e.status}</Badge>) },
     { label: "Actions", render: (e) => (e.status === "draft"
@@ -101,7 +104,8 @@ export default function Exams({ d }) {
   const byScope = (a, b) => (pos(a) ?? 1e9) - (pos(b) ?? 1e9);
   return (
     <div>
-      <h2>Exams</h2>
+      <h2>Examinations</h2>
+      <p className="sub">Create one Opener, Mid-term, or End-term examination per class and term. Each examination has its own approval, publication, results, and report route.</p>
       <Card>
         <DataTable cols={cols} rows={x.ex} search="Search exams"
           empty="No exams yet" />
@@ -113,6 +117,12 @@ export default function Exams({ d }) {
           onChange={(e) => setLvl(e.target.value)}>
           <option value="">Select...</option>
           {x.levels.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </Select>
+        <Select id="ex-assessment" label="Assessment type" value={assessmentType}
+          onChange={(e) => setAssessmentType(e.target.value)}>
+          <option value="opener">Opener</option>
+          <option value="mid">Mid-term</option>
+          <option value="end">End-term</option>
         </Select>
         <Button kind="teal" busy={busy} onClick={create}
           disabled={!name || !lvl}>Create exam</Button>

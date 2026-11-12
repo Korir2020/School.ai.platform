@@ -10,6 +10,7 @@ from rest_framework.test import APIClient
 from api import test_report_views as tv
 from api.report_access import build_report_user
 from api.report_source import DjangoAuditLog, DjangoDataSource
+from api.report_views import service
 
 
 class CommentCase(TestCase):
@@ -80,3 +81,43 @@ class CommentCase(TestCase):
         self.call("post", f"{cid}/approve/", self.admin)
         entries = DjangoAuditLog().entries(build_report_user(self.admin), None, 50)
         self.assertTrue(any("comment" in str(e).lower() for e in entries), entries)
+
+    def test_editable_scale_templates_feed_subject_and_class_comment_suggestions(self):
+        client = APIClient()
+        client.force_authenticate(self.admin)
+        base = "/api/report-module/"
+        available = client.get(base + "comment-templates/")
+        self.assertEqual(available.status_code, 200, available.data)
+        grading = next(row for row in available.data["templates"] if row["key"] == "grading")
+        self.assertIn("subject", next(row for row in grading["entries"] if row["key"] == "A")["fields"])
+
+        saved = client.put(base + "comment-templates/", {
+            "scale_key": "grading",
+            "templates": {
+                "A": {
+                    "subject": "For {subject}, the recorded {level} result is on the school scale.",
+                    "class_teacher": "The current overall result is {level}; review the recorded work.",
+                },
+            },
+        }, format="json")
+        self.assertEqual(saved.status_code, 200, saved.data)
+        self.assertEqual(
+            saved.data["template"]["templates"]["A"]["subject"],
+            "For {subject}, the recorded {level} result is on the school scale.",
+        )
+
+        defaults = client.get(base + "comments/defaults/", {
+            "exam_id": str(self.exam.pk), "student_id": str(self.s1.pk),
+        })
+        self.assertEqual(defaults.status_code, 200, defaults.data)
+        self.assertIn("review the recorded work", defaults.data["comments"]["class_teacher"])
+        math = next(row for row in defaults.data["subject_comments"] if row["subject"] == "Mathematics")
+        self.assertEqual(math["text"], "For Mathematics, the recorded A result is on the school scale.")
+        self.assertEqual(self.remarks(), {})  # suggestions never become printable remarks by themselves
+
+        user = build_report_user(self.admin)
+        svc = service(self.school.id, str(self.exam.pk))
+        snapshot = svc.snapshot(user, str(self.exam.pk), "Form 3")
+        report = svc.build_report(user, snapshot, str(self.s1.pk))
+        row = next(item for item in report.subjects if item.subject == "Mathematics")
+        self.assertEqual(row.remark, math["text"])
