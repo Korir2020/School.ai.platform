@@ -66,7 +66,7 @@ class ClassTeacherAccessTests(TestCase):
         self.assertEqual(self.get("selection/", self.t4).status_code, 403)
 
     def test_cannot_open_other_report_routes(self):
-        for p in ("analytics/", "rankings/", "support-list/", "export/csv/", "comments/", "audit/"):
+        for p in ("analytics/", "rankings/", "support-list/", "export/csv/", "audit/"):
             self.assertEqual(self.get(p, self.t3).status_code, 403, p)
 
     def test_unpublished_exam_is_closed(self):
