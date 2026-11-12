@@ -1,4 +1,5 @@
 from collections import defaultdict
+from types import SimpleNamespace
 from decimal import Decimal
 
 from django.db import transaction
@@ -8,7 +9,7 @@ from rest_framework.response import Response
 
 from schools.models import (
     Enrollment, Exam, ExamResult, LevelResult, MarkAuditLog, Performance,
-    SchoolAdminProfile, SubjectPaper, SubjectRegistration,
+    SchoolAdminProfile, SubjectPaper, SubjectRegistration, FinalSubjectMark,
 )
 from .permissions import get_user_school_id
 from marian_reports.frameworks import CBC_REPORT_FRAMEWORKS
@@ -166,6 +167,20 @@ def exam_publish(request, pk):
     # Legacy/imported marks for unregistered subjects remain stored but are
     # deliberately invisible to this exam and its ranks.
     marks = [m for m in marks if m.subject_id in registered_by_student.get(m.student_id, set())]
+    final_rows = list(FinalSubjectMark.objects.filter(
+        exam=exam, student_id__in=students.keys(), subject_id__in={sid for values in registered_by_student.values() for sid in values},
+    ).select_related("subject", "student"))
+    final_by_key = {(row.student_id, row.subject_id): row for row in final_rows}
+    if final_by_key:
+        # A direct final mark takes precedence for that student/subject only;
+        # teacher paper rows for other subjects remain unchanged.
+        marks = [m for m in marks if (m.student_id, m.subject_id) not in final_by_key]
+        marks.extend(SimpleNamespace(
+            id=None, student_id=row.student_id, subject_id=row.subject_id,
+            subject=row.subject, paper_number=1, marks=row.marks,
+            mark_status=row.mark_status, status=row.status,
+            final_subject_mark=row,
+        ) for row in final_rows)
     if framework is not None and framework.framework_key in CBC_REPORT_FRAMEWORKS and not marks:
         exam.framework_key = framework.framework_key
         return _publish_cbc_levels(request, exam, students, registered_by_student)
@@ -187,6 +202,10 @@ def exam_publish(request, pk):
     for sp in SubjectPaper.objects.filter(subject_id__in={m.subject_id for m in marks}):
         papers[sp.subject_id][sp.paper_number] = sp.weight
         maxes[sp.subject_id][sp.paper_number] = sp.max_marks
+    for subject_id in {m.subject_id for m in marks if hasattr(m, "final_subject_mark")}:
+        # Direct final marks intentionally bypass paper components for that subject.
+        papers[subject_id] = {1: HUNDRED}
+        maxes[subject_id] = {1: HUNDRED}
     bad = sorted({
         m.subject.name for m in marks
         if papers.get(m.subject_id) and sum(papers[m.subject_id].values()) != HUNDRED
@@ -349,8 +368,10 @@ def exam_publish(request, pk):
             )
             for sid, value in overall.items()
         ])
-        approved = [m for m in counted if m.status == "approved"]
+        approved = [m for m in counted if m.status == "approved" and not hasattr(m, "final_subject_mark")]
+        approved_final = [m.final_subject_mark for m in counted if m.status == "approved" and hasattr(m, "final_subject_mark")]
         Performance.objects.filter(pk__in=[m.pk for m in approved]).update(status="locked")
+        FinalSubjectMark.objects.filter(pk__in=[m.pk for m in approved_final]).update(status="locked")
         MarkAuditLog.objects.bulk_create([
             MarkAuditLog(
                 performance=m, school_id=exam.school_id, user=request.user,
@@ -366,6 +387,16 @@ def exam_publish(request, pk):
                 },
             )
             for m in approved
+        ] + [
+            MarkAuditLog(
+                school_id=exam.school_id, user=request.user, action="final_lock",
+                details={"final_subject_mark": m.pk, "exam": exam.id,
+                         "student_id": m.student_id, "subject_id": m.subject_id,
+                         "from": "approved", "to": "locked",
+                         "mark_status": m.mark_status,
+                         "marks": str(m.marks) if m.marks is not None else None},
+            )
+            for m in approved_final
         ])
         MarkAuditLog.objects.create(
             school_id=exam.school_id, user=request.user, action="publish",

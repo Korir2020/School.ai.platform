@@ -27,6 +27,7 @@ class ReportConfig:
     remark_bands: list = field(default_factory=lambda: [
         (75, "Excellent"), (60, "Good"), (50, "Fair"), (0, "Keep Trying")])
     footer_note: str = "Kindly clear any school fees balance before or on the opening date."
+    comment_templates: dict = field(default_factory=dict)
     paper: str = "A4"
     labels: dict = field(default_factory=lambda: {"subject": "SUBJECT"})  # column wording
 

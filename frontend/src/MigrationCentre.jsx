@@ -1,212 +1,536 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { api, upload } from "./api";
+import { Badge, Button, Field, Input, Modal } from "./ui";
 import "./migration.css";
 
-const CHECK_PATH = "/api/students/migration/check/";
-const COMMIT_PATH = CHECK_PATH.replace("/check/", "/commit/");
-const PHOTO_PATH = CHECK_PATH.replace("/check/", "/read-photo/");
-const PAGE = 100;
-const WIDE = typeof window !== "undefined" && !!window.matchMedia && window.matchMedia("(min-width: 900px)").matches;
-const LINE = "1px solid rgba(100,116,139,.28)";
-const TONE = {
-  ready: ["#15803d", "Ready"],
-  needs_confirmation: ["#b45309", "Confirm"],
-  blocked: ["#b91c1c", "Blocked"],
-};
-const SEV = { block: "#b91c1c", confirm: "#b45309", notice: "#64748b" };
-const btn = { minHeight: 44, padding: "0 16px", borderRadius: 10, border: LINE, background: "transparent", color: "inherit", font: "inherit", fontWeight: 600, fontSize: 14, cursor: "pointer", transition: "background .15s, border-color .15s, box-shadow .15s" };
-const btnMain = { ...btn, background: "linear-gradient(135deg,#0f2a44,#1f4e79)", borderColor: "#0f2a44", color: "#fff", fontWeight: 600, boxShadow: "0 4px 12px -4px rgba(15,42,68,.45)" };
-const card = { border: LINE, borderRadius: 14, padding: 16, marginBottom: 12, background: "var(--card, transparent)", boxShadow: "0 1px 2px rgba(15,23,42,.05), 0 6px 18px -10px rgba(15,23,42,.18)" };
-const inp = { display: "block", width: "100%", boxSizing: "border-box", minHeight: 44, marginTop: 4, padding: "0 10px", borderRadius: 10, border: LINE, background: "transparent", color: "inherit", font: "inherit", fontSize: 16 };
-const FIX_LABELS = [
+const CHECK = "/api/students/migration/check/";
+const COMMIT = "/api/students/migration/commit/";
+const PHOTO = "/api/students/migration/read-photo/";
+const PAGE = 60;
+
+const FIELDS = [
+  ["", "Not imported"],
   ["first_name", "First name"],
   ["last_name", "Surname"],
-  ["admission_number", "Admission number (leave blank for a temporary one)"],
-  ["class_level", "Class, for example Grade 7 East"],
-  ["stream", "Stream, if the class has streams"],
-  ["assessment_number", "Assessment number (Grade 10 to 12 only)"],
+  ["full_name", "Full name (one column)"],
+  ["other_names", "Other names"],
+  ["admission_number", "Admission number"],
+  ["assessment_number", "Assessment number"],
+  ["upi", "UPI"],
+  ["class_level", "Class"],
+  ["stream", "Stream"],
 ];
 
-const SETUP = { label: "Open Setup in a new tab", hash: "#Setup" };
-const STUDENTS = { label: "Open Students in a new tab", hash: "#Students" };
-function helpFor(code) {
-  const c = code || "";
-  if (c === "class_not_found") return { tip: "Add this class in Setup, then press Check the list again. Or use Fix on the row to pick another class.", link: SETUP };
-  if (c === "stream_not_found") return { tip: "Add this stream in Setup, or use Fix on the row to choose an existing one.", link: SETUP };
-  if (c === "class_missing") return { tip: "Use Fix on the row to give the learner a class, or add a class column to your file." };
-  if (c === "class_ambiguous") return { tip: "Write the full class name, for example Grade 7 East, using Fix on the row." };
-  if (c === "class_conflict") return { tip: "The class and stream do not agree. Correct one of them with Fix on the row." };
-  if (c === "name_missing" || c === "name_too_long") return { tip: "Use Fix on the row to correct the name." };
-  if (c === "admission_too_long") return { tip: "Use Fix on the row to shorten the admission number." };
-  if (c === "assessment_missing") return { tip: "Use Fix on the row to add the assessment number." };
-  if (c.indexOf("duplicate_") === 0) return { tip: "Two rows in your file share this value. Use Fix on one row, or remove one from the file and check again." };
-  if (/_exists$/.test(c)) return { tip: "This learner is already in Marian. Look them up under Students, then remove the row from your file.", link: STUDENTS };
-  return null;
+const TONE = {
+  ready: ["ok", "Ready"],
+  needs_confirmation: ["warn", "Check"],
+  blocked: ["err", "Needs fixing"],
+  duplicate: ["info", "Already in Marian"],
+};
+
+const TIPS = {
+  name_missing: "A first name and a surname are both needed.",
+  name_too_long: "Shorten the name. It will not be cut short for you.",
+  admission_too_long: "Admission numbers can be up to 50 characters.",
+  class_missing: "Choose the class for this learner below.",
+  class_not_found: "This class is not in Setup yet. Pick one of the classes that already exist.",
+  class_ambiguous: "More than one class matches. Pick the exact class below.",
+  class_conflict: "The class and the stream do not agree. Pick both again below.",
+  class_split: "The class and stream were read from one cell.",
+  stream_not_found: "This stream does not belong to that class. Pick one of the class streams.",
+  assessment_missing: "Grade 10 to 12 learners need an assessment number for registration and exams.",
+  missing_admission: "Without an admission number the learner gets a temporary one until the real number is known.",
+  duplicate_admission_number: "Two rows in this file use the same admission number. Give one of them a different number.",
+  duplicate_assessment_number: "Two rows in this file use the same assessment number.",
+  duplicate_upi: "Two rows in this file use the same UPI.",
+  same_name: "Another row has the same name. Accept it if they are two different learners.",
+  same_name_existing: "A learner with this name is already in Marian. Accept it if this is a different learner.",
+  similar_name: "The spelling is very close to another learner. Check it, then accept if they are different.",
+  admission_number_exists: "This learner is already in Marian, so the row is skipped.",
+  assessment_number_exists: "This assessment number is already in Marian, so the row is skipped.",
+  upi_exists: "This UPI is already in Marian, so the row is skipped.",
+  unreadable_cell: "This cell could not be read from the photo. Type the value below.",
+  default_class_used: "This row had no class, so the class you chose for the whole file was used.",
+  duplicate_row: "Already in Marian. Change the admission number if it is a different learner.",
+};
+
+const isConfirm = (issue) => issue.severity === "confirm";
+const rowName = (row) => [row.first_name, row.last_name].filter(Boolean).join(" ") || "Learner " + row.row;
+const confirmCodes = (row) => (row.issues || []).filter(isConfirm).map((i) => i.code);
+const blockIssues = (row) => (row.issues || []).filter((i) => i.severity === "block");
+const firstIssue = (row) => blockIssues(row)[0] || (row.issues || []).find(isConfirm) || null;
+
+function newRequestId() {
+  try {
+    if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID();
+  } catch { /* older browser */ }
+  return "req-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
 }
 
-function Tab({ n, label, color, active, onClick }) {
+function classOptions(classes) {
+  return (classes || []).map((c) => ({ value: c.name, label: c.name, streams: c.streams || [] }));
+}
+
+function streamNames(classes, className) {
+  const found = (classes || []).find((c) => c.name === className);
+  return found ? found.streams || [] : [];
+}
+
+function draftFor(row, classes) {
+  const level = (classes || []).find((c) => c.id === row.level_id);
+  const stream = level && (level.streams || []).find((s) => s.id === row.stream_id);
+  return {
+    first_name: row.first_name || "",
+    last_name: row.last_name || "",
+    admission_number: row.provisional_admission ? "" : row.admission_number || "",
+    assessment_number: row.assessment_number || "",
+    class_level: level ? level.name : row.class_text || "",
+    stream: stream ? stream.name : row.stream_text || "",
+  };
+}
+
+function changedFields(initial, draft) {
+  const out = {};
+  Object.keys(draft).forEach((key) => {
+    const a = String(draft[key] || "").trim();
+    const b = String(initial[key] || "").trim();
+    if (a !== b) out[key] = a;
+  });
+  return out;
+}
+
+const STEP_NAMES = ["Choose your file", "Review the learners", "Add to Marian"];
+
+function Steps({ step }) {
   return (
-    <button type="button" role="tab" aria-selected={active} onClick={onClick} style={{ ...btn, flex: "1 1 90px", minHeight: 56, padding: "6px 8px", textAlign: "center", borderColor: color || "rgba(128,128,128,.4)", fontWeight: active ? 700 : 400, background: active ? "rgba(11,93,68,.12)" : "transparent" }}>
-      <div style={{ fontSize: 20, fontWeight: 700, color }}>{n}</div>
-      <div style={{ fontSize: 12 }}>{label}</div>
-    </button>
+    <>
+      <ol className="mc-steps" aria-label="Progress">
+        {STEP_NAMES.map((label, i) => {
+          const n = i + 1;
+          const state = step === n ? " is-current" : step > n ? " is-done" : "";
+          return (
+            <li key={label} className={"mc-step" + state} aria-current={step === n ? "step" : undefined}>
+              <span className="mc-step-dot" aria-hidden="true">{step > n ? "✓" : n}</span>
+              <span className="mc-step-label">{label}</span>
+            </li>
+          );
+        })}
+      </ol>
+      <p className="mc-step-caption">
+        <b>Step {step} of {STEP_NAMES.length}</b> · {STEP_NAMES[step - 1] || STEP_NAMES[0]}
+      </p>
+    </>
   );
 }
 
-export default function MigrationCentre() {
-  const [file, setFile] = useState(null);
+function Summary({ s, filter, onPick }) {
+  const cells = [
+    ["all", "Learners found", s.total],
+    ["ready", "Ready to add", s.ready],
+    ["attention", "Need attention", s.needs_attention],
+    ["duplicate", "Already in Marian", s.duplicates],
+    ["skipped", "Will be skipped", s.skipped],
+  ];
+  return (
+    <div className="mc-summary" role="group" aria-label="Summary of the check">
+      {cells.map(([key, label, value]) => (
+        <button key={key} type="button" className={"mc-sum" + (filter === key ? " is-on" : "")}
+          aria-pressed={filter === key} onClick={() => onPick(key)}>
+          <span className="mc-sum-n">{value}</span>
+          <span className="mc-sum-l">{label}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function MappingPanel({ result, open, onClose, onApply }) {
+  const [map, setMap] = useState(() => {
+    const next = {};
+    (result.columns || []).forEach((c) => { next[c.index] = c.field || ""; });
+    return next;
+  });
+  const [noHeader, setNoHeader] = useState(result.header_row === -1);
+  const used = Object.values(map).filter(Boolean);
+  const hasFirst = used.includes("first_name");
+  const hasLast = used.includes("last_name");
+  const hasFull = used.includes("full_name");
+  const hasClass = used.includes("class_level");
+  const nameOk = (hasFirst && hasLast) || hasFull;
+  const missing = [];
+  if (!nameOk) missing.push("a name column (first name + surname, or one full name)");
+  if (!hasClass) missing.push("a class column");
+  const apply = () => {
+    const mapping = {};
+    Object.entries(map).forEach(([index, field]) => { if (field) mapping[field] = Number(index); });
+    onApply(mapping, noHeader ? -1 : null);
+  };
+  if (!open) return null;
+  return (
+    <div className="mc-panel">
+      <div className="mc-panel-head">
+        <div>
+          <h3>Which column is which?</h3>
+          <p className="mc-hint">
+            We could not read every heading in this file. Match the columns below, then read the file again.
+          </p>
+        </div>
+        <Button kind="ghost" size="sm" onClick={onClose}>Close</Button>
+      </div>
+      <div className="mc-map">
+        {(result.columns || []).map((c) => (
+          <div className="mc-map-row" key={c.index}>
+            <div className="mc-map-head">
+              <b>{c.label || "Column " + (c.index + 1)}</b>
+              <span className="mc-map-sample">{(c.samples || []).slice(0, 2).join(" · ") || "no values"}</span>
+            </div>
+            <select className="mu-input mc-map-select" aria-label={"What is in " + (c.label || "column " + (c.index + 1))}
+              value={map[c.index] || ""}
+              onChange={(e) => {
+                const value = e.target.value;
+                setMap((m) => {
+                  const next = { ...m };
+                  if (value) Object.keys(next).forEach((k) => { if (next[k] === value) next[k] = ""; });
+                  next[c.index] = value;
+                  return next;
+                });
+              }}>
+              {FIELDS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select>
+          </div>
+        ))}
+      </div>
+      <label className="mc-check-line">
+        <input type="checkbox" checked={noHeader} onChange={(e) => setNoHeader(e.target.checked)} />
+        The first row is a learner, not column names
+      </label>
+      <div className="mc-panel-foot">
+        <p className={"mc-hint" + (missing.length ? " mc-hint-warn" : "")}>
+          {missing.length ? "Still needed: " + missing.join(", ") + "." : "Every learner needs a name and a class."}
+        </p>
+        <Button onClick={apply} disabled={missing.length > 0}>Read the file with these columns</Button>
+      </div>
+    </div>
+  );
+}
+
+function ClassPanel({ result, defaultClass, onDefault }) {
+  const classes = classOptions(result.classes);
+  const level = classes.find((c) => defaultClass === c.value || defaultClass.startsWith(c.value + " "));
+  const stream = level ? streamNames(result.classes, level.value).find((s) => defaultClass === level.value + " " + s.name) : null;
+  const hasClassColumn = (result.columns || []).some((c) => c.field === "class_level");
+  return (
+    <div className="mc-panel">
+      <div className="mc-panel-head">
+        <div>
+          <h3>{hasClassColumn ? "Class for rows with no class" : "Which class are these learners in?"}</h3>
+          <p className="mc-hint">
+            {hasClassColumn
+              ? "This file has a class column. If some rows leave the class empty, choose one class to use for them."
+              : "This file has no class column. Choose the class that these learners belong to."}
+          </p>
+        </div>
+      </div>
+      <div className="mc-two">
+        <Field label="Class">
+          <select className="mu-input" value={level ? level.value : ""}
+            onChange={(e) => onDefault(e.target.value, "")}>
+            <option value="">Choose a class…</option>
+            {classes.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+          </select>
+        </Field>
+        <Field label="Stream" help={!level ? "" : (streamNames(result.classes, level.value).length ? "" : "This class has no streams.")}>
+          <select className="mu-input" value={stream ? stream.name : ""}
+            disabled={!level || !streamNames(result.classes, level.value).length}
+            onChange={(e) => onDefault(level ? level.value : "", e.target.value)}>
+            <option value="">No stream</option>
+            {(level ? streamNames(result.classes, level.value) : []).map((s) => (
+              <option key={s.id} value={s.name}>{s.name}</option>
+            ))}
+          </select>
+        </Field>
+      </div>
+    </div>
+  );
+}
+
+export default function MigrationCentre({ go }) {
+  const navigate = (tab) => {
+    if (typeof go === "function") go(tab);
+    else window.location.hash = encodeURIComponent(tab);
+  };
+
+  const input = useRef({ file: null, text: "", source: "digital", matrix: null });
+  const BLANK = { mapping: {}, headerRow: null, defaultClass: "", nameOrder: "", fixes: {}, confirms: {} };
+  const ctrl = useRef(BLANK);
+  const seq = useRef(0);
+  const timer = useRef(null);
+  const requestId = useRef("");
+
+  const [ctrlState, setCtrlState] = useState(BLANK);
+  const [fileInfo, setFileInfo] = useState(null);
   const [text, setText] = useState("");
   const [source, setSource] = useState("digital");
-  const [res, setRes] = useState(null);
-  const [conf, setConf] = useState({});
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState("");
-  const [tab, setTab] = useState("all");
-  const [drag, setDrag] = useState(false);
+  const [result, setResult] = useState(null);
+  const [busy, setBusy] = useState("");
+  const [error, setError] = useState(null);
+  const [filter, setFilter] = useState("all");
+  const [query, setQuery] = useState("");
+  const [classFilter, setClassFilter] = useState("");
   const [limit, setLimit] = useState(PAGE);
-  const [ask, setAsk] = useState(false);
-  const [fixes, setFixes] = useState({});
+  const [selected, setSelected] = useState([]);
   const [editing, setEditing] = useState(null);
-  const [draft, setDraft] = useState({});
-  const [pages, setPages] = useState([]);
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [done, setDone] = useState(null);
+  const [mapOpen, setMapOpen] = useState(false);
+  const [dragging, setDragging] = useState(false);
   const [photoOn, setPhotoOn] = useState(null);
+  const [pages, setPages] = useState([]);
   const [reading, setReading] = useState(false);
+
   useEffect(() => {
     let alive = true;
-    api(PHOTO_PATH).then((r) => r.json()).then((d) => { if (alive) setPhotoOn(!!d.enabled); }).catch(() => { if (alive) setPhotoOn(false); });
+    api(PHOTO).then((r) => r.json()).then((d) => { if (alive) setPhotoOn(!!d.enabled); })
+      .catch(() => { if (alive) setPhotoOn(false); });
     return () => { alive = false; };
   }, []);
-  const [done, setDone] = useState(null);
-  const [nameOrder, setNameOrder] = useState("");
 
-  async function run(c, f, t, o) {
-    const fx = f || fixes;
-    const order = o === undefined ? nameOrder : o;
-    const body = t === undefined ? text : t;
-    if (!file && !body.trim()) { setErr("Choose a file or paste the table first."); return; }
-    setDone(null);
-    setAsk(false);
-    setBusy(true);
-    setErr("");
-    try {
-      const fd = new FormData();
-      if (file) fd.append("file", file); else fd.append("text", body);
-      fd.append("source", source);
-      if (c && Object.keys(c).length) fd.append("confirmations", JSON.stringify(c));
-      if (Object.keys(fx).length) fd.append("fixes", JSON.stringify(fx));
-      if (order) fd.append("name_order", order);
-      const r = await upload(CHECK_PATH, fd, 60000);
-      let data = null;
-      try { data = await r.json(); } catch { data = null; }
-      if (!r.ok) {
-        setErr((data && data.detail) || "The check failed (" + r.status + "). Try again.");
-        setRes(null);
-      } else {
-        setRes(data);
-        setConf(c || {});
-        setFixes(fx);
-        setLimit(PAGE);
-      }
-    } catch (e) {
-      setErr(e && e.name === "TimeoutError" ? "The server took too long to answer. It may be waking up. Wait a minute, then press Check again." : "Could not reach the server. Check your connection and try again.");
-    }
-    setBusy(false);
+  useEffect(() => () => clearTimeout(timer.current), []);
+
+  const summary = result && result.summary ? result.summary : null;
+  const rows = useMemo(() => (result && result.rows) || [], [result]);
+  const classes = useMemo(() => (result && result.classes) || [], [result]);
+
+  function applyCtrl(patch) {
+    const next = { ...ctrl.current, ...patch };
+    ctrl.current = next;
+    setCtrlState(next);
+    return next;
   }
 
-  function accept(row, code) {
-    const cur = { ...conf };
-    const set = new Set(cur[row] || []);
-    if (set.has(code)) set.delete(code); else set.add(code);
-    if (set.size) cur[row] = [...set]; else delete cur[row];
-    run(cur);
+  function form(state) {
+    const fd = new FormData();
+    const src = input.current;
+    if (src.matrix) fd.append("matrix", JSON.stringify(src.matrix));
+    else if (src.file) fd.append("file", src.file);
+    else fd.append("text", src.text || "");
+    fd.append("source", src.source || "digital");
+    if (Object.keys(state.mapping || {}).length) fd.append("mapping", JSON.stringify(state.mapping));
+    if (state.headerRow !== null && state.headerRow !== undefined) fd.append("header_row", String(state.headerRow));
+    if (state.defaultClass) fd.append("default_class", state.defaultClass);
+    if (state.nameOrder) fd.append("name_order", state.nameOrder);
+    if (Object.keys(state.fixes || {}).length) fd.append("fixes", JSON.stringify(state.fixes));
+    if (Object.keys(state.confirms || {}).length) fd.append("confirmations", JSON.stringify(state.confirms));
+    return fd;
+  }
+
+  function hasInput() {
+    const src = input.current;
+    return !!(src.file || src.matrix || (src.text || "").trim());
+  }
+
+  async function runCheck(state, patch) {
+    const next = patch ? applyCtrl(patch) : state || ctrl.current;
+    if (!hasInput()) {
+      setError({ text: "Choose a file or paste your table first." });
+      return;
+    }
+    const id = ++seq.current;
+    setBusy("check");
+    setError(null);
+    try {
+      const r = await upload(CHECK, form(next), 120000);
+      let data = null;
+      try { data = await r.json(); } catch { data = null; }
+      if (id !== seq.current) return;
+      if (!r.ok) {
+        setError({
+          text: (data && data.detail) || "The check could not finish (" + r.status + "). Try again.",
+          retry: () => runCheck(next),
+        });
+        return;
+      }
+      if (data.matrix) input.current = { ...input.current, matrix: data.matrix };
+      setResult(data);
+      setFilter("all");
+      setLimit(PAGE);
+      setSelected([]);
+      setDone(null);
+      const needsMapping = (data.needs_input || []).some((n) => n.code === "mapping");
+      setMapOpen(needsMapping || !!data.mapping_uncertain);
+    } catch (e) {
+      if (id !== seq.current) return;
+      const timeout = e && (e.name === "TimeoutError" || e.name === "AbortError");
+      setError({
+        text: timeout
+          ? "The server took too long to answer. Your list is safe. Wait a moment and try again."
+          : "We could not reach the server. Your list and corrections are kept. Check your connection, then try again.",
+        retry: () => runCheck(next),
+      });
+    } finally {
+      if (id === seq.current) setBusy("");
+    }
+  }
+
+  function resetInput() {
+    clearTimeout(timer.current);
+    seq.current += 1;
+    input.current = { file: null, text: "", source: "digital", matrix: null };
+    ctrl.current = BLANK;
+    setCtrlState(BLANK);
+    requestId.current = "";
+    setFileInfo(null);
+    setText("");
+    setSource("digital");
+    setResult(null);
+    setError(null);
+    setSelected([]);
+    setEditing(null);
+    setDone(null);
+    setFilter("all");
+    setQuery("");
+    setClassFilter("");
+    setMapOpen(false);
+  }
+
+  function takeFile(f) {
+    if (!f) return;
+    const ok = /\.(csv|tsv|txt|xlsx|xlsm|pdf)$/i.test(f.name);
+    const image = /^image\//.test(f.type) || /\.(jpe?g|png|webp|heic)$/i.test(f.name);
+    if (image && photoOn !== true) {
+      setError({ text: "Photos of a register are not switched on for this school. Use an Excel, CSV or typed PDF file, or type the list below." });
+      return;
+    }
+    if (!ok && !image) {
+      setError({ text: "'" + f.name + "' is not a file Marian can read. Use Excel (.xlsx), CSV, TSV or a typed PDF, or paste the table below." });
+      return;
+    }
+    if (f.size > 5 * 1024 * 1024) {
+      setError({ text: "This file is larger than 5 MB. Split it into smaller files, or save it as CSV." });
+      return;
+    }
+    if (image) {
+      setPages([]);
+      addPage(f);
+      return;
+    }
+    clearTimeout(timer.current);
+    input.current = { file: f, text: "", source: input.current.source, matrix: null };
+    ctrl.current = BLANK;
+    setCtrlState(BLANK);
+    requestId.current = "";
+    setFileInfo({ name: f.name, size: f.size });
+    setText("");
+    setResult(null);
+    setError(null);
+    setDone(null);
+    runCheck(ctrl.current);
+  }
+
+  function onText(value) {
+    setText(value);
+    input.current = { ...input.current, text: value, file: null, matrix: null };
+    if (fileInfo) setFileInfo(null);
+    setResult(null);
+    setDone(null);
+    applyCtrl({ mapping: {}, headerRow: null, fixes: {}, confirms: {} });
+    clearTimeout(timer.current);
+    if (value.trim().split(/\r?\n/).filter((l) => l.trim()).length > 1) {
+      timer.current = setTimeout(() => runCheck(ctrl.current), 900);
+    }
+  }
+
+  function acceptRow(row, codes) {
+    const current = { ...ctrl.current.confirms };
+    const set = new Set(current[row] || []);
+    codes.forEach((c) => set.add(c));
+    if (set.size) current[row] = [...set]; else delete current[row];
+    const next = applyCtrl({ confirms: current });
+    runCheck(next);
+  }
+
+  function acceptMany(list) {
+    const current = { ...ctrl.current.confirms };
+    list.forEach((row) => {
+      const codes = confirmCodes(row);
+      if (!codes.length) return;
+      const set = new Set(current[row.row] || []);
+      codes.forEach((c) => set.add(c));
+      current[row.row] = [...set];
+    });
+    runCheck(applyCtrl({ confirms: current }));
+  }
+
+
+  function saveFix(row, values, initial) {
+    const diff = changedFields(initial, values);
+    const fixes = { ...ctrl.current.fixes };
+    if (Object.keys(diff).length) fixes[row.row] = diff; else delete fixes[row.row];
+    setEditing(null);
+    runCheck(applyCtrl({ fixes }));
+  }
+
+  function clearFix(row) {
+    const fixes = { ...ctrl.current.fixes };
+    delete fixes[row.row];
+    setEditing(null);
+    runCheck(applyCtrl({ fixes }));
+  }
+
+  function bulkClass(className, streamName) {
+    const fixes = { ...ctrl.current.fixes };
+    selected.forEach((n) => {
+      if (!rows.some((r) => r.row === n)) return;
+      const diff = { ...(fixes[n] || {}) };
+      diff.class_level = className;
+      if (streamName) diff.stream = streamName;
+      else if (diff.stream) diff.stream = "";
+      fixes[n] = diff;
+    });
+    setBulkOpen(false);
+    runCheck(applyCtrl({ fixes }));
   }
 
   async function commit() {
-    setBusy(true);
-    setErr("");
+    if (!requestId.current) requestId.current = newRequestId();
+    setBusy("commit");
+    setError(null);
+    const fd = form(ctrl.current);
+    fd.append("request_id", requestId.current);
     try {
-      const fd = new FormData();
-      if (file) fd.append("file", file); else fd.append("text", text);
-      fd.append("source", source);
-      if (Object.keys(conf).length) fd.append("confirmations", JSON.stringify(conf));
-      if (Object.keys(fixes).length) fd.append("fixes", JSON.stringify(fixes));
-      if (nameOrder) fd.append("name_order", nameOrder);
-      const r = await upload(COMMIT_PATH, fd);
+      const r = await upload(COMMIT, fd, 300000);
       let data = null;
       try { data = await r.json(); } catch { data = null; }
       if (!r.ok) {
-        setErr((data && data.detail) || "Saving failed (" + r.status + "). Nothing was added.");
-      } else {
-        setDone(data);
-        setRes(null); setFile(null); setText(""); setConf({}); setFixes({});
+        setConfirmOpen(false);
+        setError({
+          text: (data && data.detail) || "Nothing was added. Check the list and try again.",
+          retry: r.status === 409 ? () => runCheck(ctrl.current) : () => commit(),
+          retryLabel: r.status === 409 ? "Check the list again" : "Try again",
+        });
+        return;
       }
-    } catch {
-      setErr("The connection dropped. Open the Students list to see whether the learners were added before you try again.");
+      requestId.current = "";
+      setConfirmOpen(false);
+      setDone(data);
+      setResult(null);
+      setSelected([]);
+      setEditing(null);
+    } catch (e) {
+      setConfirmOpen(false);
+      const timeout = e && (e.name === "TimeoutError" || e.name === "AbortError");
+      setError({
+        text: (timeout
+          ? "The server did not answer in time. "
+          : "The connection dropped before Marian answered. ")
+          + "Your list and corrections are kept. Check the list again: anyone who was already added shows as “Already in Marian”, so nobody is added twice.",
+        retry: () => runCheck(ctrl.current),
+        retryLabel: "Check the list again",
+      });
+    } finally {
+      setBusy("");
     }
-    setAsk(false);
-    setBusy(false);
-  }
-
-  function fixBase(r) {
-    return {
-      first_name: r.first_name || "",
-      last_name: r.last_name || "",
-      admission_number: r.provisional_admission ? "" : (r.admission_number || ""),
-      class_level: r.class_text || "",
-      stream: r.stream_text || "",
-      assessment_number: r.assessment_number || "",
-    };
-  }
-
-  function openFix(r) {
-    setDraft(fixBase(r));
-    setEditing(r.row);
-  }
-
-  function saveFix(r) {
-    const base = fixBase(r);
-    const ch = { ...(fixes[r.row] || {}) };
-    FIX_LABELS.forEach(([k]) => {
-      const v = (draft[k] || "").trim();
-      if (v !== (base[k] || "").trim()) ch[k] = v;
-    });
-    setEditing(null);
-    if (JSON.stringify(ch) === JSON.stringify(fixes[r.row] || {})) return;
-    run(conf, { ...fixes, [r.row]: ch });
-  }
-
-  function undoFix(r) {
-    const nf = { ...fixes };
-    delete nf[r.row];
-    run(conf, nf);
-  }
-
-  function renderFix(r) {
-    if (editing === r.row) {
-      return (
-        <div style={{ marginTop: 10 }}>
-          {FIX_LABELS.map(([k, label]) => (
-            <label key={k} style={{ display: "block", fontSize: 13, marginBottom: 8 }}>
-              {label}
-              <input value={draft[k] || ""} onChange={(e) => setDraft({ ...draft, [k]: e.target.value })} style={inp} />
-            </label>
-          ))}
-          <div style={{ display: "flex", gap: 8 }}>
-            <button style={{ ...btn, flex: 1 }} onClick={() => setEditing(null)}>Cancel</button>
-            <button style={{ ...btnMain, flex: 1 }} disabled={busy} onClick={() => saveFix(r)}>Save and re-check</button>
-          </div>
-        </div>
-      );
-    }
-    const mine = fixes[r.row];
-    if (r.status === "ready" && !mine) return null;
-    return (
-      <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-        {r.status !== "ready" && <button style={btn} disabled={busy} onClick={() => openFix(r)}>Fix</button>}
-        {mine && <button style={btn} disabled={busy} onClick={() => undoFix(r)}>Undo my fix</button>}
-        {mine && <span style={{ fontSize: 12, opacity: 0.8 }}>Corrected by you</span>}
-      </div>
-    );
   }
 
   async function shrink(f) {
@@ -223,383 +547,644 @@ export default function MigrationCentre() {
     } catch { return null; }
   }
 
-  function takeFile(f) {
-    if (!f) return;
-    setErr("");
-    if (/^image\//.test(f.type) || /\.(jpe?g|png|webp|heic)$/i.test(f.name)) {
-      if (photoOn !== true) { setErr("Photo reading is not available yet. For now, use an Excel, CSV or typed PDF file, or paste the table."); return; }
-      setSource("paper");
-      addPage({ target: { files: [f], value: "" } });
-      return;
-    }
-    setFile(f); setRes(null); setNameOrder(""); setConf({}); setFixes({});
-  }
-
-  async function addPage(e) {
-    const f = e.target.files && e.target.files[0];
-    e.target.value = "";
-    if (!f) return;
-    if (pages.length >= 20) { setErr("Add at most 20 pages at a time."); return; }
-    setErr("");
+  async function addPage(f) {
+    if (pages.length >= 20) { setError({ text: "Add at most 20 pages at a time." }); return; }
     const blob = await shrink(f);
-    if (!blob) { setErr("This photo could not be opened. Save it as a JPG and try again."); return; }
+    if (!blob) { setError({ text: "This photo could not be opened. Save it as a JPG and try again." }); return; }
     setPages((p) => [...p, { name: f.name, blob, status: "waiting" }]);
-    setRes(null);
-  }
-
-  function removePage(i) {
-    setPages((p) => p.filter((_, k) => k !== i));
-    setRes(null); setNameOrder(""); setConf({}); setFixes({});
   }
 
   async function readPages() {
-    setReading(true); setErr(""); setRes(null); setNameOrder(""); setConf({}); setFixes({});
+    setReading(true);
+    setError(null);
     const list = pages.map((p) => ({ ...p }));
-    const upd = () => setPages(list.map((p) => ({ ...p })));
+    const update = () => setPages(list.map((p) => ({ ...p })));
     let headers = list[0] && list[0].status === "done" ? list[0].headers : null;
-    for (let i = 0; i < list.length; i++) {
+    for (let i = 0; i < list.length; i += 1) {
       if (list[i].status === "done") continue;
-      list[i].status = "reading"; list[i].msg = ""; upd();
+      list[i].status = "reading";
+      update();
       try {
         const fd = new FormData();
         fd.append("photo", list[i].blob, "page.jpg");
         fd.append("page", String(i + 1));
         if (headers) fd.append("headers", JSON.stringify(headers));
-        const r = await upload(PHOTO_PATH, fd);
+        const r = await upload(PHOTO, fd, 180000);
         let d = null;
         try { d = await r.json(); } catch { d = null; }
         if (!r.ok) {
           list[i].status = "failed";
           list[i].msg = (d && d.detail) || "Page " + (i + 1) + " could not be read (" + r.status + ").";
-          upd(); setReading(false); return;
+          update(); setReading(false); return;
         }
-        Object.assign(list[i], { status: "done", headers: d.headers, rows: d.rows, unreadable: d.unreadable, to_check: d.to_check, notes: d.notes || "", msg: "" });
+        Object.assign(list[i], { status: "done", headers: d.headers, rows: d.rows, unreadable: d.unreadable, to_check: d.to_check, notes: d.notes || "" });
         if (!headers) headers = d.headers;
-        upd();
+        update();
       } catch {
         list[i].status = "failed";
         list[i].msg = "Page " + (i + 1) + " could not be sent. Check your connection and retry.";
-        upd(); setReading(false); return;
+        update(); setReading(false); return;
       }
     }
     setReading(false);
     const lines = [headers.join("\t")];
     list.forEach((p) => p.rows.forEach((row) => lines.push(row.join("\t"))));
-    const t = lines.join("\n");
-    setText(t); setFile(null);
-    await run({}, {}, t);
+    const table = lines.join("\n");
+    input.current = { file: null, text: table, source: "paper", matrix: null };
+    setText(table);
+    setPages([]);
+    runCheck(ctrl.current);
   }
 
-  const sum = res && res.summary ? res.summary : null;
-  const rows = res && res.rows ? res.rows : [];
-  const shown = rows.filter((r) => tab === "all" || r.status === tab).slice(0, limit);
-  const total = tab === "all" ? rows.length : rows.filter((r) => r.status === tab).length;
-  const blockedGroups = (() => {
-    const m = {};
-    rows.filter((r) => r.status === "blocked").forEach((r) => {
-      const seen = {};
-      (r.issues || []).filter((i) => i.severity === "block").forEach((i) => {
-        const k = (i.code || "") + "|" + i.message;
-        if (seen[k]) return;
-        seen[k] = true;
-        if (!m[k]) m[k] = { key: k, code: i.code, message: i.message, n: 0 };
-        m[k].n += 1;
-      });
-    });
-    return Object.values(m).map((g) => ({ ...g, help: helpFor(g.code) })).sort((a, b) => b.n - a.n);
-  })();
+  const attentionRows = useMemo(() => rows.filter((r) => r.status === "blocked" || r.status === "needs_confirmation"), [rows]);
 
-  const canAdd = !!sum && sum.ready > 0 && !(res.file_issues || []).some((i) => i.severity === "block");
-  const goAdd = () => {
-    setAsk(true);
-    setTimeout(() => { const el = document.getElementById("add-confirm"); if (el) el.scrollIntoView({ block: "center" }); }, 60);
-  };
-  const step = done ? 5 : ask ? 4 : sum && (sum.blocked > 0 || sum.needs_confirmation > 0 || (res.file_issues || []).length > 0) ? 3 : sum ? 2 : 1;
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return rows.filter((r) => {
+      if (filter === "ready" && r.status !== "ready") return false;
+      if (filter === "attention" && r.status !== "blocked" && r.status !== "needs_confirmation") return false;
+      if (filter === "duplicate" && r.status !== "duplicate") return false;
+      if (filter === "skipped" && r.status === "ready") return false;
+      if (classFilter && r.class_label !== classFilter) return false;
+      if (!q) return true;
+      return (rowName(r) + " " + (r.admission_number || "") + " " + (r.class_label || "")).toLowerCase().includes(q);
+    });
+  }, [rows, filter, classFilter, query]);
+
+  const shown = filtered.slice(0, limit);
+
+  const groups = useMemo(() => {
+    const map = new Map();
+    rows.forEach((r) => (r.issues || []).forEach((i) => {
+      if (i.severity === "notice") return;
+      const key = i.code + "|" + i.severity;
+      const g = map.get(key) || { key, code: i.code, severity: i.severity, message: i.message, rows: [] };
+      if (!g.rows.includes(r.row)) g.rows.push(r.row);
+      map.set(key, g);
+    }));
+    return [...map.values()].sort((a, b) => b.rows.length - a.rows.length);
+  }, [rows]);
+
+  const classList = useMemo(() => Object.entries((summary && summary.by_class) || {}).sort((a, b) => a[0].localeCompare(b[0])), [summary]);
+  const needsDefaultClass = useMemo(() => {
+    if (ctrlState.defaultClass) return true;
+    if (!(result && result.columns || []).some((c) => c.field === "class_level")) return true;
+    return rows.some((r) => blockIssues(r).some((i) => i.code === "class_missing"));
+  }, [result, rows, ctrlState.defaultClass]);
+
+  const pick = (key) => { setFilter(key); setLimit(PAGE); };
+  const step = done ? 3 : summary ? 2 : 1;
+  const ready = summary ? summary.ready : 0;
+  const fileBlocked = !!((result && result.file_issues) || []).some((i) => i.severity === "block");
+  const canImport = !!summary && ready > 0 && !fileBlocked;
+  const busyCheck = busy === "check";
+  const busyCommit = busy === "commit";
+
+  function openEditor(row) {
+    const draft = draftFor(row, classes);
+    setEditing({ row, draft, initial: { ...draft } });
+  }
+
+  function nextAfter(row) {
+    const list = attentionRows;
+    const i = list.findIndex((r) => r.row === row.row);
+    if (list.length < 2) return null;
+    return list[(i + 1) % list.length];
+  }
 
   return (
-    <div className="mc-page">
-      <header className="mc-banner">
-        <div className="mc-banner-photo" aria-hidden="true" style={{ backgroundImage: "url(/school-banner.jpg)" }} />
-        <div className="mc-banner-icon" aria-hidden="true">
-          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <ellipse cx="12" cy="5" rx="9" ry="3" />
-            <path d="M3 5v14a9 3 0 0 0 18 0V5" />
-            <path d="M3 12a9 3 0 0 0 18 0" />
-          </svg>
-        </div>
-        <div className="mc-banner-text">
-          <h2 style={{ margin: 0 }}>Migration Centre</h2>
-          <p style={{ margin: "4px 0 0" }}>Add many learners at once from your existing list. Nothing is added until you confirm at the end.</p>
-          <p style={{ margin: "4px 0 0", fontSize: 13, opacity: 0.85 }}>Supported: Excel, CSV or typed PDF, or paste the table.</p>
+    <div className={"mc" + (editing || bulkOpen || confirmOpen || mapOpen ? " mc-dialog-open" : "")}>
+      <header className="mc-head">
+        <div>
+          <h2>Migration Centre</h2>
+          <p>Bring your existing learner list into Marian. Nothing is added until you confirm at the end.</p>
         </div>
       </header>
 
-      <div role="list" aria-label="Progress" className="mc-steps">
-        {["Upload", "Check", "Fix", "Add", "Done"].map((name, i) => (
-          <div key={name} role="listitem" aria-current={step === i + 1 ? "step" : undefined} className={"mc-step" + (step === i + 1 ? " is-current" : step > i + 1 ? " is-done" : "")}>
-            <span className="mc-dot">{step > i + 1 ? "\u2713" : i + 1}</span>
-            <span className="mc-label">{name}</span>
-          </div>
-        ))}
-      </div>
+      <Steps step={step} />
 
-      {step === 1 && <div style={{ ...card, fontSize: 14 }}><b>Next:</b> choose your file or paste the list, then press "2. Check the list".</div>}
-      {(step === 2 || step === 3) && canAdd && (
-        <button style={{ ...btnMain, width: "100%", marginBottom: 10 }} disabled={busy} onClick={goAdd}>
-          Next: add {sum.ready} ready learner(s)
-        </button>
-      )}
-      {step === 3 && !canAdd && <div style={{ ...card, fontSize: 14 }}><b>Next:</b> fix the file or the marked learners, then press "2. Check the list" again.</div>}
-      <div className="mc-grid">
-      <div className="mc-card" style={card}>
-        <label style={{ display: "block", fontWeight: 600, marginBottom: 6 }}>1. Choose a file (.xlsx, .csv or typed .pdf)</label>
-        <label
-          className={"mc-drop" + (drag ? " is-over" : "")}
-          onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
-          onDragLeave={() => setDrag(false)}
-          onDrop={(e) => { e.preventDefault(); setDrag(false); takeFile(e.dataTransfer.files && e.dataTransfer.files[0]); }}
-        >
-          <svg className="mc-cloud" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#1f4e79" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ display: "block", margin: "0 auto 8px" }}>
-            <path d="M12 13v8" />
-            <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" />
-            <path d="m8 17 4-4 4 4" />
-          </svg>
-          <div style={{ fontWeight: 700 }}>Drag and drop your file here</div>
-          <div style={{ fontSize: 13, color: "#1f4e79", marginTop: 2 }}>or click to browse</div>
-          <div style={{ fontSize: 13, opacity: 0.85, margin: "4px 0 10px" }}>Excel, CSV, TSV, TXT or typed PDF</div>
-          <span style={{ ...btnMain, display: "inline-block", padding: "10px 16px", borderRadius: 10 }}>Choose File</span>
-          <input type="file" accept=".csv,.xlsx,.pdf,.tsv,.txt,image/*" style={{ display: "none" }} onChange={(e) => { takeFile(e.target.files && e.target.files[0]); e.target.value = ""; }} />
-        </label>
-        <label style={{ display: "block", fontWeight: 600, margin: "12px 0 6px" }}>or paste the table here</label>
-        <textarea
-          value={text}
-          onChange={(e) => { setText(e.target.value); setRes(null); setNameOrder(""); setConf({}); setFixes({}); }}
-          placeholder={"Admission No, First name, Surname, Class\n1001, Amina, Otieno, Grade 7 East"}
-          rows={5}
-          disabled={!!file}
-          style={{ width: "100%", boxSizing: "border-box", borderRadius: 10, border: LINE, padding: 10, font: "inherit", background: "transparent", color: "inherit" }}
-        />
-        {file && (
-          <div style={{ marginTop: 6, fontSize: 13 }}>
-            Using file: <b>{file.name}</b>{" "}
-            <button style={{ ...btn, minHeight: 36, padding: "0 10px" }} onClick={() => { setFile(null); setRes(null); setNameOrder(""); setConf({}); setFixes({}); }}>Remove</button>
+      {error && (
+        <div className="mc-error" role="alert">
+          <div>
+            <b>That did not work.</b> {error.text}
           </div>
-        )}
-        <label style={{ display: "block", fontWeight: 600, margin: "12px 0 6px" }}>Where did this list come from?</label>
-        <select value={source} onChange={(e) => { setSource(e.target.value); setRes(null); setNameOrder(""); setConf({}); setFixes({}); }} style={{ ...btn, width: "100%" }}>
-          <option value="digital">A computer file (Excel, CSV)</option>
-          <option value="paper">A handwritten or typed register</option>
-        </select>
-        {source === "paper" && (
-          <div style={{ ...card, marginTop: 12, marginBottom: 0 }}>
-            <b>Photos of the register</b>
-            {photoOn === false ? (
-              <div style={{ fontSize: 14, marginTop: 6 }}>Photo reading is not switched on yet. For now, use an Excel, CSV or typed PDF file, or type the learners into the box above.</div>
-            ) : (
-              <>
-                <div style={{ fontSize: 14, margin: "6px 0 10px" }}>
-                  Add one photo per page, in order. Keep the whole table in the frame, flat, in good light. Anything that cannot be read is marked for you to type. Nothing is skipped quietly.
-                </div>
-                {pages.map((p, i) => (
-                  <div key={i} style={{ borderTop: LINE, padding: "8px 0", fontSize: 14 }}>
-                    <b>Page {i + 1}</b>{" · "}
-                    {p.status === "waiting" ? "waiting" : p.status === "reading" ? "reading..." : p.status === "done" ? p.rows.length + " lines read, " + p.unreadable + " unreadable, " + p.to_check + " to check" : "failed"}
-                    {p.notes ? <div style={{ opacity: 0.8 }}>Reader's note: {p.notes}</div> : null}
-                    {p.status === "failed" && <div role="alert" style={{ color: "#b91c1c", marginTop: 4 }}>{p.msg}</div>}
-                    {!reading && <div><button style={{ ...btn, minHeight: 36, padding: "0 10px", marginTop: 6 }} onClick={() => removePage(i)}>Remove</button></div>}
-                  </div>
-                ))}
-                <label style={{ ...btn, display: "flex", alignItems: "center", justifyContent: "center", marginTop: 8 }}>
-                  + Add a page photo
-                  <input type="file" accept="image/*" onChange={addPage} style={{ display: "none" }} />
-                </label>
-                <button style={{ ...btnMain, width: "100%", marginTop: 10 }} disabled={busy || reading || pages.length === 0} onClick={readPages}>
-                  {reading ? "Reading..." : pages.some((p) => p.status === "failed") ? "Retry from the failed page" : "Read " + pages.length + " page(s)"}
-                </button>
-              </>
+          <div className="mc-error-actions">
+            {error.retry && (
+              <Button size="sm" onClick={error.retry} disabled={!!busy}>
+                {error.retryLabel || "Try again"}
+              </Button>
             )}
+            <Button size="sm" kind="ghost" onClick={() => setError(null)}>Dismiss</Button>
           </div>
-        )}
-        <button style={{ ...btnMain, width: "100%", marginTop: 14 }} disabled={busy} onClick={() => run({})}>
-          {busy ? "Checking..." : "2. Check the list"}
-        </button>
-      </div>
-      <aside className="mc-help">
-        <details open={WIDE} style={{ ...card, marginBottom: 0 }}>
-          <summary style={{ fontWeight: 700, cursor: "pointer", minHeight: 28 }}>How it works</summary>
-          <div style={{ fontSize: 14, marginTop: 8 }}>
-            <div style={{ ...card, borderColor: "#1f4e79", marginBottom: 8 }}>
-              <b>Before you start:</b> add your classes in Setup. Learners can only be added to classes that already exist.
-              <a href={SETUP.hash} target="_blank" rel="noopener noreferrer" style={{ ...btn, display: "inline-block", marginTop: 6, minHeight: 36, lineHeight: "36px", padding: "0 12px", textDecoration: "none" }}>{SETUP.label}</a>
-            </div>
-            <ol style={{ paddingLeft: 18, margin: 0 }}>
-              <li style={{ marginBottom: 6 }}><b>Upload or paste.</b> Drop an Excel, CSV or typed PDF file, or paste your table. The first row must name the columns, for example Name, Admission number, Class. The order does not matter.</li>
-              <li style={{ marginBottom: 6 }}><b>Press Check the list.</b> If it asks which name comes first, tap your choice.</li>
-              <li style={{ marginBottom: 6 }}><b>Fix what is blocked.</b> The red box explains each problem and what to do. Use Fix on a row, or open Setup to add a missing class, then press Check the list again.</li>
-              <li><b>Add the ready learners.</b> You confirm first and nothing is saved before that. Blocked learners are left out until you fix them.</li>
-            </ol>
-          </div>
-        </details>
-      </aside>
-    </div>
+        </div>
+      )}
 
       {done && (
-        <div role="status" style={{ ...card, borderColor: "#15803d", background: "rgba(22,163,74,.1)" }}>
-          <b>Done.</b> {done.created} learner(s) added{done.skipped ? ", " + done.skipped + " left out" : ""}. Find them under Students. To add the left-out ones, fix your file and check it again.
-        <a href="#Students" style={{ ...btnMain, display: "block", textAlign: "center", textDecoration: "none", marginTop: 8, boxSizing: "border-box" }}>Open the Students list</a>
-      
-        </div>
-      )}
-
-      {err && (
-        <div role="alert" style={{ ...card, borderColor: "#b91c1c", background: "rgba(220,38,38,.1)" }}>{err}</div>
-      )}
-
-      {res && (
-        <>
-          {(res.needs_input || []).filter((n) => n.code === "name_order").map((n) => (
-          <div key="name_order" style={{ border: "2px solid #b45309", borderRadius: 8, padding: 12, margin: "10px 0" }}>
-            <div style={{ fontWeight: 700, marginBottom: 6 }}>Which name comes first?</div>
-            <div style={{ marginBottom: 8 }}>{n.message}</div>
-            {(n.sample || []).length > 0 && (
-              <div style={{ marginBottom: 8 }}>For example: {n.sample.slice(0, 3).join(" | ")}</div>
+        <div className="mc-success" role="status">
+          <div className="mc-success-mark" aria-hidden="true">✓</div>
+          <h3>
+            {done.already_saved ? "These learners were already added" : done.created + (done.created === 1 ? " learner added" : " learners added")}
+          </h3>
+          <p>
+            {done.already_saved
+              ? "Your earlier attempt did save them. Nothing was added twice."
+              : "They are in the Students list now" + (Object.keys(done.by_class || {}).length ? ", in " + Object.keys(done.by_class).join(", ") + "." : ".")}
+          </p>
+          {!done.already_saved && (done.skipped > 0 || done.temporary_admission > 0) && (
+            <ul className="mc-success-list">
+              {done.skipped > 0 && (
+                <li>
+                  {done.skipped} left out
+                  {done.duplicates ? " · " + done.duplicates + " already in Marian" : ""}
+                  {done.blocked ? " · " + done.blocked + " need fixing" : ""}
+                  {done.needs_confirmation ? " · " + done.needs_confirmation + " not confirmed" : ""}
+                </li>
+              )}
+              {done.temporary_admission > 0 && (
+                <li>{done.temporary_admission} got a temporary admission number (NO-ADM-…). Add the real numbers in Students.</li>
+              )}
+            </ul>
+          )}
+          <div className="mc-success-actions">
+            <Button onClick={() => navigate("Students")}>Open the Students list</Button>
+            {done.skipped > 0 && (
+              <Button kind="secondary" onClick={() => { setDone(null); runCheck(ctrl.current); }}>
+                Review the {done.skipped} left out
+              </Button>
             )}
-            <button style={{ ...btn, minHeight: 44, marginRight: 8 }} disabled={busy}
-              onClick={() => { setNameOrder("first_last"); run(conf, fixes, undefined, "first_last"); }}>
-              First name first
-            </button>
-            <button style={{ ...btn, minHeight: 44 }} disabled={busy}
-              onClick={() => { setNameOrder("last_first"); run(conf, fixes, undefined, "last_first"); }}>
-              Surname first
-            </button>
+            <Button kind="ghost" onClick={resetInput}>Import another file</Button>
           </div>
-        ))}
-        {(res.file_issues || []).map((i, k) => (
-            <div key={k} role="alert" style={{ ...card, borderColor: SEV[i.severity] || "#6b7280", background: i.severity === "block" ? "rgba(220,38,38,.1)" : "rgba(128,128,128,.08)" }}>
-              <b style={{ color: SEV[i.severity] || "inherit" }}>{i.severity === "block" ? "Fix the file: " : "Note: "}</b>
-              {i.message}
-            </div>
-          ))}
-
-          {sum && sum.total != null && (
-            <>
-              <div role="tablist" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
-          <Tab n={sum.total} label="All" active={tab === "all"} onClick={() => { setTab("all"); setLimit(PAGE); }} />
-          <Tab n={sum.ready} label="Ready" color="#15803d" active={tab === "ready"} onClick={() => { setTab("ready"); setLimit(PAGE); }} />
-          <Tab n={sum.needs_confirmation} label="To confirm" color="#b45309" active={tab === "needs_confirmation"} onClick={() => { setTab("needs_confirmation"); setLimit(PAGE); }} />
-          <Tab n={sum.blocked} label="Blocked" color="#b91c1c" active={tab === "blocked"} onClick={() => { setTab("blocked"); setLimit(PAGE); }} />
         </div>
-        {blockedGroups.length > 0 && (
-          <div style={{ ...card, borderColor: "#b91c1c" }}>
-            <b>Why learners are blocked</b>
-            {blockedGroups.slice(0, 5).map((g) => (
-              <div key={g.key} style={{ marginTop: 8, fontSize: 14 }}>
-                <b>{g.n} learner(s):</b> {g.message}
-                {g.help && <div style={{ opacity: 0.85 }}>What to do: {g.help.tip}</div>}
-                {g.help && g.help.link && (
-                  <a href={g.help.link.hash} target="_blank" rel="noopener noreferrer" style={{ ...btn, display: "inline-block", marginTop: 6, minHeight: 36, lineHeight: "36px", padding: "0 12px", textDecoration: "none" }}>{g.help.link.label}</a>
-                )}
+      )}
+
+      {!done && (
+        <>
+          {!result && (
+          <section className="mc-card mc-upload">
+            <h3>Add your learner list</h3>
+            <p className="mc-hint">
+              Drop your file here, or paste the table from Excel or Word. The first row should name the
+              columns, for example <i>Admission number, Name, Class</i>. The order does not matter.
+            </p>
+            <label
+              className={"mc-drop" + (dragging ? " is-over" : "")}
+              onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+              onDragLeave={() => setDragging(false)}
+              onDrop={(e) => { e.preventDefault(); setDragging(false); takeFile(e.dataTransfer.files && e.dataTransfer.files[0]); }}
+            >
+              <span className="mc-drop-icon" aria-hidden="true">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 16V4" /><path d="m7 9 5-5 5 5" /><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+                </svg>
+              </span>
+              <span className="mc-drop-text">
+                <b>{fileInfo ? fileInfo.name : "Choose a file"}</b>
+                <span>{fileInfo ? "Reading this file…" : "Excel, CSV, TSV or a typed PDF · up to 5 MB"}</span>
+              </span>
+              <input type="file" accept=".csv,.tsv,.txt,.xlsx,.xlsm,.pdf" className="mc-file"
+                onChange={(e) => { takeFile(e.target.files && e.target.files[0]); e.target.value = ""; }} />
+            </label>
+
+            <details className="mc-more">
+              <summary>Or paste the table</summary>
+              <textarea
+                className="mc-paste"
+                value={text}
+                onChange={(e) => onText(e.target.value)}
+                rows={5}
+                spellCheck={false}
+                placeholder={"Admission No\tFirst name\tSurname\tClass\n1001\tAmina\tOtieno\tGrade 7 East"}
+              />
+              <p className="mc-hint">Paste straight from Excel or Word. Tabs, commas and semicolons all work.</p>
+            </details>
+
+            {photoOn && (
+              <details className="mc-more">
+                <summary>Use photos of a handwritten register</summary>
+                <p className="mc-hint">Add one photo per page, in order. Keep the table flat and in good light. Anything unreadable is marked for you to type.</p>
+                {pages.map((p, i) => (
+                  <div key={i} className="mc-page-row">
+                    <b>Page {i + 1}</b>
+                    <span>
+                      {p.status === "waiting" ? "waiting" : p.status === "reading" ? "reading…"
+                        : p.status === "done" ? p.rows.length + " lines, " + p.unreadable + " unreadable, " + p.to_check + " to check"
+                          : "failed"}
+                    </span>
+                    {p.msg && <span className="mc-page-fail" role="alert">{p.msg}</span>}
+                    {!reading && <Button size="sm" kind="ghost" onClick={() => setPages((list) => list.filter((_, k) => k !== i))}>Remove</Button>}
+                  </div>
+                ))}
+                <div className="mc-row-actions">
+                  <label className="mu-btn secondary sm mc-file-btn">
+                    Add a page
+                    <input type="file" accept="image/*" className="mc-file" onChange={(e) => { addPage(e.target.files && e.target.files[0]); e.target.value = ""; }} />
+                  </label>
+                  <Button size="sm" disabled={!pages.length || reading} onClick={readPages}>
+                    {reading ? "Reading…" : "Read " + pages.length + " page(s)"}
+                  </Button>
+                </div>
+              </details>
+            )}
+
+            <div className="mc-source">
+              <label htmlFor="mc-source">How was this list made?</label>
+              <select id="mc-source" className="mu-input mc-source-select" value={source}
+                onChange={(e) => {
+                  setSource(e.target.value);
+                  input.current = { ...input.current, source: e.target.value };
+                  if (hasInput()) runCheck(ctrl.current);
+                }}>
+                <option value="digital">Typed on a computer</option>
+                <option value="paper">Handwritten, then typed or photographed</option>
+              </select>
+            </div>
+          </section>
+          )}
+
+          {result && (
+            <div className="mc-filebar">
+              <span className="mc-filebar-icon" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5" />
+                </svg>
+              </span>
+              <div className="mc-filebar-text">
+                <b>{fileInfo ? fileInfo.name : "Pasted table"}</b>
+                <span>
+                  {busyCheck
+                    ? "Checking again…"
+                    : summary && summary.total
+                      ? summary.total + (summary.total === 1 ? " learner read" : " learners read")
+                      : "Read, but the headings need a match"}
+                </span>
               </div>
-            ))}
-            {blockedGroups.length > 5 && <div style={{ marginTop: 8, fontSize: 13 }}>and {blockedGroups.length - 5} more reason(s). Open the Blocked tab to see them.</div>}
-          </div>
-        )}
-              {Object.keys(fixes).length > 0 && (
-                <div style={{ ...card, fontSize: 14 }}>
-                  You corrected {Object.keys(fixes).length} row(s) here. The file itself is unchanged.{" "}
-                  <button style={{ ...btn, minHeight: 36, padding: "0 10px" }} disabled={busy} onClick={() => run(conf, {})}>Undo all</button>
+              <Button kind="ghost" size="sm" onClick={resetInput}>Choose a different file</Button>
+            </div>
+          )}
+
+          {busyCheck && !result && (
+            <div className="mc-loading" role="status" aria-live="polite">
+              <span className="mc-spinner" aria-hidden="true" />
+              Reading your file and checking the learners…
+            </div>
+          )}
+
+          {result && summary && (
+            <>
+              {(result.file_issues || []).map((i, k) => (
+                <div key={k} className={"mc-note-row " + (i.severity === "block" ? "is-block" : "is-info")} role={i.severity === "block" ? "alert" : "status"}>
+                  <b>{i.severity === "block" ? "Problem with the file:" : "Note:"}</b> {i.message}
+                </div>
+              ))}
+
+              {(result.needs_input || []).map((n) => n.code === "name_order" ? (
+                <div className="mc-panel" key="name_order">
+                  <div className="mc-panel-head">
+                    <div>
+                      <h3>Which name comes first?</h3>
+                      <p className="mc-hint">{n.message} {(n.sample || []).length ? "For example: " + n.sample.slice(0, 3).join(" · ") : ""}</p>
+                    </div>
+                  </div>
+                  <div className="mc-row-actions">
+                    <Button onClick={() => runCheck(ctrl.current, { nameOrder: "first_last" })}>First name first</Button>
+                    <Button kind="secondary" onClick={() => runCheck(ctrl.current, { nameOrder: "last_first" })}>Surname first</Button>
+                  </div>
+                </div>
+              ) : null)}
+
+              <MappingPanel
+                key={"map-" + (result.columns || []).map((c) => c.field || "-").join(",") + "-" + result.header_row}
+                result={result}
+                open={mapOpen}
+                onClose={() => setMapOpen(false)}
+                onApply={(mapping, headerRow) => {
+                  setMapOpen(false);
+                  runCheck(ctrl.current, { mapping, headerRow });
+                }}
+              />
+
+              {!mapOpen && (result.columns || []).length > 0 && (
+                <div className="mc-columns-line">
+                  <span>
+                    Columns read: {(result.columns || []).filter((c) => c.field).map((c) => c.label).join(" · ") || "none"}
+                  </span>
+                  <Button kind="ghost" size="sm" onClick={() => setMapOpen(true)}>Adjust columns</Button>
                 </div>
               )}
-              {sum.temporary_admission > 0 && (
-                <div style={{ ...card, fontSize: 14 }}>
-                  {sum.temporary_admission} learner(s) have no admission number and will get a temporary one.
-                </div>
+
+              {summary.total > 0 && !(result.needs_input || []).some((n) => n.code === "name_order" || n.code === "mapping") && (
+                <>
+                  {needsDefaultClass && (
+                    <ClassPanel
+                      result={result}
+                      defaultClass={ctrlState.defaultClass}
+                      onDefault={(level, stream) => {
+                        const label = level ? level + (stream ? " " + stream : "") : "";
+                        runCheck(ctrl.current, { defaultClass: label });
+                      }}
+                    />
+                  )}
+
+                  <Summary s={summary} filter={filter} onPick={pick} />
+
+                  {busyCheck && (
+                    <div className="mc-updating" role="status" aria-live="polite">
+                      <span className="mc-spinner" aria-hidden="true" /> Updating the check…
+                    </div>
+                  )}
+
+                  {groups.length > 0 && (
+                    <div className="mc-groups">
+                      {groups.map((g) => {
+                        const isClass = /^class_|^stream_|^default_class/.test(g.code);
+                        const list = rows.filter((r) => g.rows.includes(r.row));
+                        const acceptable = list.filter((r) => r.status === "needs_confirmation");
+                        return (
+                          <div className={"mc-group " + (g.severity === "block" ? "is-block" : "is-warn")} key={g.key}>
+                            <div className="mc-group-text">
+                              <b>{g.rows.length} {g.rows.length === 1 ? "learner" : "learners"}:</b> {g.message}
+                              {TIPS[g.code] && <span className="mc-group-tip">{TIPS[g.code]}</span>}
+                            </div>
+                            <div className="mc-group-actions">
+                              {acceptable.length > 0 && (
+                                <Button size="sm" kind="secondary" onClick={() => acceptMany(acceptable)}>
+                                  Accept {acceptable.length === 1 ? "this learner" : "all " + acceptable.length}
+                                </Button>
+                              )}
+                              {isClass && g.severity === "block" && (
+                                <Button size="sm" kind="secondary" onClick={() => { setSelected(g.rows); setBulkOpen(true); }}>
+                                  Assign class
+                                </Button>
+                              )}
+                              {!isClass && g.severity === "block" && (
+                                <Button size="sm" kind="ghost" onClick={() => { setSelected(g.rows); setFilter("attention"); }}>
+                                  Show these learners
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  <div className="mc-toolbar">
+                    <input className="mu-input mc-search" type="search" placeholder="Search name, admission number or class"
+                      aria-label="Search learners" value={query} onChange={(e) => { setQuery(e.target.value); setLimit(PAGE); }} />
+                    <select className="mu-input mc-class-filter" aria-label="Filter by class" value={classFilter}
+                      onChange={(e) => { setClassFilter(e.target.value); setLimit(PAGE); }}>
+                      <option value="">All classes</option>
+                      {classList.map(([name, count]) => <option key={name} value={name}>{name} ({count})</option>)}
+                    </select>
+                    {selected.length > 0 && (
+                      <div className="mc-bulk">
+                        <span>{selected.length} selected</span>
+                        <Button size="sm" onClick={() => setBulkOpen(true)}>Assign class</Button>
+                        <Button size="sm" kind="secondary"
+                          onClick={() => acceptMany(rows.filter((r) => selected.includes(r.row)))}>Accept</Button>
+                        <Button size="sm" kind="ghost" onClick={() => setSelected([])}>Clear</Button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mc-tablewrap">
+                    <table className="mc-table">
+                      <thead>
+                        <tr>
+                          <th scope="col" className="mc-col-check">
+                            <input type="checkbox" aria-label="Select every learner shown"
+                              checked={shown.length > 0 && shown.every((r) => selected.includes(r.row))}
+                              onChange={(e) => setSelected(e.target.checked ? shown.map((r) => r.row) : [])} />
+                          </th>
+                          <th scope="col">Learner</th>
+                          <th scope="col">Admission no.</th>
+                          <th scope="col">Class</th>
+                          <th scope="col">Status</th>
+                          <th scope="col" className="mc-col-act"><span className="mc-sr">Actions</span></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {shown.map((r) => {
+                          const tone = TONE[r.status] || ["info", r.status];
+                          const issue = firstIssue(r);
+                          const blocks = blockIssues(r).length;
+                          const confirms = confirmCodes(r);
+                          const corrected = !!(ctrlState.fixes[r.row]);
+                          return (
+                            <tr key={r.row} className={"is-" + r.status}>
+                              <td className="mc-col-check">
+                                <input type="checkbox" aria-label={"Select " + rowName(r)}
+                                  checked={selected.includes(r.row)}
+                                  onChange={(e) => setSelected((s) => e.target.checked ? [...s, r.row] : s.filter((n) => n !== r.row))} />
+                              </td>
+                              <td className="mc-name-cell">
+                                <div className="mc-name">{rowName(r)}</div>
+                                <div className="mc-sub">
+                                  Row {r.row}
+                                  {corrected ? " · corrected" : ""}
+                                  {r.provisional_admission ? " · temporary number" : ""}
+                                </div>
+                                {issue && (
+                                  <div className={"mc-issue " + issue.severity}>
+                                    {issue.message}
+                                    {blocks > 1 ? " (+" + (blocks - 1) + " more)" : ""}
+                                  </div>
+                                )}
+                              </td>
+                              <td data-label="Admission no.">{r.admission_number || <span className="mc-muted">none yet</span>}</td>
+                              <td data-label="Class" className="mc-class-cell">{r.class_label || <span className="mc-muted">no class</span>}</td>
+                              <td data-label="Status"><Badge kind={tone[0]}>{tone[1]}</Badge></td>
+                              <td className="mc-col-act">
+                                <div className="mc-row-actions">
+                                  {confirms.length > 0 && r.status === "needs_confirmation" && (
+                                    <Button size="sm" kind="secondary" disabled={busyCheck}
+                                      onClick={() => acceptRow(r.row, confirms)}>Accept</Button>
+                                  )}
+                                  <Button size="sm" kind="ghost" onClick={() => openEditor(r)}>
+                                    {r.status === "blocked" ? "Fix" : "Edit"}
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                    {shown.length === 0 && (
+                      <p className="mc-empty">
+                        {rows.length === 0 ? "No learners were found in this file." : "No learners match this filter."}
+                      </p>
+                    )}
+                  </div>
+
+                  {filtered.length > shown.length && (
+                    <Button kind="secondary" className="mc-more-btn" onClick={() => setLimit(limit + PAGE)}>
+                      Show {Math.min(PAGE, filtered.length - shown.length)} more ({filtered.length - shown.length} left)
+                    </Button>
+                  )}
+
+                  <div className="mc-bar">
+                    <div className="mc-bar-text">
+                      <b>{ready}</b> of {summary.total} ready to add
+                      {summary.skipped > 0 && <span> · {summary.skipped} will be skipped</span>}
+                    </div>
+                    <Button onClick={() => setConfirmOpen(true)} disabled={!canImport || !!busy}>
+                      {busyCommit ? "Adding…" : "Add " + ready + (ready === 1 ? " learner" : " learners")}
+                    </Button>
+                  </div>
+                </>
               )}
-              {sum.by_class && Object.keys(sum.by_class).length > 0 && (
-                <div style={{ ...card, fontSize: 14 }}>
-                  <b>By class:</b>{" "}
-                  {Object.entries(sum.by_class).map(([k, v]) => k + " (" + v + ")").join(", ")}
-                </div>
-              )}
-              
-              {sum.blocked > 0 && (
-                <div style={{ ...card, borderColor: "#b91c1c", fontSize: 14 }}>
-                  Blocked learners can't be added until you fix them in your file. Correct the file, choose it again, and check again.
+
+              {summary.total === 0 && !(result.needs_input || []).length && (
+                <div className="mc-panel">
+                  <h3>No learners were found</h3>
+                  <p className="mc-hint">
+                    The file was read, but every row below the headings was empty. Check that the learners are on
+                    the first sheet, then choose the file again.
+                  </p>
                 </div>
               )}
             </>
           )}
-
-          {sum && sum.ready > 0 && !(res.file_issues || []).some((i) => i.severity === "block") && (
-            ask ? (
-              <div id="add-confirm" style={{ ...card, borderColor: "#1f4e79" }}>
-                <b>Add {sum.ready} learner(s) now?</b>
-                <div style={{ fontSize: 14, margin: "6px 0 10px" }}>
-                  {sum.needs_confirmation + sum.blocked > 0 ? (sum.needs_confirmation + sum.blocked) + " will be left out (blocked, or not yet accepted). " : ""}
-                  Added learners go into the classes shown above. This cannot be undone from this screen.
-                </div>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button style={{ ...btn, flex: 1 }} disabled={busy} onClick={() => setAsk(false)}>Cancel</button>
-                  <button style={{ ...btnMain, flex: 1 }} disabled={busy} onClick={commit}>{busy ? "Adding..." : "Yes, add them"}</button>
-                </div>
-              </div>
-            ) : (
-              <button style={{ ...btnMain, width: "100%", marginBottom: 10 }} disabled={busy} onClick={() => setAsk(true)}>
-                3. Add {sum.ready} ready learner(s)
-              </button>
-            )
-          )}
-
-          {total === 0 && rows.length > 0 && tab !== "all" && (
-            <div style={{ ...card, borderColor: "#15803d" }}>No learners in this tab.</div>
-          )}
-
-          {shown.map((r) => {
-            const t = TONE[r.status] || ["#6b7280", r.status];
-            const given = conf[r.row] || [];
-            return (
-              <div key={r.row} style={{ ...card, borderLeft: "5px solid " + t[0] }}>
-                <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "baseline" }}>
-                  <b>{(r.first_name || "") + " " + (r.last_name || "")}</b>
-                  <span style={{ color: t[0], fontWeight: 700, fontSize: 13 }}>{t[1]}</span>
-                </div>
-                <div style={{ fontSize: 13, opacity: 0.85 }}>
-                  Row {r.row} · Adm {r.admission_number || "none"}{r.provisional_admission ? " (temporary)" : ""} · {r.class_label || "No class"}
-                </div>
-                {renderFix(r)}
-                {(r.issues || []).map((i, k) => {
-                  const isConfirm = i.severity === "confirm";
-                  const done = given.includes(i.code);
-                  return (
-                    <div key={k} style={{ marginTop: 8, fontSize: 14 }}>
-                      <span style={{ color: SEV[i.severity] || "inherit", fontWeight: 600 }}>
-                        {i.severity === "block" ? "Problem: " : isConfirm ? "Check: " : "Note: "}
-                      </span>
-                      {i.message}
-              {i.severity === "block" && helpFor(i.code) && (
-                <div style={{ opacity: 0.85, marginTop: 4 }}>What to do: {helpFor(i.code).tip}</div>
-              )}
-              {isConfirm && (
-                        <div>
-                          <button style={{ ...btn, marginTop: 6, background: done ? "rgba(22,163,74,.15)" : "transparent" }} disabled={busy} onClick={() => accept(r.row, i.code)}>
-                            {done ? "Accepted. Tap to undo" : "This is correct, accept"}
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })}
-
-          {total > shown.length && (
-            <button style={{ ...btn, width: "100%" }} onClick={() => setLimit(limit + PAGE)}>
-              Show more ({total - shown.length} left)
-            </button>
-          )}
         </>
       )}
+
+      {editing && (
+        <Modal title={"Row " + editing.row.row + " · " + rowName(editing.row)} onClose={() => setEditing(null)}
+          actions={<>
+            <Button kind="secondary" onClick={() => setEditing(null)}>Cancel</Button>
+            {nextAfter(editing.row) && (
+              <Button kind="ghost" onClick={() => {
+                saveFix(editing.row, editing.draft, editing.initial);
+                const next = nextAfter(editing.row);
+                if (next) setTimeout(() => openEditor(next), 60);
+              }}>Save and next</Button>
+            )}
+            <Button onClick={() => saveFix(editing.row, editing.draft, editing.initial)}>Save</Button>
+          </>}>
+          <div className="mc-edit">
+            {(editing.row.issues || []).filter((i) => i.severity !== "notice").map((i, k) => (
+              <div className={"mc-edit-issue " + i.severity} key={k}>
+                <b>{i.severity === "block" ? "Needs fixing: " : "Please check: "}</b>{i.message}
+                {TIPS[i.code] && <span className="mc-edit-tip">{TIPS[i.code]}</span>}
+              </div>
+            ))}
+            {(editing.row.suggestions && editing.row.suggestions.class_level || []).length > 0 && (
+              <div className="mc-suggest">
+                <span>Did you mean:</span>
+                {(editing.row.suggestions.class_level || []).map((name) => (
+                  <button key={name} type="button" className="mc-chip"
+                    onClick={() => setEditing((ed) => ({ ...ed, draft: { ...ed.draft, class_level: name, stream: "" } }))}>{name}</button>
+                ))}
+              </div>
+            )}
+            <div className="mc-two">
+              <Input label="First name" value={editing.draft.first_name}
+                onChange={(e) => setEditing((ed) => ({ ...ed, draft: { ...ed.draft, first_name: e.target.value } }))} />
+              <Input label="Surname" value={editing.draft.last_name}
+                onChange={(e) => setEditing((ed) => ({ ...ed, draft: { ...ed.draft, last_name: e.target.value } }))} />
+            </div>
+            <div className="mc-two">
+              <Input label="Admission number" help="Leave empty to get a temporary number."
+                value={editing.draft.admission_number}
+                onChange={(e) => setEditing((ed) => ({ ...ed, draft: { ...ed.draft, admission_number: e.target.value } }))} />
+              <Input label="Assessment number" help="Grade 10–12 only."
+                value={editing.draft.assessment_number}
+                onChange={(e) => setEditing((ed) => ({ ...ed, draft: { ...ed.draft, assessment_number: e.target.value } }))} />
+            </div>
+            <div className="mc-two">
+              <Field label="Class">
+                <select className="mu-input" value={editing.draft.class_level}
+                  onChange={(e) => setEditing((ed) => ({ ...ed, draft: { ...ed.draft, class_level: e.target.value, stream: "" } }))}>
+                  <option value="">Choose a class…</option>
+                  {classOptions(classes).map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+                </select>
+              </Field>
+              <Field label="Stream" help={!editing.draft.class_level ? "" : (streamNames(classes, editing.draft.class_level).length ? "" : "This class has no streams.")}>
+                <select className="mu-input" value={editing.draft.stream}
+                  disabled={!streamNames(classes, editing.draft.class_level).length}
+                  onChange={(e) => setEditing((ed) => ({ ...ed, draft: { ...ed.draft, stream: e.target.value } }))}>
+                  <option value="">No stream</option>
+                  {streamNames(classes, editing.draft.class_level).map((s) => (
+                    <option key={s.id} value={s.name}>{s.name}</option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+            <p className="mc-hint">Changes apply to this import only. Your original file is not changed.</p>
+            {ctrlState.fixes[editing.row.row] && (
+              <Button kind="ghost" size="sm" onClick={() => clearFix(editing.row)}>Undo my correction on this row</Button>
+            )}
+          </div>
+        </Modal>
+      )}
+
+      {bulkOpen && (
+        <BulkClass
+          count={selected.length}
+          classes={classes}
+          onClose={() => setBulkOpen(false)}
+          onApply={bulkClass}
+        />
+      )}
+
+      {confirmOpen && summary && (
+        <Modal title={"Add " + ready + (ready === 1 ? " learner" : " learners") + " to Marian?"} onClose={() => setConfirmOpen(false)}
+          actions={<>
+            <Button kind="secondary" onClick={() => setConfirmOpen(false)} disabled={busyCommit}>Cancel</Button>
+            <Button onClick={commit} disabled={busyCommit}>{busyCommit ? "Adding…" : "Yes, add them"}</Button>
+          </>}>
+          <div className="mc-confirm">
+            <p>
+              {ready} {ready === 1 ? "learner goes" : "learners go"} into the classes shown below.
+              {summary.skipped > 0 ? " " + summary.skipped + " will be left out." : ""}
+            </p>
+            <div className="mc-confirm-list">
+              {Object.entries(summary.by_class_ready || {}).map(([name, count]) => (
+                <div key={name}><span>{name || "No class"}</span><b>{count}</b></div>
+              ))}
+            </div>
+            {summary.skipped > 0 && (
+              <ul className="mc-confirm-skip">
+                {summary.duplicates > 0 && <li>{summary.duplicates} already in Marian</li>}
+                {summary.blocked > 0 && <li>{summary.blocked} still need fixing</li>}
+                {summary.needs_confirmation > 0 && <li>{summary.needs_confirmation} not confirmed yet</li>}
+              </ul>
+            )}
+            {summary.temporary_admission > 0 && (
+              <p className="mc-hint">{summary.temporary_admission} will get a temporary admission number (NO-ADM-…).</p>
+            )}
+            <p className="mc-hint">This cannot be undone from here. Nothing has been added yet.</p>
+          </div>
+        </Modal>
+      )}
     </div>
+  );
+}
+
+function BulkClass({ count, classes, onClose, onApply }) {
+  const [level, setLevel] = useState("");
+  const [stream, setStream] = useState("");
+  const streams = streamNames(classes, level);
+  return (
+    <Modal title={"Assign a class to " + count + (count === 1 ? " learner" : " learners")} onClose={onClose}
+      actions={<>
+        <Button kind="secondary" onClick={onClose}>Cancel</Button>
+        <Button disabled={!level} onClick={() => onApply(level, stream)}>Assign class</Button>
+      </>}>
+      <p className="mc-hint">Every learner you selected moves to this class. Nothing else about them changes.</p>
+      <Field label="Class">
+        <select className="mu-input" value={level} onChange={(e) => { setLevel(e.target.value); setStream(""); }}>
+          <option value="">Choose a class…</option>
+          {classOptions(classes).map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+        </select>
+      </Field>
+      <Field label="Stream" help={streams.length ? "" : "This class has no streams."}>
+        <select className="mu-input" value={stream} disabled={!streams.length} onChange={(e) => setStream(e.target.value)}>
+          <option value="">No stream</option>
+          {streams.map((s) => <option key={s.id} value={s.name}>{s.name}</option>)}
+        </select>
+      </Field>
+    </Modal>
   );
 }

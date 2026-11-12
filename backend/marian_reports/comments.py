@@ -157,6 +157,8 @@ class CommentService:
     def approve(self, user, cid):
         with self._lock:
             row = self._get(user, cid)
+            if user.role != "admin":
+                raise PermissionDenied("only an administrator can approve report comments")
             if row["status"] != "draft":
                 raise CommentError("This comment is already approved.")
             for k, r in list(self._rows.items()):
@@ -170,6 +172,8 @@ class CommentService:
     def reject(self, user, cid):
         with self._lock:
             row = self._get(user, cid)
+            if user.role != "admin":
+                raise PermissionDenied("only an administrator can reject report comments")
             if row["status"] != "draft":
                 raise CommentError("Approved comments cannot be rejected. Edit it first.")
             del self._rows[cid]; self._forget(cid)

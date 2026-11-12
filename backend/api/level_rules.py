@@ -214,4 +214,5 @@ def roster(user, subject, stream, year, term, atype):
                      "level": r.level_key if r else None,
                      "comment": r.comment if r else "",
                      "status": r.status if r else None})
-    return {"levels": scale.levels if scale else [], "rows": rows}
+    return {"scale_id": scale.id if scale else None,
+            "levels": scale.levels if scale else [], "rows": rows}

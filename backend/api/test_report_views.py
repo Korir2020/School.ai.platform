@@ -1,4 +1,7 @@
 """API tests for api/report_views.py (needs marian_reports)."""
+import hashlib
+import shutil
+import subprocess
 import unittest
 from datetime import date
 try:
@@ -7,6 +10,7 @@ except ImportError:
     raise unittest.SkipTest("marian_reports is not installed")
 
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from django.test import TestCase
 from rest_framework.test import APIClient
 from marian_reports.grading import make_scheme
@@ -14,6 +18,7 @@ from schools.models import (
     AcademicYear, ClassLevel, Curriculum, Enrollment, Exam, GuardianProfile,
     Performance, School, SchoolAdminProfile, Stream, Student, StudentGuardian,
     Subject, SubjectRegistration, TeacherAssignment, TeacherProfile, Term,
+    PublishedReportArtifact, ReportSettings,
 )
 from api.report_access import build_report_user
 from api.report_source import DjangoConfigStore
@@ -147,3 +152,72 @@ class ApiCase(TestCase):
         self.assertNotIn("Amina", str(ok.data))
         bad = APIClient().get(url, {"s": str(self.school.id), "t": "000000000000"})
         self.assertEqual(bad.status_code, 404)
+
+    def test_published_pdf_is_archived_immutable_and_exam_qualified(self):
+        client = APIClient()
+        client.force_authenticate(self.admin)
+        path = f"{B}student/{self.s1.pk}/pdf/"
+        first = client.get(path, {"exam_id": str(self.exam.pk)})
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(first["X-Report-Archived"], "true")
+        self.assertEqual(self.get(f"student/{self.s1.pk}/pdf/", self.gua,
+                                  {"exam_id": str(self.exam.pk)}).status_code, 200)
+        self.assertEqual(self.get(f"student/{self.s2.pk}/pdf/", self.gua,
+                                  {"exam_id": str(self.exam.pk)}).status_code, 403)
+        self.assertEqual(self.get(f"student/{self.s1.pk}/pdf/", self.admin2,
+                                  {"exam_id": str(self.exam.pk)}).status_code, 404)
+        self.assertEqual(self.get(f"student/{self.s1.pk}/pdf/", self.t3,
+                                  {"exam_id": str(self.exam.pk)}).status_code, 403)
+        artifact = PublishedReportArtifact.objects.get(exam=self.exam, student=self.s1)
+        self.assertEqual(artifact.report_no, f"RPT-E{self.exam.pk}-A-1")
+        self.assertEqual(artifact.sha256, hashlib.sha256(first.content).hexdigest())
+        text = self._pdf_text_if_available(first.content)
+        if text is not None:
+            self.assertIn(artifact.report_no, text)
+
+        # Even if a privileged data repair changes the live source later, the
+        # issued bytes and their public verification remain tied to the archive.
+        Performance.objects.filter(
+            student=self.s1, term=self.exam.term, assessment_type="end",
+            subject__name="Mathematics").update(marks=1)
+        ReportSettings.objects.filter(school=self.school).delete()
+        second = client.get(path, {"exam_id": str(self.exam.pk)})
+        self.assertEqual(second.content, first.content)
+        verify = APIClient().get(
+            f"{B}verify/{artifact.report_no}/",
+            {"s": str(self.school.pk), "t": artifact.verification_token,
+             "e": str(self.exam.pk)},
+        )
+        self.assertEqual((verify.status_code, verify.data["valid"]), (200, True))
+        DjangoConfigStore(str(self.school.pk)).save_scheme(make_scheme(BANDS, pass_pct=50))
+        altered = PublishedReportArtifact.objects.get(pk=artifact.pk)
+        altered.report_no = "changed"
+        with self.assertRaises(ValidationError):
+            altered.save()
+
+        # A second published exam in the same term must have a different ID.
+        mid_exam = Exam.objects.create(
+            school=self.school, name="Mid Term 3", term=self.exam.term,
+            assessment_type="mid", class_level=self.level, status="published")
+        for row in Performance.objects.filter(
+                student=self.s1, term=self.exam.term, assessment_type="end"):
+            Performance.objects.create(
+                student=self.s1, subject=row.subject, academic_year=row.academic_year,
+                term=row.term, assessment_type="mid", paper_number=row.paper_number,
+                marks=row.marks, status="approved")
+        another = client.get(path, {"exam_id": str(mid_exam.pk)})
+        self.assertEqual(another.status_code, 200)
+        second_artifact = PublishedReportArtifact.objects.get(exam=mid_exam, student=self.s1)
+        self.assertEqual(second_artifact.report_no, f"RPT-E{mid_exam.pk}-A-1")
+        self.assertNotEqual(artifact.report_no, second_artifact.report_no)
+        self.assertEqual(PublishedReportArtifact.objects.filter(student=self.s1).count(), 2)
+        text = self._pdf_text_if_available(another.content)
+        if text is not None:
+            self.assertIn(second_artifact.report_no, text)
+
+    def _pdf_text_if_available(self, content):
+        if not shutil.which("pdftotext"):
+            return None
+        result = subprocess.run(
+            ["pdftotext", "-", "-"], input=content, capture_output=True, check=True)
+        return result.stdout.decode("utf-8", "replace")

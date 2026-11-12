@@ -363,16 +363,6 @@ class DjangoDataSource(DataSource):
             r.field: r.text for r in ReportRemark.objects.filter(
                 school_id=exam.school_id, exam=exam, student=student)
         }
-        # No approved comment: fall back to a default from the overall
-        # average (published result). A teacher's approved text always wins.
-        from marian_reports.config import ReportConfig
-        from schools.models import ExamResult
-        res = ExamResult.objects.filter(exam=exam, student=student).first()
-        if res is not None:
-            text = ReportConfig().remark_for_pct(float(res.overall_average))
-            if text:
-                for key in ("class_teacher", "principal"):
-                    found.setdefault(key, text)
         return found
 
     def get_fee_note(self, school_id, student_id):
@@ -533,6 +523,17 @@ class DjangoConfigStore:
         merged = {k: v for k, v in merged.items() if v is not None}
         ReportSettings.objects.update_or_create(
             school_id=self.school_id, defaults={"options": merged})
+
+    def saved_comment_templates(self):
+        saved = self.saved_options().get("comment_templates", {})
+        return saved if isinstance(saved, dict) else {}
+
+    def save_comment_templates(self, body):
+        self._require_school()
+        options = self.saved_options()
+        options["comment_templates"] = body if isinstance(body, dict) else {}
+        ReportSettings.objects.update_or_create(
+            school_id=self.school_id, defaults={"options": options})
 
     def apply_to(self, cfg):
         from api.report_options import apply_options

@@ -13,7 +13,7 @@ async function errText(r) {
   catch { return "Request failed (" + r.status + ")."; }
 }
 
-export default function ReportComments({ exam, cls, students }) {
+export default function ReportComments({ exam, cls, stream, students, role, assessmentType }) {
   const [open, setOpen] = useState(false);
   const [rows, setRows] = useState(null);
   const [msg, setMsg] = useState("");
@@ -23,6 +23,7 @@ export default function ReportComments({ exam, cls, students }) {
   const [busy, setBusy] = useState("");
   const [editId, setEditId] = useState("");
   const [editText, setEditText] = useState("");
+  const [defaults, setDefaults] = useState(null);
 
   const names = {};
   students.forEach((s) => { names[s.id] = s.name + " (Adm " + s.adm_no + ")"; });
@@ -30,11 +31,12 @@ export default function ReportComments({ exam, cls, students }) {
   FIELDS.forEach((f) => { label[f[0]] = f[1].split(" (")[0]; });
 
   const [n, setN] = useState(0);
+  const fields = role === "teacher" ? FIELDS.slice(0, 1) : FIELDS;
 
   useEffect(() => {
     if (!open) return undefined;
     let live = true;
-    api(P + "comments/?" + new URLSearchParams({ exam_id: exam, class_name: cls }))
+    api(P + "comments/?" + new URLSearchParams({ exam_id: exam, class_name: cls, stream: stream || "" }))
       .then(async (r) => {
         if (!live) return;
         if (!r.ok) { setMsg(await errText(r)); setRows([]); return; }
@@ -43,7 +45,26 @@ export default function ReportComments({ exam, cls, students }) {
       })
       .catch(() => { if (live) { setMsg("Could not load comments."); setRows([]); } });
     return () => { live = false; };
-  }, [open, exam, cls, n]);
+  }, [open, exam, cls, stream, n]);
+
+  useEffect(() => {
+    if (!open || !sid) { setDefaults(null); return undefined; }
+    let live = true;
+    const q = new URLSearchParams({ exam_id: exam, student_id: sid });
+    if (assessmentType) q.set("type", assessmentType);
+    api(P + "comments/defaults/?" + q.toString())
+      .then(async (r) => {
+        if (!live) return;
+        if (!r.ok) { setDefaults(null); return; }
+        const result = await r.json();
+        if (live) setDefaults(result);
+      }).catch(() => { if (live) setDefaults(null); });
+    return () => { live = false; };
+  }, [open, exam, sid, assessmentType]);
+
+  useEffect(() => {
+    if (defaults && !text.trim()) setText((defaults.comments || {})[field] || "");
+  }, [defaults, field]);
 
   const act = async (key, path, method, body) => {
     setMsg(""); setBusy(key);
@@ -61,10 +82,6 @@ export default function ReportComments({ exam, cls, students }) {
     if (!sid || !text.trim()) { setMsg("Choose a student and write the comment first."); return; }
     if (await act("new", "comments/draft/", "POST", { exam_id: exam, student_id: sid, field, text: text.trim() })) setText("");
   };
-  const aiDraft = async () => {
-    if (!sid) { setMsg("Choose a student first."); return; }
-    await act("ai", "comments/draft/", "POST", { exam_id: exam, student_id: sid, field });
-  };
   const saveEdit = async (id) => {
     if (!editText.trim()) { setMsg("The comment cannot be empty."); return; }
     if (await act("e" + id, "comments/" + id + "/", "PUT", { text: editText.trim() })) setEditId("");
@@ -78,17 +95,17 @@ export default function ReportComments({ exam, cls, students }) {
       {open && (
         <div>
           {msg && <Alert>{msg}</Alert>}
-          <Select id="rc-student" label="Student" value={sid} onChange={(e) => setSid(e.target.value)}>
+          <Select id="rc-student" label="Student" value={sid} onChange={(e) => { setSid(e.target.value); setText(""); setDefaults(null); }}>
             <option value="">Choose student</option>
             {students.map((s) => <option key={s.id} value={s.id}>{names[s.id]}</option>)}
           </Select>
-          <Select id="rc-field" label="Comment for" value={field} onChange={(e) => setField(e.target.value)}>
-            {FIELDS.map((f) => <option key={f[0]} value={f[0]}>{f[1]}</option>)}
+          <Select id="rc-field" label="Comment for" value={field} onChange={(e) => { setField(e.target.value); setText(""); }}>
+            {fields.map((f) => <option key={f[0]} value={f[0]}>{f[1]}</option>)}
           </Select>
-          <p><textarea style={box} value={text} onChange={(e) => setText(e.target.value)} placeholder="Write the comment, or use AI draft" /></p>
+          <p><textarea style={box} value={text} onChange={(e) => setText(e.target.value)} placeholder="Edit the school-scale suggestion or write a learner-specific comment." /></p>
+          {defaults?.stage && <p className="sub">Suggested wording is based on the recorded {defaults.stage} school scale. Review and edit it before saving; unapproved drafts are not printed.</p>}
           <p>
-            <Button busy={busy === "new"} onClick={saveDraft}>Save as draft</Button>{" "}
-            <Button busy={busy === "ai"} onClick={aiDraft}>AI draft</Button>
+            <Button busy={busy === "new"} onClick={saveDraft}>Save as draft</Button>
           </p>
           {rows === null && <Loading />}
           {rows && rows.length === 0 && <EmptyState title="No comments yet" text="Drafts you save appear here for approval." />}
@@ -111,8 +128,10 @@ export default function ReportComments({ exam, cls, students }) {
                     <Button onClick={() => { setEditId(c.id); setEditText(c.text); }}>Edit</Button>{" "}
                     {c.status === "draft" && (
                       <span>
-                        <Button busy={busy === "a" + c.id} onClick={() => act("a" + c.id, "comments/" + c.id + "/approve/", "POST")}>Approve</Button>{" "}
-                        <Button busy={busy === "r" + c.id} onClick={() => act("r" + c.id, "comments/" + c.id + "/reject/", "POST")}>Reject</Button>
+                        {role !== "teacher" && <>
+                          <Button busy={busy === "a" + c.id} onClick={() => act("a" + c.id, "comments/" + c.id + "/approve/", "POST")}>Approve</Button>{" "}
+                          <Button busy={busy === "r" + c.id} onClick={() => act("r" + c.id, "comments/" + c.id + "/reject/", "POST")}>Reject</Button>
+                        </>}
                       </span>
                     )}
                   </p>

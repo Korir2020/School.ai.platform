@@ -1,4 +1,7 @@
 from datetime import date
+from dataclasses import replace
+import shutil
+import subprocess
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
@@ -10,6 +13,7 @@ from marian_reports.assembler import ReportService
 from marian_reports.config import ReportConfig
 from marian_reports.domain import User as ReportUser
 from marian_reports.grading import make_scheme
+from marian_reports.pdf import report_pdf
 from schools.models import (
     AcademicYear, ClassLevel, Curriculum, Enrollment, Exam, LevelResult,
     ExamResult, LevelScale, Performance, School, SchoolAdminProfile, Stream, Student,
@@ -165,6 +169,17 @@ class CBCPrimaryPublicationTests(CBCPrimaryBase):
         self.assertEqual(meta.status_code, 200, meta.data)
         exam_meta = next(row for row in meta.data["exams"] if row["id"] == str(exam.id))
         self.assertEqual(exam_meta["result_mode"], "achievement_levels")
+        defaults = client.get(
+            f"/api/report-module/comments/defaults/?exam_id={exam.id}&student_id={self.learner.pk}&type=end")
+        self.assertEqual(defaults.status_code, 200, defaults.data)
+        self.assertEqual((defaults.data["mode"], defaults.data["stage"]),
+                         ("achievement_levels", "Primary"))
+        self.assertIn("Recorded Primary descriptors", defaults.data["comments"]["class_teacher"])
+        math_suggestion = next(
+            row for row in defaults.data["subject_comments"]
+            if row["subject"] == self.math.name)
+        self.assertIn("recorded Ready descriptor", math_suggestion["text"])
+        self.assertIn("next learning step", math_suggestion["text"])
         readiness = client.get(
             f"/api/report-module/selection/?exam_id={exam.id}&class_name=Grade%203")
         self.assertEqual(readiness.status_code, 200, readiness.data)
@@ -196,6 +211,14 @@ class CBCPrimaryPublicationTests(CBCPrimaryBase):
 
 
 class CBCPrimaryWeightedReportTests(CBCPrimaryBase):
+    def _pdf_text(self, pdf):
+        if not shutil.which("pdftotext"):
+            self.skipTest("pdftotext is required for PDF text assertions")
+        result = subprocess.run(
+            ["pdftotext", "-", "-"], input=pdf, capture_output=True, check=True,
+        )
+        return result.stdout.decode("utf-8", "replace")
+
     def test_weighted_school_marks_and_approved_descriptor_render_together(self):
         scale = self.scale()
         exam = Exam.objects.create(
@@ -232,6 +255,7 @@ class CBCPrimaryWeightedReportTests(CBCPrimaryBase):
         snapshot = service.snapshot(user, str(exam.id), "Grade 3")
         report = service.build_report(
             user, snapshot, str(self.learner.id))
+        self.assertEqual(report.report_no, f"RPT-E{exam.pk}-{self.learner.admission_number}")
         scores = {row.subject: row.pct for row in report.subjects}
         self.assertEqual(scores["Mathematics — Grade 3"], 68)
         self.assertEqual(scores["English — Grade 3"], 80)
@@ -241,6 +265,31 @@ class CBCPrimaryWeightedReportTests(CBCPrimaryBase):
         self.assertIn("Demonstrates the school-defined target", math_row.remark)
         self.assertIn("Explains strategies clearly", math_row.remark)
         self.assertEqual(len(snapshot.students), 1)
+
+        cases = (
+            ("cbe_primary", "CBC PRIMARY"),
+            ("cbe_junior_levels", "CBC JUNIOR"),
+            ("cbe_senior", "CBC SENIOR"),
+        )
+        for framework_key, heading in cases:
+            with self.subTest(framework=framework_key):
+                exam_copy = replace(report.exam, framework_key=framework_key)
+                student_copy = report.student
+                if framework_key == "cbe_senior":
+                    student_copy = replace(
+                        report.student, pathway_name="STEM",
+                        registered_subject_names=("Mathematics — Grade 3", "English — Grade 3"),
+                    )
+                stage_report = replace(report, exam=exam_copy, student=student_copy)
+                text = self._pdf_text(report_pdf(stage_report))
+                self.assertIn(heading, text)
+                self.assertIn(report.report_no, text)
+                self.assertIn("INTERNAL SCHOOL REPORT", text)
+                self.assertIn("NOT AN OFFICIAL KNEC", text)
+                self.assertIn("SCORE / MAX", text)
+                if framework_key == "cbe_senior":
+                    self.assertIn("STEM", text)
+                    self.assertIn("Mathematics — Grade 3, English — Grade 3", text)
 
     def test_legacy_term_report_refuses_unweighted_primary_average(self):
         exam = Exam.objects.create(

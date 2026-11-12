@@ -23,6 +23,7 @@ from api import profile_views
 from api import resend_views
 from api.subject_registrations import subject_registration_collection
 from api.performance_batch import performance_batch, performance_batch_submit
+from api.final_subject_marks import final_subject_mark_collection, final_subject_mark_action
 from api.job_views import background_job_status, background_job_download
 
 urlpatterns = [
@@ -44,6 +45,8 @@ urlpatterns = [
     path('api/performance/', performance_list),
     path('api/performance/batch/', performance_batch),
     path('api/performance/batch/submit/', performance_batch_submit),
+    path('api/final-subject-marks/', final_subject_mark_collection),
+    path('api/final-subject-marks/<int:pk>/<str:action>/', final_subject_mark_action),
     path('api/jobs/<uuid:pk>/', background_job_status),
     path('api/jobs/<uuid:pk>/download/', background_job_download),
 ]
