@@ -1,4 +1,4 @@
-# School AI Platform — Changelog
+# Marian — Changelog
 ## 2026-11-15
 ### Platform billing and licensing foundation
 - Added tenant-scoped school billing profiles, subscriptions, cloud perpetual licences, invoices, payments, population snapshots, capacity requests, genuine trial-cycle evidence and audit events.
@@ -22,7 +22,7 @@
 
 ### Project Started
 - Created the GitHub repository.
-- Created AI_CONTEXT.md.
+- Created PROJECT_CONTEXT.md.
 - Created ARCHITECTURE.md.
 - Created DECISIONS.md.
 - Established the initial project vision and architecture.

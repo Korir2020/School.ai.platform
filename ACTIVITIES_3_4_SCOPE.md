@@ -1,6 +1,6 @@
 # Activities 3, 4 and 5 — accepted scope
 
-Source: uploaded `Marian_marks_entry,_CBC_and_examination-report_aud(1).md`, sections 4–7 (audit of the project archive at `/home/ubuntu/upload/School.ai.platform-main(62).zip`). This file records the exact requested implementation scope so later revisions retain the distinction between school-authored results and national assessment reporting.
+Source: uploaded `Marian_marks_entry,_CBC_and_examination-report_aud(1).md`, sections 4–7 (audit of the project archive as uploaded). This file records the exact requested implementation scope so later revisions retain the distinction between school-authored results and national assessment reporting.
 
 ## Activity 3 — CBC reports
 
@@ -8,7 +8,7 @@ Implement and test separate CBC report designs by stage (Primary, Junior and Sen
 
 ## Activity 4 — comments
 
-Add neutral, editable, scale-aware default comments for subject-teacher, class-teacher and headteacher/principal fields. Do not assert unverified personal observations. Make the existing authoring roles usable with appropriate permissions. The nonfunctional AI drafter must either be correctly configured or removed/disabled.
+Add neutral, editable, scale-aware default comments for subject-teacher, class-teacher and headteacher/principal fields. Do not assert unverified personal observations. Make the existing authoring roles usable with appropriate permissions.
 
 ## Source context and original references
 
@@ -25,7 +25,7 @@ Implementation preserves the app's label that its CBC term/exam results are inte
 
 - Numerical CBC PDFs now use stage-specific Primary, Junior and Senior report layouts, including recorded scores, the school's grading scale, learning-area feedback and prior published progress. Senior reports include the learner's pathway and registered subject combination.
 - Achievement-level PDFs use distinct Primary, Junior and Senior layouts, show school-defined descriptors and teacher feedback, and include a possible next learning step. They print only approved/locked level records and do not invent marks, averages or ranks. Earlier descriptors are limited to prior approved/locked records for the same learner and subject.
-- Report comment defaults are editable by an administrator and keyed to the school's numeric or CBC achievement scale. Subject suggestions describe recorded results; class-teacher and headteacher/principal wording remains a draft suggestion until a learner-specific comment is saved and approved. Class teachers can author only the permitted class-teacher remark in their assigned scope; administrators retain approval and principal-comment control. The nonfunctional AI-draft action is removed.
+- Report comment defaults are editable by an administrator and keyed to the school's numeric or CBC achievement scale. Subject suggestions describe recorded results; class-teacher and headteacher/principal wording remains a draft suggestion until a learner-specific comment is saved and approved. Class teachers can author only the permitted class-teacher remark in their assigned scope; administrators retain approval and principal-comment control.
 - Validation: 22 focused Django tests passed on the isolated SQLite test database; 7 frontend Node tests passed; frontend lint completed with 0 errors (76 warnings across the project); Vite production build and Python syntax compilation passed. No production database or student records were changed.
 
 ## Activity 5 — exam identity, immutable reports and regressions (12 Nov 2026)

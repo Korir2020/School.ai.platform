@@ -70,8 +70,8 @@ However, the school and its authorised personnel are responsible for ensuring th
 - Rankings and performance reports reflect the school’s approved assessment data.
 Automated calculations and reports should be reviewed before being used as official school documents.
 Marian is not responsible for errors caused by incorrect information entered or approved by authorised school users.
-## 8. Academic Analytics and AI-Assisted Features
-Marian may include analytical or AI-assisted tools to help schools interpret academic information and identify performance patterns.
+## 8. Academic Analytics
+Marian may include analytical tools to help schools interpret academic information and identify performance patterns.
 These tools are intended to support teaching, planning and school administration.
 They should not be treated as a substitute for professional judgement, direct assessment or the school’s established decision-making procedures.
 Schools must review important analytical outputs before acting on them, particularly where the decisions may affect a student’s academic progress, placement or access to educational opportunities.

@@ -82,7 +82,7 @@ class User:
 
 class DataSource(ABC):
     """Integration interface. Every method is tenant-scoped by school_id.
-    Map these to the real Django ORM models in School.ai.platform."""
+    Map these to the real Django ORM models in Marian."""
     @abstractmethod
     def get_school(self, school_id: str) -> School: ...
     @abstractmethod

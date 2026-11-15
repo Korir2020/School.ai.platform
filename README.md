@@ -1,10 +1,10 @@
-# School AI Platform
+# Marian
 
-An AI-powered school management, learning analytics, and personalized education platform.
+A school management, learning analytics, and personalized education platform.
 
 ## Vision
 
-Build a modern education platform that helps schools manage academic operations while using AI to improve learning, teaching, communication, and decision-making.
+Build a modern education platform that helps schools manage academic operations while improving learning, teaching, communication, and decision-making.
 
 ## Core Features
 
@@ -14,7 +14,6 @@ Build a modern education platform that helps schools manage academic operations 
 - Exams and marks
 - Grading and reports
 - School analytics
-- AI-powered learning
 - Personalized learning
 - Early-warning analytics
 - Offline-first support

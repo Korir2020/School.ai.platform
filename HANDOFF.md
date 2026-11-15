@@ -1,8 +1,8 @@
-# Marian handoff (2 Oct 2026). Read this first, then AI_CONTEXT.md.
+# Marian handoff (2 Oct 2026). Read this first, then PROJECT_CONTEXT.md.
 ## How to help the owner
 Works only on a phone in GitHub Codespaces. Give ONE action at a time, pastes of 30 lines or fewer, with the exact terminal location. Tap inside the terminal before pasting. Never put "read" prompts inside a long paste. Ask for the exact output lines before trusting "success". Full test run takes about 4-5 minutes.
 ## Repo
-Django REST backend in backend/. requirements.txt is a full freeze; requirements-prod.txt is what Render installs. Older history is in AI_CONTEXT.md.
+Django REST backend in backend/. requirements.txt is a full freeze; requirements-prod.txt is what Render installs. Older history is in PROJECT_CONTEXT.md.
 ## DONE (tested: 139 tests pass on sqlite and on PostgreSQL)
 - Pagination on list endpoints: {count,next,previous,results}, 50 per page, ?page_size= up to 200 (api/pagination.py)
 - JWT blacklist and POST /api/auth/logout/ (api/auth_logout.py)
