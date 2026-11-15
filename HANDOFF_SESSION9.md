@@ -28,7 +28,7 @@ Update the PROGRESS LOG at the bottom only when the owner says so.
 ## STACK
 Django 6.1 + DRF + SimpleJWT (backend/). React 19 + Vite, plain JSX, no router
 (hash routing in frontend/src/hashtab.js). Render (practice). Repo root:
-/workspaces/School.ai.platform. Branch: main (ui-redesign was merged).
+/workspaces/marian-platform. Branch: main (ui-redesign was merged).
 
 ## STATE (6 Oct 2026)
 SUPERSEDED, see bottom. (was 254 tests). Frontend build OK, lint 0
@@ -298,7 +298,7 @@ DONE:
 - Sidebar and top bar (Shell.jsx, shell.css); sidebar icons match every menu label (icons.jsx).
 - Landing: heading and brand colour fixes (home.css), bulb-and-wall scene (wall.css, lamp SVG in Landing.jsx), pinned 3D headings, footer columns Platform/Access/Support.
 - No fake stats remain; Analytics.jsx reads the real pass_rate.
-- Render web service School.ai.platform: DJANGO_FRONTEND_URL and DJANGO_EMAIL_* set (Gmail SMTP with a Google app password named Marian); redeploy succeeded.
+- Render web service marian-api: DJANGO_FRONTEND_URL and DJANGO_EMAIL_* set (Gmail SMTP with a Google app password named Marian); redeploy succeeded.
 PENDING:
 - Test school registration and the verification email on https://marian-app-1mzf.onrender.com (check spam too).
 - Check the bulb-and-wall landing on a phone (reference: Figma "3D Wall and Bulb Design"); adjust if needed.
