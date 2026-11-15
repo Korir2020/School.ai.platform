@@ -1,4 +1,4 @@
-"""Teacher-approved comments. AI (or a teacher) drafts; only approved text is printed."""
+"""Teacher-approved comments. A teacher drafts; only approved text is printed."""
 from __future__ import annotations
 
 import threading
@@ -15,19 +15,6 @@ class CommentError(ValueError):
     pass
 
 
-class AINotConfigured(RuntimeError):
-    pass
-
-
-def build_prompt(rows, field):
-    """Minimum data only: subject, percent, level. No names, ids, stream or gender."""
-    lines = [f"- {r['subject']}: {r['pct']}% ({r['level']})" for r in rows]
-    return ("Write a short, kind, factual report-card comment of at most two sentences "
-            f"from the {FIELDS[field]}. Use only the results below. Do not invent facts, "
-            "do not mention any name, and do not compare with other learners.\n"
-            + "\n".join(lines))
-
-
 def _clean(text):
     if not isinstance(text, str) or not text.strip():
         raise CommentError("Comment text is required.")
@@ -38,11 +25,7 @@ def _clean(text):
 
 
 def _label(row):
-    if row["source"] != "ai":
-        return "Teacher-written" + ("" if row["status"] == "approved" else " - not yet approved")
-    if row["status"] == "approved":
-        return "AI-drafted, teacher-approved"
-    return "AI-drafted - review before approval"
+    return "Teacher-written" + ("" if row["status"] == "approved" else " - not yet approved")
 
 
 def _public(row):
@@ -54,9 +37,9 @@ def _public(row):
 
 
 class CommentService:
-    def __init__(self, ds, svc, audit, set_remark, clear_remark, drafter=None, store=None):
+    def __init__(self, ds, svc, audit, set_remark, clear_remark, store=None):
         self.ds, self.svc, self.audit = ds, svc, audit
-        self._set, self._clear, self.drafter = set_remark, clear_remark, drafter
+        self._set, self._clear = set_remark, clear_remark
         self.store = store
         self._rows = dict(store.load()) if store is not None else {}
         self._lock = threading.RLock()
@@ -98,35 +81,13 @@ class CommentService:
                            "field": row["field"], "source": row["source"],
                            "class_name": row["class_name"], **extra})
 
-    # ---- AI drafting (minimum data only)
-    def _ai_text(self, user, exam_id, student, field):
-        if self.drafter is None:
-            raise AINotConfigured("AI drafting is not set up. Write the comment yourself, "
-                                  "or ask the administrator to connect a drafter.")
-        snap = self.svc.snapshot(user, exam_id, student.class_name)
-        summ = snap.summaries.get(student.id)
-        rows = []
-        if summ is not None:
-            rows = [{"subject": r.subject, "pct": round(float(r.pct), 1), "level": r.grade or "-"}
-                    for r in summ.subjects if r.pct is not None]
-        if not rows:
-            raise CommentError("There are no scored subjects yet to base a comment on.")
-        try:
-            out = self.drafter(build_prompt(rows, field))
-        except Exception:
-            raise CommentError("The AI drafter failed. Write the comment yourself or try again.")
-        return _clean(out)
-
     # ---- workflow
     def draft(self, user, exam_id, student_id, field, text=None):
         self._staff(user)
         self.ds.get_exam(user.school_id, exam_id)
         student = self.ds.get_student(user.school_id, student_id)
         self._check(user, student.class_name, field)
-        if text is None:
-            text, source = self._ai_text(user, exam_id, student, field), "ai"
-        else:
-            text, source = _clean(text), "teacher"
+        text, source = _clean(text), "teacher"
         row = {"id": uuid.uuid4().hex, "school_id": user.school_id, "exam_id": exam_id,
                "student_id": student.id, "class_name": student.class_name, "field": field,
                "text": text, "status": "draft", "source": source, "edited": False,

@@ -481,7 +481,7 @@ def report_verify(request, report_no):
 
 
 # ------------------------------------------------------------ comments
-from marian_reports.comments import AINotConfigured, CommentError, CommentService
+from marian_reports.comments import CommentError, CommentService
 
 from api.report_source import DjangoAuditLog, DjangoCommentStore, DjangoRemarkStore
 
@@ -494,7 +494,7 @@ def comment_service(user, svc):
         remarks = DjangoRemarkStore(str(user.school_id))
     return CommentService(
         svc.ds, svc, DjangoAuditLog(), remarks.set_remark, remarks.clear_remark,
-        drafter=None, store=DjangoCommentStore(str(user.school_id)))
+        store=DjangoCommentStore(str(user.school_id)))
 
 
 def comment_call(fn, *args):
@@ -502,8 +502,6 @@ def comment_call(fn, *args):
         return Response({"comment": jsonable(fn(*args))})
     except CommentError as e:
         return _err("invalid_comment", str(e), 400)
-    except AINotConfigured as e:
-        return _err("ai_not_configured", str(e), 501)
 
 
 def cbody(request):

@@ -45,7 +45,7 @@ Auth and roles, school isolation on all list APIs, teacher assignments gating ma
 3. Edit/delete SubjectPaper; block weight changes once an exam using them is published.
 4. More role edge-case tests across all endpoints.
 5. Verify 8-4-4 and Cambridge catalogues against official sources (CBC done; Forms 3-4 are the last 8-4-4 cohort; consider Kenya Sign Language).
-6. Dashboards/analytics, then AI learning, assessment and early-warning features using ExamResult history.
+6. Dashboards/analytics, then assessment and early-warning features using ExamResult history.
 7. Production readiness: rotate SECRET_KEY (old one is in git history), DEBUG off, PostgreSQL instead of sqlite, HTTPS settings, CORS for the frontend, pagination, login rate limiting, API docs, backups, monitoring.
 
 ## Frontend (after backend is solid)
@@ -69,7 +69,7 @@ NOT DONE yet (next, in order):
 3. CORS (django-cors-headers) once the frontend origin is known; PostgreSQL via env vars; rotate SECRET_KEY (old one is in git history); set DJANGO_NUM_PROXIES when deployed behind a proxy; consider JWT blacklist.
 4. Verify IGCSE subject list against the official Cambridge syllabus list (structure of Cambridge Pathway already verified). Primary and AS/A Level deliberately deferred.
 5. API docs, backups, monitoring, secure deployment.
-6. Analytics beyond dashboard, then AI learning/assessment/early-warning features.
+6. Analytics beyond dashboard, then assessment/early-warning features.
 7. Frontend (after backend is solid).
 PHONE TIP: long pastes get cut off. Send code in pastes of about 30 lines or fewer, using cat > for the first part and cat >> for the rest. If the prompt shows ">" the paste was cut off: close that terminal with the trash icon and open a new one.
 
@@ -85,7 +85,7 @@ NOT DONE yet (next, in order):
 2. CORS (django-cors-headers) once the frontend origin is known; PostgreSQL via env vars; rotate SECRET_KEY (old one is in git history); JWT blacklist for logout.
 3. Verify IGCSE subject list against the official Cambridge syllabus list. Primary and AS/A Level deliberately deferred.
 4. API docs, backups, monitoring (point an uptime monitor at /api/health/), secure deployment.
-5. Analytics beyond the dashboard, then AI learning, assessment and early-warning features using ExamResult history.
+5. Analytics beyond the dashboard, then assessment and early-warning features using ExamResult history.
 6. Frontend (after backend is solid).
 PHONE TIP: long pastes get cut off. Send code in pastes of about 30 lines or fewer, using cat > for the first part and cat >> for the rest. If the prompt shows ">" the paste was cut off: close that terminal with the trash icon and open a new one.
 
@@ -96,7 +96,7 @@ NOT DONE yet (next, in order):
 2. CORS (django-cors-headers) once the frontend origin is known; PostgreSQL via env vars; rotate SECRET_KEY (old one is in git history).
 3. Verify IGCSE subject list against the official Cambridge syllabus list. Primary and AS/A Level deliberately deferred.
 4. API docs, backups, monitoring (point an uptime monitor at /api/health/), secure deployment.
-5. Analytics beyond the dashboard, then AI learning, assessment and early-warning features using ExamResult history.
+5. Analytics beyond the dashboard, then assessment and early-warning features using ExamResult history.
 6. Frontend (after backend is solid).
 NOTE: the full test run takes about 4-5 minutes. Run it once, wait for the prompt, and look for "OK".
 
