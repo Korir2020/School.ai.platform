@@ -5,7 +5,7 @@ Multi-school Django 6.1 + DRF + SimpleJWT school management and learning platfor
 Owner works in GitHub Codespaces on a phone. Give very brief steps, one action at a time, with the exact terminal location. Review existing code before changing it. Never assume a feature is complete without evidence. Security, data integrity and tests come before speed. Finish the backend before the frontend.
 
 ## Run it
-- Folder: /workspaces/School.ai.platform/backend
+- Folder: /workspaces/marian-platform/backend
 - Tests: python manage.py test   (all passed at the last commit)
 - Server: python manage.py runserver
 - Catalogues into a fresh DB: python manage.py loaddata schools/fixtures/catalogues.json
@@ -111,7 +111,7 @@ NOT DONE yet: try PostgreSQL for real, choose the host and set the env vars, rot
 UPDATE (session 4): full 139 tests PASSED on a real local PostgreSQL 16 (about 4 min). The "confirm tests on PostgreSQL" item above is DONE. Still open: requirements.txt additions, .env.example, choose a host, rotate SECRET_KEY there.
 
 ## Progress log (session 4, part 4) - first deployment (practice only)
-LIVE on Render free plan: https://school-ai-platform.onrender.com (service School.ai.platform, Frankfurt, free Postgres marian-db). /api/health/ returns ok and /admin/ login works. NO real student data on free tier: web sleeps after 15 min idle, free Postgres expires after about 30 days.
+LIVE on Render free plan: https://school-ai-platform.onrender.com (service marian-api, Frankfurt, free Postgres marian-db). /api/health/ returns ok and /admin/ login works. NO real student data on free tier: web sleeps after 15 min idle, free Postgres expires after about 30 days.
 Render Build Command: pip install -r requirements-prod.txt && cd backend && python manage.py collectstatic --noinput && python manage.py migrate && python manage.py loaddata schools/fixtures/catalogues.json && python manage.py extend_cambridge_catalogue && (python manage.py createsuperuser --noinput || true)
 Start Command: cd backend && gunicorn config.wsgi. Root directory blank (requirements-prod.txt is at repo root).
 Render env var names (values only in Render, never in git): DJANGO_SECRET_KEY, DJANGO_DEBUG=False, DJANGO_ALLOWED_HOSTS=.onrender.com, DJANGO_NUM_PROXIES=1, DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DJANGO_SUPERUSER_USERNAME, DJANGO_SUPERUSER_EMAIL, DJANGO_SUPERUSER_PASSWORD. Render Shell is a paid feature, so seeding happens in the build command.
