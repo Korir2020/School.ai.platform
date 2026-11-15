@@ -15,8 +15,8 @@ const GROUPS = [
   ['Staff', ['Teachers', 'Staff', 'Transfers']],
   ['Academics', ['Exams', 'Marks', 'Levels', 'Approve']],
   ['Reports', ['Reports', 'Report Cards', 'Documents', 'Analytics']],
-  ['Finance', ['Fees']],
-  ['Platform', ['Schools', 'Registrations', 'Admins', 'Backups']],
+  ['Finance', ['Fees', 'Billing Centre']],
+  ['Platform', ['Schools', 'Platform Billing', 'Registrations', 'Admins', 'Backups']],
   ['Administration', ['Setup', 'Migration Centre', 'Audit']],
   ['Support', ['Help']],
 ];

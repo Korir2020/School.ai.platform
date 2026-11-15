@@ -1,5 +1,6 @@
 """Durable immutable archives for issued, published learner reports."""
 import hashlib
+import logging
 import re
 
 from django.db import IntegrityError, transaction
@@ -7,6 +8,8 @@ from django.http import HttpResponse
 
 from marian_reports.assembler import sign
 from schools.models import PublishedReportArtifact
+
+logger = logging.getLogger(__name__)
 
 
 def find_published_report(school_id, exam_id, student_id):
@@ -42,16 +45,32 @@ def archive_published_report(*, exam, student, report_no, result_mode, pdf,
     }
     existing = find_published_report(exam.school_id, exam.pk, student.pk)
     if existing:
+        try:
+            from billing.services import record_report_generated
+            record_report_generated(exam, student)
+        except Exception:
+            logger.exception("Could not record billing trial report evidence for exam %s / student %s", exam.pk, student.pk)
         return existing
     try:
         with transaction.atomic():
-            return PublishedReportArtifact.objects.create(
+            artifact = PublishedReportArtifact.objects.create(
                 exam=exam, student=student, **defaults)
+            try:
+                from billing.services import record_report_generated
+                record_report_generated(exam, student)
+            except Exception:
+                logger.exception("Could not record billing trial report evidence for exam %s / student %s", exam.pk, student.pk)
+            return artifact
     except IntegrityError:
         # Another authorized request created the immutable artifact first.
         existing = find_published_report(exam.school_id, exam.pk, student.pk)
         if existing is None:
             raise
+        try:
+            from billing.services import record_report_generated
+            record_report_generated(exam, student)
+        except Exception:
+            logger.exception("Could not record billing trial report evidence for exam %s / student %s", exam.pk, student.pk)
         return existing
 
 

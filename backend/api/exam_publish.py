@@ -1,3 +1,4 @@
+import logging
 from collections import defaultdict
 from types import SimpleNamespace
 from decimal import Decimal
@@ -14,6 +15,8 @@ from schools.models import (
 from .permissions import get_user_school_id
 from marian_reports.frameworks import CBC_REPORT_FRAMEWORKS
 from .senior_rules import is_cbc_senior, pathway_matches_class, subject_definition_problem
+
+logger = logging.getLogger(__name__)
 
 HUNDRED = Decimal("100")
 READY = ("approved", "locked")
@@ -77,6 +80,11 @@ def _publish_cbc_levels(request, exam, students, registered_by_student):
             details={"exam": exam.pk, "result_mode": "achievement_levels",
                      "completed": len(ready), "ranked": 0},
         )
+    try:
+        from billing.services import record_exam_published
+        record_exam_published(exam)
+    except Exception:
+        logger.exception("Could not record billing trial publication evidence for exam %s", exam.pk)
     return Response({"exam": exam.pk, "status": "published",
                      "result_mode": "achievement_levels", "students_ranked": 0,
                      "students_with_levels": len({sid for sid, _ in ready})})
@@ -107,6 +115,10 @@ def exam_publish(request, pk):
         return Response({"detail": "Not found."}, status=404)
     if exam.status != "draft":
         return Response({"detail": "Exam is already published."}, status=409)
+    from billing.services import can_write_existing_exam
+    allowed, detail = can_write_existing_exam(exam)
+    if not allowed:
+        return Response({"detail": detail, "billing_required": True}, status=402)
 
     enrollments = list(
         Enrollment.objects.filter(
@@ -410,6 +422,12 @@ def exam_publish(request, pk):
         exam.published_at = timezone.now()
         exam.published_by = request.user
         exam.save()
+
+    try:
+        from billing.services import record_exam_published
+        record_exam_published(exam)
+    except Exception:
+        logger.exception("Could not record billing trial publication evidence for exam %s", exam.pk)
 
     return Response({"exam": exam.id, "status": "published",
                      "ranked": len(overall) if rankings_enabled else 0,

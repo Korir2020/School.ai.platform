@@ -33,6 +33,8 @@ import Calendar from "./Calendar";
 import Parent from "./Parent";
 import BulkDocuments from "./BulkDocuments";
 import Attendance from "./Attendance";
+import SchoolBilling from "./SchoolBilling";
+import PlatformBilling from "./PlatformBilling";
 import ParentAccounts from "./ParentAccounts";
 import RegistrationReview from "./RegistrationReview";
 import TeacherTransfers from "./TeacherTransfers";
@@ -135,11 +137,11 @@ export default function Dash({ onOut, onOfflineBoot, offlineSession, onForget, o
   const markProps = { d, offlineIdentity: me, offlinePassphrase: syncPassphrase,
     onOfflinePrepared: (passphrase) => { setSyncPassphrase(passphrase); onOfflinePrepared?.(passphrase); }, onForget: forgetFromWorkspace };
   const baseTabs = role === "teacher" ? { Home: home, Announcements: <Announcements />, Connect: <Connect />, Feedback: <Feedback />, Calendar: <Calendar />, Marks: need(<Marks {...markProps} />), Levels: need(<LevelEntry d={d} />), Attendance: <Attendance />, ...(me && me.is_class_teacher ? { 'Report Cards': <ReportModule /> } : {}) }
-    : role === "school_admin" ? { Home: home, Announcements: <Announcements />, Connect: <Connect />, Feedback: <Feedback />, Calendar: <Calendar />, Approve: <Approvals />, Exams: need(<Exams d={d} />), Marks: need(<AdminFinalMarks />), 'Subject Registration': <SubjectRegistration />, Reports: need(<ReportCards d={d} />), 'Exam Reports': <ReportModule />, Analytics: need(<Analytics d={d} />), Attendance: <Attendance />, Fees: <Fees admin />, Documents: <BulkDocuments admin />, 'Migration Centre': <MigrationCentre />, Students: need(<Students d={d} />), Parents: <ParentAccounts />, Promotion: <Promotion />, Transfers: <TeacherTransfers />, Teachers: need(<><Teachers />{me && !me.is_deputy && <Deputies />}</>), Staff: <Staff />, Audit: <AuditLog />, Setup: <SetupPage me={me} d={d} go={setTab} /> }
+    : role === "school_admin" ? { Home: home, Announcements: <Announcements />, Connect: <Connect />, Feedback: <Feedback />, Calendar: <Calendar />, Approve: <Approvals />, Exams: need(<Exams d={d} />), Marks: need(<AdminFinalMarks />), 'Subject Registration': <SubjectRegistration />, Reports: need(<ReportCards d={d} />), 'Exam Reports': <ReportModule />, Analytics: need(<Analytics d={d} />), Attendance: <Attendance />, Fees: <Fees admin />, 'Billing Centre': <SchoolBilling go={setTab} />, Documents: <BulkDocuments admin />, 'Migration Centre': <MigrationCentre />, Students: need(<Students d={d} />), Parents: <ParentAccounts />, Promotion: <Promotion />, Transfers: <TeacherTransfers />, Teachers: need(<><Teachers />{me && !me.is_deputy && <Deputies />}</>), Staff: <Staff />, Audit: <AuditLog />, Setup: <SetupPage me={me} d={d} go={setTab} /> }
     : role === "bursar" ? { Home: <BursarDashboard me={me} data={d} />, Fees: <Fees admin />, Announcements: <Announcements />, Connect: <Connect />, Documents: <BulkDocuments />, Calendar: <Calendar /> }
     : role === "parent" ? { Home: <Parent />, Announcements: <Announcements />, Connect: <Connect />, Feedback: <Feedback /> }
     : role === "secretary" ? { Home: <SecretaryHome me={me} onNavigate={setTab} />, Connect: <Connect /> }
-    : role === "superadmin" ? { Home: home, Schools: <Platform d={d} />, Registrations: <RegistrationReview />, Transfers: <TeacherTransfers />, Admins: <Accounts />, Backups: <Backups />, Audit: <AuditLog />, Feedback: <Feedback owner /> }
+    : role === "superadmin" ? { Home: home, Schools: <Platform d={d} />, 'Platform Billing': <PlatformBilling />, Registrations: <RegistrationReview />, Transfers: <TeacherTransfers />, Admins: <Accounts />, Backups: <Backups />, Audit: <AuditLog />, Feedback: <Feedback owner /> }
     : d ? { Home: home } : {};
   const tabs = d ? { ...baseTabs, Help: <Help /> } : baseTabs;
   if (offlineSession) {

@@ -28,6 +28,7 @@ from api.job_views import background_job_status, background_job_download
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('api/billing/', include('billing.urls')),
     path('api/schools/', school_list),
     path('api/students/', student_collection),
     path('api/academic-years/', academic_year_collection),
