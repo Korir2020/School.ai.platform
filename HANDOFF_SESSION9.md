@@ -15,7 +15,7 @@ Update the PROGRESS LOG at the bottom only when the owner says so.
 - Ignore hosting/paid plans. No real student data yet.
 - Ranks/results: school admin + deputies only. Teachers/parents never see ranks.
 - Deputy can do everything admin can EXCEPT appoint/remove deputies.
-- NEVER BREAK: marks draft > submitted > approved > locked. AI/analytics never
+- NEVER BREAK: marks draft > submitted > approved > locked. Analytics never
   change official records. Server-side permission checks only.
   Other school = 404, wrong role = 403, anonymous = 401.
 - Additive migrations with defaults. Never reset the DB. No rewrite of the app.

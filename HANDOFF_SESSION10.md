@@ -9,7 +9,7 @@ NEXT, in order:
    screens, superadmin review screens. Use GET /api/setup/ and POST /api/setup/complete/.
 3. Fix JWT SIGNING_KEY: it is 31 bytes, must be 32+; set via environment variable.
 4. staticfiles/ dir warning: fix before deployment.
-5. Later: school suspend, financial workflows, analytics + AI features, backups.
+5. Later: school suspend, financial workflows, analytics, backups.
 GIT: repo https://github.com/Korir2020/Marian (private). Push using `gh auth login`
 (browser device login). Never paste tokens into chats.
 RULES: inspect before editing, tests first, run full suite, commit by name.
@@ -51,7 +51,7 @@ DONE on ui-pro (build passes each step):
 - Platform.jsx: platform totals, school profile dialog
 - StudentCenter.jsx: tabbed sections
 - Marks.jsx: inline "Use 1 to 100" message
-- Analytics insights card relabelled "Automated suggestions" (rule-based, not AI)
+- Analytics insights card relabelled "Automated suggestions" (rule-based)
 Backups of patched files were in /tmp (lost on Cloud Shell reset); git history is the rollback.
 
 NEXT, in order:
