@@ -55,6 +55,14 @@ def performance_batch(request):
         return Response({
             "detail": "exam, subject, and an entries list are required."
         }, status=400)
+    from schools.models import Exam
+    batch_exam = Exam.objects.filter(pk=exam_id).select_related("term").first()
+    if batch_exam is None or (school_id is not None and batch_exam.school_id != school_id):
+        return Response({"detail": "Exam not found."}, status=404)
+    from billing.services import can_write_existing_exam
+    allowed, detail = can_write_existing_exam(batch_exam)
+    if not allowed:
+        return Response({"detail": detail, "billing_required": True}, status=402)
     if not entries:
         return Response({"detail": "Add at least one mark before saving."}, status=400)
     if len(entries) > MAX_BATCH_CELLS:
@@ -422,6 +430,10 @@ def performance_batch_submit(request):
         exam = exams.filter(pk=exam_id).first()
         if exam is None:
             return Response({"detail": "Examination not found."}, status=404)
+        from billing.services import can_write_existing_exam
+        allowed, detail = can_write_existing_exam(exam)
+        if not allowed:
+            return Response({"detail": detail, "billing_required": True}, status=402)
         if exam.status != "draft":
             return Response({"detail": "Only draft examinations accept mark submissions."}, status=409)
         subject = Subject.objects.filter(

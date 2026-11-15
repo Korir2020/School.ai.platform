@@ -96,6 +96,12 @@ def performance_action(request, pk, action):
         allowed = admin or (who == "teacher_or_admin" and _is_assigned_teacher(request.user, perf))
         if not allowed:
             return Response({"detail": "You are not allowed to do this."}, status=403)
+        from billing.services import can_write_trial_period
+        allowed, detail = can_write_trial_period(
+            perf.student.school_id, perf.term, perf.assessment_type,
+        )
+        if not allowed:
+            return Response({"detail": detail, "billing_required": True}, status=402)
         if perf.status != required:
             return Response(
                 {"detail": f"Mark is '{perf.status}'; '{action}' needs '{required}'."},
@@ -154,6 +160,12 @@ def performance_edit(request, pk):
         admin = _is_admin_of(request.user, perf.student.school_id)
         if not (admin or _is_assigned_teacher(request.user, perf)):
             return Response({"detail": "You are not allowed to do this."}, status=403)
+        from billing.services import can_write_trial_period
+        allowed, detail = can_write_trial_period(
+            perf.student.school_id, perf.term, perf.assessment_type,
+        )
+        if not allowed:
+            return Response({"detail": detail, "billing_required": True}, status=402)
         if perf.status == "locked":
             return Response({"detail": "Locked marks cannot be changed."}, status=409)
         admin_correction = admin and perf.status in ("submitted", "approved")

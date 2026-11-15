@@ -94,6 +94,10 @@ def final_subject_mark_collection(request):
             return Response({"detail": "Examination does not belong to your school."}, status=403)
         if not _admin(request.user, exam.school_id):
             return Response({"detail": "Only a school administrator can enter direct final subject marks."}, status=403)
+        from billing.services import can_write_existing_exam
+        allowed, detail = can_write_existing_exam(exam)
+        if not allowed:
+            return Response({"detail": detail, "billing_required": True}, status=402)
         if exam.status != "draft":
             return Response({"detail": "Final subject marks can only be entered for a draft examination."}, status=409)
         subject = Subject.objects.filter(pk=subject_id, school_id=exam.school_id, is_active=True).first()

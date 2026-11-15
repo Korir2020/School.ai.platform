@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'drf_spectacular',
     "rest_framework_simplejwt.token_blacklist",
     'api',
+    'billing.apps.BillingConfig',
 ]
 
 MIDDLEWARE = [

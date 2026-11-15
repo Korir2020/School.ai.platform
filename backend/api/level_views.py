@@ -65,6 +65,12 @@ def level_save(request):
     got = _need(request, dict(_CTX, student=(Student, "school_id")))
     if isinstance(got, Response):
         return got
+    from billing.services import can_write_trial_period
+    allowed, detail = can_write_trial_period(
+        got["year"].school_id, got["term"], request.data.get("type", "end"),
+    )
+    if not allowed:
+        return Response({"detail": detail, "billing_required": True}, status=402)
     try:
         row = save_level(request.user, got["student"], got["subject"], got["year"],
                          got["term"], request.data.get("type", "end"),
@@ -81,6 +87,12 @@ def level_move(request):
     row = _find(LevelResult, request, request.data.get("result_id"), "student__school_id")
     if row is None:
         return _err("not_found", "Not found.", 404)
+    from billing.services import can_write_trial_period
+    allowed, detail = can_write_trial_period(
+        row.academic_year.school_id, row.term, row.assessment_type,
+    )
+    if not allowed:
+        return Response({"detail": detail, "billing_required": True}, status=402)
     try:
         move(request.user, row, str(request.data.get("action", "")))
     except LevelError as e:

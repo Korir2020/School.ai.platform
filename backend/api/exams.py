@@ -1,3 +1,5 @@
+import logging
+
 from rest_framework import serializers
 from rest_framework.decorators import api_view
 from .pagination import paginated_response
@@ -5,6 +7,8 @@ from rest_framework.response import Response
 
 from schools.models import Exam, SchoolAdminProfile
 from .views import _scope
+
+logger = logging.getLogger(__name__)
 
 
 class ExamSerializer(serializers.ModelSerializer):
@@ -43,5 +47,19 @@ def exam_list(request):
     term_school_id = serializer.validated_data["term"].academic_year.school_id
     if school_id is not None and term_school_id != school_id:
         return Response({"detail": "Term must belong to your school."}, status=403)
+    from billing.services import can_start_exam_cycle
+    allowed, detail = can_start_exam_cycle(
+        term_school_id, serializer.validated_data["term"],
+        serializer.validated_data["assessment_type"],
+    )
+    if not allowed:
+        return Response({"detail": detail, "billing_required": True}, status=402)
     serializer.save(school_id=term_school_id)
+    try:
+        from billing.services import start_trial_cycle
+        start_trial_cycle(serializer.instance)
+    except Exception:
+        # Billing evidence must never change or roll back a successful academic
+        # exam creation; persisted exam state remains the source of truth.
+        logger.exception("Could not record billing trial evidence for exam %s", serializer.instance.pk)
     return Response(serializer.data, status=201)

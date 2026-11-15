@@ -3,6 +3,7 @@
 Identity comes from the login only (api/report_access.py).
 The school's saved grading scale is required: no scale -> 422.
 """
+import logging
 import os
 from decimal import Decimal
 from functools import wraps
@@ -25,6 +26,9 @@ from marian_reports.comment_templates import (
     clean_templates, default_templates, level_templates, merge_templates,
     numeric_templates, render_template, stage_for_scale,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 def _err(code, message, status):
@@ -366,6 +370,17 @@ def report_analytics(request):
             "Senior summaries are grouped by pathway and exact registered subject combination; "
             "these are internal school calculations, not official KNEC rankings."
         )
+    try:
+        from schools.models import Exam
+        from billing.services import record_analytics_generated
+        user = report_user(request)
+        exam = Exam.objects.filter(pk=int(snap.exam.id), school_id=user.school_id).first()
+        if exam is not None and exam.status == "published":
+            record_analytics_generated(exam)
+    except Exception:
+        # Usage evidence is ancillary: analytics results and academic records
+        # must remain available even if billing evidence storage is unavailable.
+        logger.exception("Could not record billing trial analytics evidence")
     return Response(jsonable(data))
 
 

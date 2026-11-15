@@ -1,4 +1,12 @@
 # School AI Platform — Changelog
+## 2026-11-15
+### Platform billing and licensing foundation
+- Added tenant-scoped school billing profiles, subscriptions, cloud perpetual licences, invoices, payments, population snapshots, capacity requests, genuine trial-cycle evidence and audit events.
+- Added role-separated Billing Centre screens and APIs: full school admins see only their own platform billing; Django Super Administrators control pricing, tenant status, invoices and settlement review.
+- New schools receive a no-calendar-expiry trial; pre-existing schools are migrated as unconfigured. Trial completion requires published genuine cohort results, analytics and archived reports.
+- Bank-transfer references stay pending until human settlement verification; signed callbacks remain disabled without provider approval and a 32-character secret. School-hosted deployment is not represented as production-ready.
+- Exam-cycle write gates, `expire_billing` command, idempotency, manual audit notes and billing-specific tests added. Existing marks, calculations, publications, report archives and learner-fee workflows are preserved.
+
 ## 2026-11-12
 ### Migration Centre (learner list import)
 - Upload a register (Excel, CSV, TSV or typed PDF) or paste the table; nothing is saved until the administrator confirms.
