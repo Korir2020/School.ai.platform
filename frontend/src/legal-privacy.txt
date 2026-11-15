@@ -65,7 +65,7 @@ For example, academic analytics may help a school identify:
 - Differences in performance between classes or subjects.
 Such information is intended to assist teachers and school administrators in making informed decisions.
 Academic analytics should support professional judgement, not replace it. A school remains responsible for decisions concerning student assessment, discipline, promotion, placement and educational support.
-Where automated or AI-assisted features are introduced, the school and Marian will need to identify what information those features use and how their outputs are presented.
+Where automated features are introduced, the school and Marian will need to identify what information those features use and how their outputs are presented.
 ## 5. Who Can Access Information?
 Access to school information depends on the permissions assigned to each user.
 For example:

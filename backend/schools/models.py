@@ -945,7 +945,7 @@ class ReportComment(models.Model):
     """Comment workflow row (draft or approved) used by marian_reports.
     The text that is printed lives in ReportRemark, written only on approval."""
     STATUSES = [("draft", "Draft"), ("approved", "Approved")]
-    SOURCES = [("teacher", "Teacher"), ("ai", "AI-drafted")]
+    SOURCES = [("teacher", "Teacher")]
     id = models.CharField(primary_key=True, max_length=32)
     school = models.ForeignKey(School, on_delete=models.CASCADE, related_name="report_comments")
     exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name="report_comments")

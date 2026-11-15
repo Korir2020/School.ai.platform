@@ -389,7 +389,7 @@ class ReportService:
 
     def _insight(self, lines, summ, history, series=None) -> dict:
         """Deterministic facts + rule-based advice. No marks, grades or comments are invented;
-        an optional AI narrative must be advisory and teacher-reviewed (not wired here)."""
+        any narrative text must be teacher-reviewed (not wired here)."""
         scored = [l for l in lines if l.status == "scored"]
         facts = []
         if scored:

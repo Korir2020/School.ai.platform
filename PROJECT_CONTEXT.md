@@ -1,8 +1,8 @@
-# Marian (School.ai.platform) - Handoff Guide
+# Marian - Handoff Guide
 > STATUS: read HANDOFF.md "SESSION 5 STATE" first. The logs below are history only.
 
-Multi-school Django 6.1 + DRF + SimpleJWT school management and AI learning platform, meant for commercialization.
-Owner is a beginner working in GitHub Codespaces on a phone. Give very brief steps, one action at a time, with the exact terminal location. Review existing code before changing it. Never assume a feature is complete without evidence. Security, data integrity and tests come before speed. Finish the backend before the frontend.
+Multi-school Django 6.1 + DRF + SimpleJWT school management and learning platform, meant for commercialization.
+Owner works in GitHub Codespaces on a phone. Give very brief steps, one action at a time, with the exact terminal location. Review existing code before changing it. Never assume a feature is complete without evidence. Security, data integrity and tests come before speed. Finish the backend before the frontend.
 
 ## Run it
 - Folder: /workspaces/School.ai.platform/backend
@@ -45,14 +45,14 @@ Auth and roles, school isolation on all list APIs, teacher assignments gating ma
 3. Edit/delete SubjectPaper; block weight changes once an exam using them is published.
 4. More role edge-case tests across all endpoints.
 5. Verify 8-4-4 and Cambridge catalogues against official sources (CBC done; Forms 3-4 are the last 8-4-4 cohort; consider Kenya Sign Language).
-6. Dashboards/analytics, then AI learning, assessment and early-warning features using ExamResult history.
+6. Dashboards/analytics, then assessment and early-warning features using ExamResult history.
 7. Production readiness: rotate SECRET_KEY (old one is in git history), DEBUG off, PostgreSQL instead of sqlite, HTTPS settings, CORS for the frontend, pagination, login rate limiting, API docs, backups, monitoring.
 
 ## Frontend (after backend is solid)
-Responsive for low-end Android phones and computers: Marian branding, animated pre-login screen, login, role dashboards, management screens, mark entry, report cards, analytics, notifications, offline-first sync, then multilingual and AI features.
+Responsive for low-end Android phones and computers: Marian branding, animated pre-login screen, login, role dashboards, management screens, mark entry, report cards, analytics, notifications, offline-first sync, then multilingual features.
 
 ## Starter message for a new chat
-"I am building Marian, a multi-school Django school platform. Read AI_CONTEXT.md from my repo (I will paste it). Continue from Remaining backend item 1. Do not restart or duplicate models. Give brief step-by-step instructions, one action at a time, with the exact terminal location."
+"I am building Marian, a multi-school Django school platform. Read PROJECT_CONTEXT.md from my repo (I will paste it). Continue from Remaining backend item 1. Do not restart or duplicate models. Give brief step-by-step instructions, one action at a time, with the exact terminal location."
 
 ## Progress log
 - Done (Remaining backend item 1): admin create/edit APIs, tested. Files: api/students_api.py, api/admin_create.py (POST academic-years, terms, streams, subjects, enrollments, teacher-assignments), api/admin_edit.py (GET/PATCH /api/<records>/<id>/, DELETE on teacher-assignments). Tests: api/test_students_api.py, test_admin_create.py, test_admin_edit.py.
@@ -69,7 +69,7 @@ NOT DONE yet (next, in order):
 3. CORS (django-cors-headers) once the frontend origin is known; PostgreSQL via env vars; rotate SECRET_KEY (old one is in git history); set DJANGO_NUM_PROXIES when deployed behind a proxy; consider JWT blacklist.
 4. Verify IGCSE subject list against the official Cambridge syllabus list (structure of Cambridge Pathway already verified). Primary and AS/A Level deliberately deferred.
 5. API docs, backups, monitoring, secure deployment.
-6. Analytics beyond dashboard, then AI learning/assessment/early-warning features.
+6. Analytics beyond dashboard, then assessment/early-warning features.
 7. Frontend (after backend is solid).
 PHONE TIP: long pastes get cut off. Send code in pastes of about 30 lines or fewer, using cat > for the first part and cat >> for the rest. If the prompt shows ">" the paste was cut off: close that terminal with the trash icon and open a new one.
 
@@ -85,7 +85,7 @@ NOT DONE yet (next, in order):
 2. CORS (django-cors-headers) once the frontend origin is known; PostgreSQL via env vars; rotate SECRET_KEY (old one is in git history); JWT blacklist for logout.
 3. Verify IGCSE subject list against the official Cambridge syllabus list. Primary and AS/A Level deliberately deferred.
 4. API docs, backups, monitoring (point an uptime monitor at /api/health/), secure deployment.
-5. Analytics beyond the dashboard, then AI learning, assessment and early-warning features using ExamResult history.
+5. Analytics beyond the dashboard, then assessment and early-warning features using ExamResult history.
 6. Frontend (after backend is solid).
 PHONE TIP: long pastes get cut off. Send code in pastes of about 30 lines or fewer, using cat > for the first part and cat >> for the rest. If the prompt shows ">" the paste was cut off: close that terminal with the trash icon and open a new one.
 
@@ -96,7 +96,7 @@ NOT DONE yet (next, in order):
 2. CORS (django-cors-headers) once the frontend origin is known; PostgreSQL via env vars; rotate SECRET_KEY (old one is in git history).
 3. Verify IGCSE subject list against the official Cambridge syllabus list. Primary and AS/A Level deliberately deferred.
 4. API docs, backups, monitoring (point an uptime monitor at /api/health/), secure deployment.
-5. Analytics beyond the dashboard, then AI learning, assessment and early-warning features using ExamResult history.
+5. Analytics beyond the dashboard, then assessment and early-warning features using ExamResult history.
 6. Frontend (after backend is solid).
 NOTE: the full test run takes about 4-5 minutes. Run it once, wait for the prompt, and look for "OK".
 
@@ -107,7 +107,7 @@ NOT DONE yet (next, in order): CORS once the frontend origin is known; PostgreSQ
 ## Progress log (session 4, part 3) - production settings
 DONE: PostgreSQL via env vars (DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT). sqlite stays the default for dev and tests. With DEBUG off and no DB_NAME the app refuses to start. CORS via DJANGO_CORS_ORIGINS (comma list; django-cors-headers loads only when set) and DJANGO_CSRF_TRUSTED_ORIGINS. See .env.example. psycopg and django-cors-headers added to requirements.txt. Checked by simulating the settings logic and by running tests on sqlite only. NOT yet tried against a real PostgreSQL server or a real frontend origin.
 SECRET_KEY rotation (do on the host, never commit it): python -c "from django.core.management.utils import get_random_secret_key as g; print(g())" then set the result as DJANGO_SECRET_KEY in the host's environment. Treat the old key in git history as compromised. On the new PostgreSQL database run: python manage.py migrate, then loaddata schools/fixtures/catalogues.json, then python manage.py extend_cambridge_catalogue.
-NOT DONE yet: try PostgreSQL for real, choose the host and set the env vars, rotate SECRET_KEY there, then IGCSE list verification, API docs, backups, monitoring, analytics, AI features, frontend.
+NOT DONE yet: try PostgreSQL for real, choose the host and set the env vars, rotate SECRET_KEY there, then IGCSE list verification, API docs, backups, monitoring, analytics, frontend.
 UPDATE (session 4): full 139 tests PASSED on a real local PostgreSQL 16 (about 4 min). The "confirm tests on PostgreSQL" item above is DONE. Still open: requirements.txt additions, .env.example, choose a host, rotate SECRET_KEY there.
 
 ## Progress log (session 4, part 4) - first deployment (practice only)
@@ -115,7 +115,7 @@ LIVE on Render free plan: https://school-ai-platform.onrender.com (service Schoo
 Render Build Command: pip install -r requirements-prod.txt && cd backend && python manage.py collectstatic --noinput && python manage.py migrate && python manage.py loaddata schools/fixtures/catalogues.json && python manage.py extend_cambridge_catalogue && (python manage.py createsuperuser --noinput || true)
 Start Command: cd backend && gunicorn config.wsgi. Root directory blank (requirements-prod.txt is at repo root).
 Render env var names (values only in Render, never in git): DJANGO_SECRET_KEY, DJANGO_DEBUG=False, DJANGO_ALLOWED_HOSTS=.onrender.com, DJANGO_NUM_PROXIES=1, DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DJANGO_SUPERUSER_USERNAME, DJANGO_SUPERUSER_EMAIL, DJANGO_SUPERUSER_PASSWORD. Render Shell is a paid feature, so seeding happens in the build command.
-NOT DONE yet: test live API login/logout with curl; before real schools: paid plan (about 13 USD a month web plus small Postgres), backups, uptime monitor on /api/health/, IGCSE list check, API docs, analytics, AI features, frontend.
+NOT DONE yet: test live API login/logout with curl; before real schools: paid plan (about 13 USD a month web plus small Postgres), backups, uptime monitor on /api/health/, IGCSE list check, API docs, analytics, frontend.
 VERIFIED LIVE (Render free plan): login OK, /api/schools/ paginated (200, keys count/next/previous/results), logout 205, refresh after logout 401. Test script idea: login, list, logout, refresh via urllib (not stored in repo).
 See HANDOFF.md for the latest summary and next steps.
 
@@ -127,7 +127,7 @@ IN PROGRESS, login redesign (owner spec): Welcome page built (frontend/src/Welco
 LOGIN SPEC STILL TO BUILD: username first; password field appears once the username is filled; Log in button hidden until the password has 4+ characters (UI gate only), then fades in; on submit the page folds and the password box rotates (flip) while the server checks. WRONG password: cute baby elephant mascot shakes its head sadly, password clears for retry (generic message, never reveal whether the username exists). RIGHT password: elephant smiles, opens the door of a house, waves a welcome, then the app opens. Files to create: Login.jsx (move Login out of App.jsx), Mascot.jsx (states idle/sad/happy), login.css. SVG and CSS transforms only (low-end Android), honour prefers-reduced-motion. Never put a CSS animation on an SVG element that has a transform attribute: wrap it in an outer <g>. Use drawn illustrations, not photos of children.
 CHECK JSX WITHOUT node_modules (Claude sandbox): typescript.transpileModule (jsx ReactJSX) then react-dom/server renderToString; tools are in /home/claude/.npm-global/lib/node_modules.
 STILL OPEN: owner's other look fixes (ask for a numbered list with the screen name); parent and student screens; create schools and the first admin in-app; real logo files; teacher screens limited to own classes; IGCSE list verification; paid Render plan, strong admin password and backups before real schools; offline sync and extra languages last.
-Starter for a new chat: "I am building Marian. Read AI_CONTEXT.md and HANDOFF.md from my repo. The login redesign is finished (see Session 9). One action at a time."
+Starter for a new chat: "I am building Marian. Read PROJECT_CONTEXT.md and HANDOFF.md from my repo. The login redesign is finished (see Session 9). One action at a time."
 ## Session 7 (4 Oct 2026): login redesign
 DONE (checked in a browser preview; owner likes the design):
 - New login: transparent black/gold glass box, "Welcome Back", username + password with eye button, yellow Sign In. Files: frontend/src/Login.jsx, login.css, backgrounds.css. App.jsx now imports Login from ./Login; the old function was renamed OldLogin (unused, safe to delete with the Scene import).
@@ -149,7 +149,7 @@ IGNORE the old "Remaining backend" and NOT DONE lists above: all backend items a
 Frontend files in frontend/src: App.jsx (Dash, Home and the tab map), Login.jsx and login.css (gold login), app.css (shared theme, v2 block at the end), Logo.jsx, Intro.jsx and intro.css (pre-login animation), Splash.jsx.
 Old Welcome, Scene, Universe and Mascot files and the old pictures were removed. Nothing is left alone on purpose now.
 OPEN ITEMS: dashboard redesign steps 2 to 7 in HANDOFF.md; teacher screens limited to own classes; parent and student screens; creating schools and the first admin in-app; real logo files; IGCSE list check; paid Render plan, strong admin password and backups before real schools (free Postgres expires, no real student data).
-Starter for a new chat: "I am building Marian. Read HANDOFF.md SESSION 8 and AI_CONTEXT.md in my repo. Continue the dashboard redesign at step 2. One action at a time."
+Starter for a new chat: "I am building Marian. Read HANDOFF.md SESSION 8 and PROJECT_CONTEXT.md in my repo. Continue the dashboard redesign at step 2. One action at a time."
 ## Session 9 (4 Oct 2026): login finished, cleanup
 DONE and pushed: login box has the student-at-the-door picture inside the box only (assets/login-pic.png), gold ribbon background behind it (assets/login-bg.svg, set in backgrounds.css as --bg-login), glass box with thin outline and outlined corner pieces that fold in on success, then the box closes and the logo shows. Rows in reference order: Welcome Back, Username, Password (after a username), Remember me + Forgot password?, Sign In (after 4+ characters), OR CONTINUE WITH, Google/Apple, Sign Up.
 Google, Apple, Sign Up, Forgot password and Remember me are visual only (a note says so); no backend for them.
