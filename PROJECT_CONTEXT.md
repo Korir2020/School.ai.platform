@@ -49,7 +49,7 @@ Auth and roles, school isolation on all list APIs, teacher assignments gating ma
 7. Production readiness: rotate SECRET_KEY (old one is in git history), DEBUG off, PostgreSQL instead of sqlite, HTTPS settings, CORS for the frontend, pagination, login rate limiting, API docs, backups, monitoring.
 
 ## Frontend (after backend is solid)
-Responsive for low-end Android phones and computers: Marian branding, animated pre-login screen, login, role dashboards, management screens, mark entry, report cards, analytics, notifications, offline-first sync, then multilingual and AI features.
+Responsive for low-end Android phones and computers: Marian branding, animated pre-login screen, login, role dashboards, management screens, mark entry, report cards, analytics, notifications, offline-first sync, then multilingual features.
 
 ## Starter message for a new chat
 "I am building Marian, a multi-school Django school platform. Read PROJECT_CONTEXT.md from my repo (I will paste it). Continue from Remaining backend item 1. Do not restart or duplicate models. Give brief step-by-step instructions, one action at a time, with the exact terminal location."
@@ -107,7 +107,7 @@ NOT DONE yet (next, in order): CORS once the frontend origin is known; PostgreSQ
 ## Progress log (session 4, part 3) - production settings
 DONE: PostgreSQL via env vars (DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT). sqlite stays the default for dev and tests. With DEBUG off and no DB_NAME the app refuses to start. CORS via DJANGO_CORS_ORIGINS (comma list; django-cors-headers loads only when set) and DJANGO_CSRF_TRUSTED_ORIGINS. See .env.example. psycopg and django-cors-headers added to requirements.txt. Checked by simulating the settings logic and by running tests on sqlite only. NOT yet tried against a real PostgreSQL server or a real frontend origin.
 SECRET_KEY rotation (do on the host, never commit it): python -c "from django.core.management.utils import get_random_secret_key as g; print(g())" then set the result as DJANGO_SECRET_KEY in the host's environment. Treat the old key in git history as compromised. On the new PostgreSQL database run: python manage.py migrate, then loaddata schools/fixtures/catalogues.json, then python manage.py extend_cambridge_catalogue.
-NOT DONE yet: try PostgreSQL for real, choose the host and set the env vars, rotate SECRET_KEY there, then IGCSE list verification, API docs, backups, monitoring, analytics, AI features, frontend.
+NOT DONE yet: try PostgreSQL for real, choose the host and set the env vars, rotate SECRET_KEY there, then IGCSE list verification, API docs, backups, monitoring, analytics, frontend.
 UPDATE (session 4): full 139 tests PASSED on a real local PostgreSQL 16 (about 4 min). The "confirm tests on PostgreSQL" item above is DONE. Still open: requirements.txt additions, .env.example, choose a host, rotate SECRET_KEY there.
 
 ## Progress log (session 4, part 4) - first deployment (practice only)
@@ -115,7 +115,7 @@ LIVE on Render free plan: https://school-ai-platform.onrender.com (service Schoo
 Render Build Command: pip install -r requirements-prod.txt && cd backend && python manage.py collectstatic --noinput && python manage.py migrate && python manage.py loaddata schools/fixtures/catalogues.json && python manage.py extend_cambridge_catalogue && (python manage.py createsuperuser --noinput || true)
 Start Command: cd backend && gunicorn config.wsgi. Root directory blank (requirements-prod.txt is at repo root).
 Render env var names (values only in Render, never in git): DJANGO_SECRET_KEY, DJANGO_DEBUG=False, DJANGO_ALLOWED_HOSTS=.onrender.com, DJANGO_NUM_PROXIES=1, DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DJANGO_SUPERUSER_USERNAME, DJANGO_SUPERUSER_EMAIL, DJANGO_SUPERUSER_PASSWORD. Render Shell is a paid feature, so seeding happens in the build command.
-NOT DONE yet: test live API login/logout with curl; before real schools: paid plan (about 13 USD a month web plus small Postgres), backups, uptime monitor on /api/health/, IGCSE list check, API docs, analytics, AI features, frontend.
+NOT DONE yet: test live API login/logout with curl; before real schools: paid plan (about 13 USD a month web plus small Postgres), backups, uptime monitor on /api/health/, IGCSE list check, API docs, analytics, frontend.
 VERIFIED LIVE (Render free plan): login OK, /api/schools/ paginated (200, keys count/next/previous/results), logout 205, refresh after logout 401. Test script idea: login, list, logout, refresh via urllib (not stored in repo).
 See HANDOFF.md for the latest summary and next steps.
 
