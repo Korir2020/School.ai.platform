@@ -58,7 +58,7 @@ function go(id) {
   history.replaceState(null, "", "#" + id);
 }
 
-export default function Landing({ onStart, onRegister, onSignIn, onStatus, onPrivacy, onTerms }) {
+export default function Landing({ onStart, onRegister, onSignIn, onStatus, onPrivacy, onTerms, onIndependentLearning }) {
   const [open, setOpen] = useState(false);
   useEffect(() => {
     const id = window.location.hash.slice(1);
@@ -120,6 +120,8 @@ export default function Landing({ onStart, onRegister, onSignIn, onStatus, onPri
                 Joining a school? <button type="button" className="mw-link" onClick={onStart}>Use your School Code</button>
                 <span aria-hidden="true"> · </span>
                 <button type="button" className="mw-link" onClick={onStatus}>Check my application</button>
+                <span aria-hidden="true"> · </span>
+                <button type="button" className="mw-link" onClick={onIndependentLearning}>Independent learning account status</button>
               </p>
             </div>
             <div className="mw-hero-shot" aria-label="Marian product preview: generating report cards for a class">
@@ -313,9 +315,10 @@ export default function Landing({ onStart, onRegister, onSignIn, onStatus, onPri
           <div>
             <h4>Get started</h4>
             <button type="button" onClick={onRegister}>Register your school</button>
-            <button type="button" onClick={onStart}>Join a school</button>
-            <button type="button" onClick={onStatus}>Check my application</button>
-            <button type="button" onClick={onSignIn}>Sign In</button>
+              <button type="button" onClick={onStart}>Join a school</button>
+              <button type="button" onClick={onStatus}>Check my application</button>
+              <button type="button" onClick={onIndependentLearning}>Independent learning account status</button>
+              <button type="button" onClick={onSignIn}>Sign In</button>
           </div>
           <div>
             <h4>Contact</h4>
