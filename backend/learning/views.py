@@ -87,33 +87,8 @@ def _valid_approved_guardian(invitation):
     ).exists()
 
 
-@api_view(["GET", "POST"])
-@permission_classes([IsAuthenticated, SchoolNotSuspended, FullSchoolLearningAdmin])
-@throttle_classes([LearningInvitationAdminThrottle])
-def admin_invitations(request):
-    """List or issue an invitation for an active student in the caller's school."""
-    school_admin = request.learning_school_admin
-    if request.method == "GET":
-        rows = list(
-            LearningInvitation.objects.filter(school_id=school_admin.school_id)
-            .select_related("student")
-            .order_by("-created_at", "-pk")[:200]
-        )
-        LearningAuditEvent.objects.create(
-            actor=request.user,
-            school_id=school_admin.school_id,
-            scope="school",
-            action="school_invitation_list_read",
-            target_type="school",
-            target_id=str(school_admin.school_id),
-            safe_details={"count": len(rows), "truncated": len(rows) == 200},
-        )
-        return Response({
-            "results": [_invitation_row(row) for row in rows],
-            "truncated": len(rows) == 200,
-        })
-
-    raw_student_id = request.data.get("student_id")
+def _issue_school_invitation(request, school_admin, raw_student_id):
+    """Validate and issue one school invitation (shared by single and bulk)."""
     try:
         student_id = int(raw_student_id)
         if isinstance(raw_student_id, bool) or student_id <= 0:
@@ -191,6 +166,36 @@ def admin_invitations(request):
         "claim_token": raw_token,
         "claim_token_delivery": "Give this one-time code to the learner's linked guardian; it will not be shown again.",
     }, status=201)
+
+
+@api_view(["GET", "POST"])
+@permission_classes([IsAuthenticated, SchoolNotSuspended, FullSchoolLearningAdmin])
+@throttle_classes([LearningInvitationAdminThrottle])
+def admin_invitations(request):
+    """List or issue an invitation for an active student in the caller's school."""
+    school_admin = request.learning_school_admin
+    if request.method == "GET":
+        rows = list(
+            LearningInvitation.objects.filter(school_id=school_admin.school_id)
+            .select_related("student")
+            .order_by("-created_at", "-pk")[:200]
+        )
+        LearningAuditEvent.objects.create(
+            actor=request.user,
+            school_id=school_admin.school_id,
+            scope="school",
+            action="school_invitation_list_read",
+            target_type="school",
+            target_id=str(school_admin.school_id),
+            safe_details={"count": len(rows), "truncated": len(rows) == 200},
+        )
+        return Response({
+            "results": [_invitation_row(row) for row in rows],
+            "truncated": len(rows) == 200,
+        })
+
+    return _issue_school_invitation(
+        request, school_admin, request.data.get("student_id"))
 
 
 @api_view(["GET"])
@@ -491,3 +496,42 @@ def claim_student_account(request):
         "username": username,
         "role": "student",
     }, status=201)
+
+
+BULK_INVITATION_MAX = 50
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated, SchoolNotSuspended, FullSchoolLearningAdmin])
+@throttle_classes([LearningInvitationAdminThrottle])
+def admin_invitations_bulk(request):
+    """Issue invitations for several students using the single-invite rules."""
+    school_admin = request.learning_school_admin
+    ids = request.data.get("student_ids")
+    if not isinstance(ids, list) or not ids or len(ids) > BULK_INVITATION_MAX:
+        return Response({
+            "detail": f"student_ids must be a list of 1 to {BULK_INVITATION_MAX} students."
+        }, status=400)
+    seen, results = set(), []
+    for raw in ids:
+        key = raw if isinstance(raw, (int, str)) else repr(raw)
+        if key in seen:
+            continue
+        seen.add(key)
+        response = _issue_school_invitation(request, school_admin, raw)
+        results.append({
+            "student_id": raw if isinstance(raw, (int, str)) else None,
+            "status": response.status_code,
+            "result": response.data,
+        })
+    created = sum(1 for r in results if r["status"] == 201)
+    LearningAuditEvent.objects.create(
+        actor=request.user,
+        school_id=school_admin.school_id,
+        scope="school",
+        action="school_invitations_bulk_issued",
+        target_type="school",
+        target_id=str(school_admin.school_id),
+        safe_details={"requested": len(results), "created": created},
+    )
+    return Response({"results": results, "created": created}, status=200)
