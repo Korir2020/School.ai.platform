@@ -28,7 +28,19 @@ def me(request):
                     "school").filter(user=user).first()
                 if guardian:
                     role, school = "parent", guardian.school
+                else:
+                    from learning.models import LearningProfile
+
+                    learning_profile = LearningProfile.objects.select_related(
+                        "school",
+                    ).filter(user=user).first()
+                    if learning_profile:
+                        if learning_profile.account_kind == "school_student":
+                            role, school = "student", learning_profile.school
+                        elif learning_profile.account_kind == "public_learner":
+                            role = "public_learner"
     from schools.models import ClassTeacher
+
     is_ct = role == "teacher" and ClassTeacher.objects.filter(teacher__user=user).exists()
     return Response({
         "username": user.username,

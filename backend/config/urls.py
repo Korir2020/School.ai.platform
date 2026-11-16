@@ -50,6 +50,7 @@ urlpatterns = [
     path('api/final-subject-marks/<int:pk>/<str:action>/', final_subject_mark_action),
     path('api/jobs/<uuid:pk>/', background_job_status),
     path('api/jobs/<uuid:pk>/download/', background_job_download),
+    path('api/learning/v1/', include('learning.urls')),
 ]
 
 

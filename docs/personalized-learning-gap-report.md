@@ -1,0 +1,48 @@
+# Marian Personalized Learning — Architecture and Gap Report
+
+**Scope:** Read-only review of the extracted source from the previously supplied `School.ai.platform-main(65).zip` at `/home/ubuntu/work/billing-inspection/School.ai.platform-main`. Five independent audits covered identity/tenancy, backend/content/storage, frontend, AI/safety, and testing/operations. This is a source-code architecture review; it is not a penetration test or deployment assessment.
+
+## Executive finding
+
+The project has substantial reusable school-management foundations—Django/DRF, school and student records, teacher/admin/guardian profiles, curriculum structures, school-scoped API patterns, a React/Vite shell, shared UI primitives, tests, and a narrow PWA/offline feature. **It does not currently implement Marian Personalized Learning as specified.** No student login/learner-facing role, learning-content domain, learning paths, personal goals/progress events, recommendations, general learning studio, multilingual UI framework, or dedicated learning administration/teacher studio was found. Product labels in project documentation are not implementation evidence.
+
+Personalized Learning should be a separate product domain integrated narrowly with Marian identity and school/student records. Do not repurpose exams, early-warning analytics, Connect posts, student interventions, reports, or school billing as learning features.
+
+## What can be reused
+
+- **Academic reference data:** `backend/schools/models.py` contains schools, students, academic years/terms, curriculum/class levels, enrolments, subjects, exams, results, attendance and published report artifacts. These provide references for optional curriculum alignment, not learning content or personalization.
+- **Accounts and school roles:** `backend/api/auth_views.py`, `backend/api/permissions.py`, `backend/schools/models.py`, and `backend/api/parent_portal.py` cover existing staff/admin/guardian flows and selected school/guardian scoping. There is no student account lifecycle or public learner registration.
+- **Backend conventions:** Django apps `schools` and `api`, DRF function-based endpoints, serializers, migrations and extensive API tests offer patterns. Existing school tenant isolation is implemented at endpoint/query level, not as a universal domain boundary.
+- **Frontend foundations:** `frontend/src/Dash.jsx`, `Shell.jsx`, `hashtab.js`, `ui.jsx`, `kit.jsx`, and theme/CSS files provide role-dependent navigation, responsive layouts, forms, dialogs, cards, tables and states. There is no learner-specific app surface or route namespace.
+- **Narrow AI and offline examples:** `backend/api/migration_photos.py` has a real, server-side Anthropic call for staff-only register photo transcription, with a per-school page cap and audit rows. `backend/marian_reports/comments.py` contains AI-oriented code, but production wiring passes `drafter=None`; it is not live AI. Existing “insights” are rules/statistics, not AI recommendations. PWA/offline support is limited to static shell caching and encrypted teacher mark drafts—not offline learning.
+- **Testing and storage:** Existing security/API tests and migration patterns are useful. File handling is specific to current workflows (including local `MEDIA_ROOT`, report artifacts and Connect attachments stored as database blobs); it is not a general private learning-resource storage service.
+
+## Principal gaps and risks
+
+1. **Identity and authorization (critical):** No learner identity/account linked to `Student`; no independent public learner accounts. Role profiles can coexist and effective role resolution/endpoint authorization are not uniform. School scope depends on each endpoint applying the right filters. Guardian access is admin-provisioned and relationship-sensitive. Learning APIs must derive membership server-side and enforce student, teacher-assignment, guardian-link, school and public-account boundaries at object and query level; never trust client-supplied school/student IDs.
+2. **Learning domain (critical):** No learning resource catalogue, topic/skill taxonomy, lessons, exercises, attempts, learning paths, goals, activity/progress events, recommendations, project work or content publication workflow. Current progress/early-warning functions use examination data and fixed rules; they are not an independent learning engine and must not be used to profile academic weaknesses for this product.
+3. **AI and child safety (critical):** No provider-independent learning AI service, age-specific policy, learner safeguards, prompt/output validation, moderation, data-minimization contract, token/spend quotas, or recommendation explanation/review workflow. Existing photo transcription sends student-register images to an external provider. Any learning AI must be disabled unless provider approval/configuration and privacy/safeguard controls are in place; never expose keys client-side or send unnecessary identifying data.
+4. **Content and files (high):** No approved external-resource metadata/licensing/provenance process or content review/versioning. Existing uploads are feature-specific, some use only magic-prefix inspection, and local media/static routing is not a production private-store policy. New resource files need private storage, strict validation, quotas, safe downloads, malware/archive protections, retention and licensing metadata.
+5. **Experiences and localization (high):** One operational React shell branches by existing staff/admin/parent roles; it does not include a student learner journey, personalized learner dashboard, Teacher Studio or learning admin centre. No general UI translation catalogs/provider were found; Swahili import-heading recognition is not UI localization. Search, interface strings, content metadata and AI explanations need a real language framework beginning with English and Kiswahili.
+6. **Offline and release posture (high):** Current offline capability is narrow mark-entry support. Do not claim offline learning. The project has a long Django migration history and production DB/environment constraints; new learning migrations require backup, staged PostgreSQL migration tests and regression protection.
+
+## Recommended independent architecture
+
+Create a dedicated Django learning app/domain with its own models, migrations, services, serializers, APIs, permissions and tests, plus a separate React route/surface and navigation entry. Reuse account and school/student identifiers through a small integration layer; do not alter academic calculations, exam publication, archived reports, school fee workflows or official records.
+
+Core domain objects should cover configurable curriculum frameworks and taxonomies; Marian and approved external resources with owner, rights, provenance, age/grade/language, version and moderation state; learner preferences/interests/goals; learning paths and ordered activities; activity attempts/progress events; teacher recommendations; project work; and auditable recommendation feedback. Provide explicit school-linked and independent-public ownership/membership semantics, safe account linking/unlinking, guardian controls for minors, and deletion/retention/export rules.
+
+Authorization must be deny-by-default and tenant-scoped in service/query layers, with a role matrix for learners, teachers (assigned learners only), guardians (linked minors only), school administrators (their school only), learning moderators and platform operators. UI visibility is supplementary; APIs enforce all access. Add cross-school and identifier-tampering tests before learner data is exposed.
+
+Implement an AI gateway as an optional provider boundary with server-only credentials, allowlisted models, age-appropriate policies, minimized/pseudonymized inputs, structured output validation, moderation, per-user/tenant/global rate and spend limits, cost/latency telemetry, human review where needed, and a clear disabled state if approval or credentials are absent. A deterministic curated-content fallback is preferable to a fake chatbot. AI must not diagnose learners, use exam weaknesses, or write official Marian records.
+
+## Controlled delivery order
+
+1. **Architecture and safety gate:** Confirm role/identity model for linked and public learners, guardian/consent policy, data retention, content rights, threat model and rollout boundaries.
+2. **Independent foundation:** Create learning app, migrations, authorization/service layer, APIs and cross-tenant/security tests; prove existing Marian tests and records remain unaffected.
+3. **Content governance:** Build taxonomy/catalogue, curated resources, external-link provenance/licensing, moderation/approval and teacher/admin management.
+4. **Usable learning MVP:** Deliver learner dashboard, search/filters, saved/continue/recent, goals/preferences, learning paths and progress events; add Teacher Studio and school learning administration with explicit permissions.
+5. **Safe AI pilot:** Add the gated provider abstraction, tutor/content drafting and explainable recommendations only after safeguards, evaluation, quotas and provider approval are configured. Generated publishable content requires review.
+6. **Expansion:** Add interactive activities, coding/math/language/simulation integrations, project studio, non-coercive motivation, English/Kiswahili localization and analytics. Keep offline learning as a later, explicitly unimplemented phase.
+
+**Evidence limits:** The audit read the source code but did not run the complete test suite, conduct a penetration test, review provider terms, inspect production credentials, or verify deployed behavior. Findings should be confirmed in staged tests during implementation.
