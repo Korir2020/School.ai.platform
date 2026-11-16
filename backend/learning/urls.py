@@ -47,6 +47,7 @@ from .content_api import (
 )
 from .views import (
     admin_invitations,
+    admin_invitations_bulk,
     admin_invitation_candidates,
     claim_student_account,
     guardian_approve_invitation,
@@ -169,6 +170,7 @@ urlpatterns = [
     path("studio/paths/<int:path_id>/translations/<int:translation_id>/review/", review_path_translation, name="studio-path-translation-review"),
     path("studio/review-queue/", studio_review_queue, name="studio-review-queue"),
     path("admin/invitations/", admin_invitations, name="admin-invitations"),
+    path('admin/invitations/bulk/', admin_invitations_bulk, name='admin-invitations-bulk'),
     path("admin/invitation-candidates/", admin_invitation_candidates, name="admin-invitation-candidates"),
     path("admin/invitations/<int:invitation_id>/revoke/", revoke_invitation, name="revoke-invitation"),
     path("admin/invitations/<int:invitation_id>/resend/", resend_learning_invitation, name="resend-invitation"),
