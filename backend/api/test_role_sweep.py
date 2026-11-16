@@ -27,7 +27,13 @@ def _fill(route, ident):
 PARENT_OK = ("api/parent/", "api/me", "api/auth", "api/notifications", "api/announcements",
              "api/connect", "api/calendar", "api/health", "api/public", "api/branding",
              "api/report-cards", "api/report-card/", "api/feedback", "api/profile", "api/csrf",
-             "api/mfa", "api/receipts/verify", "api/join", "api/demo", "api/password")
+             "api/mfa", "api/receipts/verify", "api/join", "api/demo", "api/password",
+             "api/learning/v1/accounts/capabilities/",
+             "api/learning/v1/subscriptions/capabilities/",
+             "api/learning/v1/subscriptions/plans/",
+             "api/learning/v1/account/lifecycle-requests/",
+             "api/learning/v1/guardians/learners/",
+             "api/learning/v1/guardians/invitations/")
 
 
 @override_settings(MESSAGING_SYNC=True)

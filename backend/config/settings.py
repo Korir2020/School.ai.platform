@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt.token_blacklist",
     'api',
     'billing.apps.BillingConfig',
+    "learning.apps.LearningConfig",
 ]
 
 MIDDLEWARE = [
@@ -125,6 +126,15 @@ USE_TZ = True
 STATIC_URL = "static/"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+LEARNING_PRIVATE_ASSET_STORAGE_BACKEND = os.environ.get("LEARNING_PRIVATE_ASSET_STORAGE_BACKEND", "").strip()
+LEARNING_PRIVATE_ASSET_ROOT = Path(
+    os.environ.get("LEARNING_PRIVATE_ASSET_ROOT", "").strip()
+    or str(BASE_DIR.parent / "private_learning_assets")
+)
+LEARNING_ASSET_SCANNER_BINARY = os.environ.get("LEARNING_ASSET_SCANNER_BINARY", "").strip()
+LEARNING_ASSET_SCANNER_TIMEOUT_SECONDS = max(
+    1, min(int(os.environ.get("LEARNING_ASSET_SCANNER_TIMEOUT_SECONDS", "30")), 120),
+)
 BACKGROUND_JOB_ROOT = Path(os.environ.get(
     "DJANGO_BACKGROUND_JOB_ROOT", str(BASE_DIR / "private_jobs"),
 ))
@@ -214,6 +224,14 @@ if os.environ.get("DB_NAME"):
 elif not DEBUG:
     raise ImproperlyConfigured("Set DB_NAME (PostgreSQL) when DEBUG is off.")
 
+# The release-readiness runner may isolate Django's disposable test database.
+# This option is test-only, works only with the SQLite development backend, and
+# never changes the PostgreSQL selection above.
+if "test" in sys.argv and DEBUG and DATABASES["default"]["ENGINE"] == "django.db.backends.sqlite3":
+    _isolated_test_db = os.environ.get("MARIAN_TEST_SQLITE_PATH", "").strip()
+    if _isolated_test_db:
+        DATABASES["default"]["TEST"] = {"NAME": _isolated_test_db}
+
 # --- CORS and CSRF origins via env vars (off until the frontend URL is set) ---
 _cors = [o for o in os.environ.get("DJANGO_CORS_ORIGINS", "").split(",") if o]
 if _cors:
@@ -249,6 +267,31 @@ REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"].update({
     "join_register": "1000/min" if "test" in sys.argv else "5/min",
     "join_code": "1000/min" if "test" in sys.argv else "10/min",
 })
+
+REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"].update({
+    "learning_claim": "1000/min" if "test" in sys.argv else "5/hour",
+    "learning_guardian_action": "1000/min" if "test" in sys.argv else "20/hour",
+    "learning_invitation_admin": "1000/min" if "test" in sys.argv else "30/hour",
+    "learning_profile": "1000/min" if "test" in sys.argv else "60/hour",
+    "learning_catalog": "1000/min" if "test" in sys.argv else "120/min",
+    "learning_activity": "1000/min" if "test" in sys.argv else "120/hour",
+    "learning_quiz": "1000/min" if "test" in sys.argv else "20/hour",
+    "learning_recommendation": "1000/min" if "test" in sys.argv else "30/hour",
+    "learning_content": "1000/min" if "test" in sys.argv else "60/hour",
+    "learning_asset": "1000/min" if "test" in sys.argv else "120/hour",
+    "learning_account_lifecycle": "1000/min" if "test" in sys.argv else "10/hour",
+})
+LEARNING_INVITATION_TTL_HOURS = int(os.environ.get("LEARNING_INVITATION_TTL_HOURS", "168"))
+LEARNING_MIN_INDEPENDENT_AGE = os.environ.get("LEARNING_MIN_INDEPENDENT_AGE", "10")
+# A provider setting is descriptive only until a real adapter is reviewed and
+# wired into the lifecycle orchestration. Blank is the secure default.
+LEARNING_ACCOUNT_PROVIDER_BACKEND = os.environ.get("LEARNING_ACCOUNT_PROVIDER_BACKEND", "").strip()
+# No automated purge runs from this value. Retention remains disabled until an
+# approved policy and lifecycle worker are implemented.
+LEARNING_ACCOUNT_RETENTION_DAYS = os.environ.get("LEARNING_ACCOUNT_RETENTION_DAYS", "").strip()
+# Individual Personalized Learning payments are separate from school billing.
+# This descriptive setting never enables checkout without an integrated adapter.
+LEARNING_PAYMENT_PROVIDER_BACKEND = os.environ.get("LEARNING_PAYMENT_PROVIDER_BACKEND", "").strip()
 
 # B1: school registration throttles
 REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"].update({

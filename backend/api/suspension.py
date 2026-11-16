@@ -7,7 +7,8 @@ def school_for_user(user):
     """The school a non-superuser belongs to, or None."""
     if user is None or not user.is_authenticated or user.is_superuser:
         return None
-    for model in (SchoolAdminProfile, TeacherProfile, StaffProfile, GuardianProfile):
+    from learning.models import LearningProfile
+    for model in (SchoolAdminProfile, TeacherProfile, StaffProfile, GuardianProfile, LearningProfile):
         profile = model.objects.select_related("school").filter(user=user).first()
         if profile:
             return profile.school

@@ -8,6 +8,7 @@ import Join from "./Join";
 import PasswordRecovery from "./PasswordRecovery";
 import SchoolRegistration from "./SchoolRegistration";
 import SchoolStatus from "./SchoolStatus";
+import IndependentLearningStatus from "./IndependentLearningStatus";
 import { OfflineUnlock } from "./offline/OfflineComponents";
 import { clearOfflineData } from "./offline/offlineStore";
 import "./app.css";
@@ -59,7 +60,10 @@ export default function App() {
   if (scr === "school-status") {
     return <SchoolStatus onBack={to("landing")} onSignIn={to("login")} />;
   }
+  if (scr === "learning-status") {
+    return <IndependentLearningStatus onBack={to("landing")} onSignIn={to("login")} />;
+  }
   if (scr === "privacy") return <LegalPage kind="privacy" onBack={to("landing")} />;
   if (scr === "terms-of-service") return <LegalPage kind="terms" onBack={to("landing")} />;
-  return <Landing onPrivacy={to("privacy")} onTerms={to("terms-of-service")} onStatus={to("school-status")} onStart={to("join")} onRegister={to("school-register")} onSignIn={to("login")} />;
+  return <Landing onPrivacy={to("privacy")} onTerms={to("terms-of-service")} onStatus={to("school-status")} onIndependentLearning={to("learning-status")} onStart={to("join")} onRegister={to("school-register")} onSignIn={to("login")} />;
 }
