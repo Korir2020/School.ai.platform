@@ -55,6 +55,20 @@ def normalize_practice_quiz(value, *, allow_incomplete=False):
     seen_question_ids = set()
     complete_count = 0
     for index, question in enumerate(questions, start=1):
+        if isinstance(question, dict) and "type" in question:
+            from .exercise_types import normalize_exercise_question
+
+            item, item_complete = normalize_exercise_question(
+                question, index, allow_incomplete=allow_incomplete)
+            if item["id"] in seen_question_ids:
+                raise QuizSchemaError(f"Question {index} needs a unique short id.")
+            seen_question_ids.add(item["id"])
+            if item_complete:
+                complete_count += 1
+            elif not allow_incomplete:
+                raise QuizSchemaError(f"Question {index} and its answers must contain text.")
+            normalized.append(item)
+            continue
         if not isinstance(question, dict) or set(question) != {
             "id", "prompt", "options", "correct_option_id", "explanation",
         }:
@@ -106,15 +120,10 @@ def normalize_practice_quiz(value, *, allow_incomplete=False):
 
 def learner_quiz(quiz):
     """Return only prompts and choices; omit every answer key and explanation."""
+    from .exercise_types import learner_question
+
     normalized = normalize_practice_quiz(quiz)
     return {
         "schema_version": normalized["schema_version"],
-        "questions": [
-            {
-                "id": question["id"],
-                "prompt": question["prompt"],
-                "options": question["options"],
-            }
-            for question in normalized["questions"]
-        ],
+        "questions": [learner_question(q) for q in normalized["questions"]],
     }

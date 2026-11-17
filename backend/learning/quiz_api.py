@@ -17,6 +17,7 @@ from .catalog_api import _age_for_profile
 from .models import LearningActivityEvent, LearningQuizAttempt
 from .permissions import ActiveLearnerSelfService
 from .quiz_schema import QuizSchemaError, learner_quiz, normalize_practice_quiz
+from .exercise_types import check_exercise_answer
 from .throttles import LearningQuizThrottle
 
 MAX_ATTEMPT_BODY_BYTES = 8192
@@ -69,7 +70,7 @@ def _attempt_response(attempt, *, status=200):
     }, status=status)
 
 
-def _validated_answers(data, quiz):
+def _validated_answers(data, quiz, prior_attempts=0):
     if set(data) != {"idempotency_key", "resource_version", "answers"}:
         return None, None, "Only idempotency_key, resource_version, and answers are accepted."
     try:
@@ -90,6 +91,15 @@ def _validated_answers(data, quiz):
     normalized_answers = {}
     for question in quiz["questions"]:
         selected = answers.get(question["id"])
+        if "type" in question:
+            value, correct, problem, extra = check_exercise_answer(
+                question, selected, prior_attempts)
+            if problem:
+                return None, None, problem
+            normalized_answers[question["id"]] = value
+            correct_count += int(correct)
+            feedback.append({"question_id": question["id"], "correct": correct, **extra})
+            continue
         option_ids = {option["id"] for option in question["options"]}
         if not isinstance(selected, str) or selected not in option_ids:
             return None, None, "Each answer must identify an option in its question."
@@ -145,7 +155,9 @@ def submit_practice_quiz(request, resource_id):
         resource, quiz, error = _visible_quiz(request, resource_id, locked=True)
         if error is not None:
             return error
-        validated, outcome, validation_error = _validated_answers(data, quiz)
+        prior_attempts = LearningQuizAttempt.objects.filter(
+            profile=profile, resource=resource, resource_version=resource.version).count()
+        validated, outcome, validation_error = _validated_answers(data, quiz, prior_attempts)
         if validation_error:
             return Response({"detail": validation_error}, status=400)
         if validated["version"] != resource.version:
