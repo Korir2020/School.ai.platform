@@ -54,6 +54,9 @@ PATH_INPUTS = {
 }
 
 
+from .step_completion import is_quiz_pass_rule
+
+
 def _body_object(request):
     if len(request.body or b"") > MAX_CONTENT_BODY_BYTES:
         return None, Response({"code": "payload_too_large", "detail": "Content request exceeds the size limit."}, status=413)
@@ -442,7 +445,7 @@ def _replace_path_items(path, values):
         if not isinstance(item_type, str) or item_type not in {"resource", "activity", "project"}:
             raise ValueError("Invalid path item type.")
         rule = value.get("completion_rule", "view")
-        if rule != "view":
+        if rule != "view" and not (item_type == "resource" and is_quiz_pass_rule(rule)):
             raise ValueError("Only the non-completing 'view' rule is available until verifiable completion rules are implemented.")
         resource = None
         resource_id = value.get("resource_id")
@@ -456,6 +459,8 @@ def _replace_path_items(path, values):
             raise ValueError("Only resource path items may specify resource_id.")
         title = _clean_text(value.get("title", ""), "item title", maximum=240, required=(item_type != "resource"))
         instructions = _clean_text(value.get("instructions", ""), "item instructions", maximum=4000)
+        if rule != "view" and not resource.practice_quiz:
+            raise ValueError("A quiz-pass rule needs a resource that has a practice quiz.")
         prepared.append((pos, item_type, resource, title, instructions, rule))
         seen_positions.add(pos)
     if seen_positions != set(range(1, len(prepared) + 1)):

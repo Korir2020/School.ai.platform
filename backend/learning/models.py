@@ -1368,3 +1368,51 @@ class LearningSchoolSettings(models.Model):
             raise ValidationError({"minimum_learner_age": "Minimum learner age must not exceed maximum learner age."})
         if self.maximum_learner_age > 120:
             raise ValidationError({"maximum_learner_age": "Maximum learner age must be 120 or less."})
+
+
+class LearningStepCompletion(models.Model):
+    """Confirmation of a quiz-pass path step (evidence is never completion)."""
+
+    STATES = [
+        ("awaiting_confirmation", "Awaiting confirmation"),
+        ("confirmed", "Confirmed"),
+        ("rejected", "Rejected"),
+    ]
+    METHODS = [
+        ("teacher", "Teacher confirmation"),
+        ("repeat_practice", "Verified by repeat practice"),
+    ]
+
+    profile = models.ForeignKey(
+        LearningProfile, on_delete=models.CASCADE, related_name="step_completions"
+    )
+    path = models.ForeignKey(
+        LearningPath, on_delete=models.PROTECT, related_name="step_completions"
+    )
+    path_version = models.PositiveIntegerField()
+    item_position = models.PositiveIntegerField()
+    resource = models.ForeignKey(
+        LearningResource, on_delete=models.PROTECT, related_name="step_completions"
+    )
+    attempt = models.ForeignKey(
+        LearningQuizAttempt, null=True, blank=True,
+        on_delete=models.SET_NULL, related_name="step_completions",
+    )
+    state = models.CharField(max_length=24, choices=STATES, default="awaiting_confirmation")
+    method = models.CharField(max_length=16, choices=METHODS, default="teacher")
+    decided_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True,
+        on_delete=models.SET_NULL, related_name="decided_step_completions",
+    )
+    decided_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["profile", "path", "path_version", "item_position"],
+                name="learn_step_completion_unique",
+            )
+        ]
+        indexes = [models.Index(fields=["path", "state"], name="learn_step_state_idx")]

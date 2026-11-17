@@ -207,4 +207,10 @@ def submit_practice_quiz(request, resource_id):
                 "occurred_at": now,
             },
         )
+    try:
+        from .step_completion import record_quiz_evidence
+        record_quiz_evidence(profile, resource, attempt)
+    except Exception:  # evidence must never lose a stored attempt
+        import logging
+        logging.getLogger(__name__).exception("step completion evidence failed")
     return _attempt_response(attempt, status=201)

@@ -1,5 +1,6 @@
 from django.urls import path
 
+from . import step_confirmation_api
 from .catalog_api import (
     catalog_path_detail,
     catalog_paths,
@@ -171,6 +172,8 @@ urlpatterns = [
     path("studio/review-queue/", studio_review_queue, name="studio-review-queue"),
     path("admin/invitations/", admin_invitations, name="admin-invitations"),
     path('admin/invitations/bulk/', admin_invitations_bulk, name='admin-invitations-bulk'),
+    path('teacher/step-confirmations/', step_confirmation_api.teacher_step_confirmations, name='teacher-step-confirmations'),
+    path('teacher/step-confirmations/<int:completion_id>/decision/', step_confirmation_api.decide_step_confirmation, name='decide-step-confirmation'),
     path("admin/invitation-candidates/", admin_invitation_candidates, name="admin-invitation-candidates"),
     path("admin/invitations/<int:invitation_id>/revoke/", revoke_invitation, name="revoke-invitation"),
     path("admin/invitations/<int:invitation_id>/resend/", resend_learning_invitation, name="resend-invitation"),
