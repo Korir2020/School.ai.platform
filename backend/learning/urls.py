@@ -109,6 +109,7 @@ urlpatterns = [
     path('platform/resources/<int:resource_id>/publish/', platform_api.platform_resource_publish, name="platform-resource-publish"),
     path('platform/roles/', platform_api.platform_role_grant, name="platform-role-grant"),
     path('platform/roles/revoke/', platform_api.platform_role_revoke, name="platform-role-revoke"),
+    path('platform/resources/<int:resource_id>/takedown/', platform_api.platform_resource_takedown, name="platform-resource-takedown"),
     path('platform/review-queue/', platform_api.platform_review_queue, name="platform-review-queue"),
     path("accounts/capabilities/", account_capabilities, name="account-capabilities"),
     path("accounts/register/", independent_registration, name="independent-registration"),

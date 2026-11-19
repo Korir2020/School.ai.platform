@@ -87,3 +87,55 @@ class ContentStudioStage4Tests(APITestCase):
             self.superuser, user_id=self.staff.pk, role="curator").status_code, 404)
         self.assertEqual(self.revoke(
             self.superuser, user_id=self.curator.pk, role="admin").status_code, 400)
+
+    def pt_takedown(self, user, rid, **body):
+        self.client.force_authenticate(user)
+        return self.client.post(
+            PLATFORM + f"resources/{rid}/takedown/", body, format="json")
+
+    def test_stage5_curator_takes_down_platform_content(self):
+        rid = self.submitted()
+        r = self.pt_takedown(self.curator, rid, reason="Rights holder objected")
+        self.assertEqual(r.status_code, 200, r.content)
+        from learning.models import LearningAuditEvent, LearningResource
+        o = LearningResource.objects.get(pk=rid)
+        self.assertEqual(o.status, "archived")
+        self.assertEqual(o.takedown_reason, "Rights holder objected")
+        self.assertEqual(o.taken_down_by_id, self.curator.pk)
+        self.assertIsNotNone(o.taken_down_at)
+        self.assertTrue(LearningAuditEvent.objects.filter(
+            action="resource_taken_down", actor=self.curator).exists())
+
+    def test_stage5_only_active_curator_may_take_down(self):
+        rid = self.submitted()
+        for u in (self.superuser, self.staff, self.author):
+            self.assertEqual(
+                self.pt_takedown(u, rid, reason="r").status_code, 403)
+        LearningContentRole.objects.filter(
+            user=self.curator, role="curator").update(is_active=False)
+        self.assertEqual(
+            self.pt_takedown(self.curator, rid, reason="r").status_code, 403)
+
+    def test_stage5_platform_reason_rules_and_repeat(self):
+        rid = self.submitted()
+        self.assertEqual(self.pt_takedown(self.curator, rid).status_code, 400)
+        self.assertEqual(
+            self.pt_takedown(self.curator, rid, reason=" ").status_code, 400)
+        self.assertEqual(self.pt_takedown(
+            self.curator, rid, reason="x" * 501).status_code, 400)
+        self.assertEqual(
+            self.pt_takedown(self.curator, rid, reason="ok").status_code, 200)
+        self.assertEqual(
+            self.pt_takedown(self.curator, rid, reason="ok").status_code, 409)
+
+    def test_stage5_school_content_is_not_reachable_here(self):
+        from django.contrib.auth import get_user_model
+        from learning.models import LearningResource
+        from schools.models import School
+        sch = School.objects.create(name="S5 School", code="S5X")
+        o = LearningResource.objects.create(
+            scope="school", school=sch, author=self.author, status="draft",
+            version=1, title="T", summary="S", body="B", language_code="en",
+            resource_type="lesson")
+        self.assertEqual(
+            self.pt_takedown(self.curator, o.pk, reason="r").status_code, 404)

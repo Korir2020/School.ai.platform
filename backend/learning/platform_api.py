@@ -233,3 +233,33 @@ def platform_role_revoke(request):
             target_id=str(uid), safe_details={"role": role},
         )
     return Response({"user_id": uid, "role": role, "is_active": False})
+
+
+@api_view(["POST"])
+@permission_classes([MarianContentCurator])
+def platform_resource_takedown(request, resource_id):
+    data, error = ca._body_object(request)
+    if error:
+        return error
+    if set(data) - {"reason"}:
+        return Response({"detail": "Takedown accepts only a reason."}, status=400)
+    reason = data.get("reason")
+    if not isinstance(reason, str) or not reason.strip() or len(reason.strip()) > 500:
+        return Response({"detail": "A reason of 1 to 500 characters is required."}, status=400)
+    with transaction.atomic():
+        obj = _lock(request, resource_id, False)
+        if obj is None:
+            return _nf()
+        if obj.status == "archived" and obj.taken_down_at:
+            return Response({"detail": "Already taken down."}, status=409)
+        was_live = obj.status == "published"
+        prior = obj.status
+        obj.status = "archived"
+        obj.takedown_reason = reason.strip()
+        obj.taken_down_at = timezone.now()
+        obj.taken_down_by = request.user
+        if was_live:
+            obj.retired_at = obj.taken_down_at
+        obj.save()
+        _audit(request, obj, "resource_taken_down", prior_status=prior, version=obj.version)
+    return Response(ca._resource_json(obj))
