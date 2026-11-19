@@ -1,4 +1,12 @@
 # Marian — Changelog
+
+## 2026-11-19
+### Content Studio Stage 1 (feature branch, not merged to main)
+- Added Marian author and curator roles (`LearningContentRole`, migration 0013). Only a superuser grants a role and each grant is audit-logged; superuser and staff get no implied authority.
+- Added platform-wide content authoring and curator-only review in `platform_api.py`. Authors cannot review their own work and drafts are visible only to their author.
+- Added a licence check at submit: CC BY-NC and CC BY-ND rejected, other licences need a recorded permission note.
+- Publication gate unchanged: publish still returns 503. Learning tests: 208, OK, 2 skipped.
+
 ## 2026-11-15
 ### Platform billing and licensing foundation
 - Added tenant-scoped school billing profiles, subscriptions, cloud perpetual licences, invoices, payments, population snapshots, capacity requests, genuine trial-cycle evidence and audit events.
