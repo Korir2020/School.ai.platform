@@ -165,6 +165,15 @@ function TeacherDraftWorkspace({ onNotice }) {
     } catch (err) { setError(err.message); }
     finally { setBusy(false); }
   }
+  async function duplicate(row) {
+    setBusy(true); setError("");
+    try {
+      await request(`studio/resources/${row.id}/duplicate/`, "POST", {});
+      onNotice("A private draft copy has been created. Licence and attribution were carried over.");
+      await load();
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
   async function submitForReview(row, contentKind) {
     if (!window.confirm("Submit this draft for independent school-admin review? You can no longer edit it unless changes are requested.")) return;
     setBusy(true); setError("");
@@ -192,6 +201,7 @@ function TeacherDraftWorkspace({ onNotice }) {
           {loading ? <Loading /> : rows.length ? <div className="sl-list">{rows.map((row) => <article className="sl-row" key={row.id}>
             <div className="sl-row-main"><strong>{row.title}</strong><p>{row.updated_at ? new Date(row.updated_at).toLocaleDateString() : "Private draft"}</p><StatusPill>{row.status}</StatusPill></div>
             <div className="sl-row-actions">
+{kind === 'resource' && <Button kind='secondary' busy={busy} onClick={() => duplicate(row)}>Duplicate</Button>}
               {["draft", "changes_requested"].includes(row.status) && <Button kind="secondary" onClick={() => edit(row, kind)}>Edit</Button>}
               {["draft", "changes_requested"].includes(row.status) && <Button kind="teal" busy={busy} onClick={() => submitForReview(row, kind)}>Submit</Button>}
             </div>
