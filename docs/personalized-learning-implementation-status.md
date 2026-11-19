@@ -490,7 +490,7 @@ The publication gate (`PUBLICATION_POLICY_APPROVED = False`) is unchanged and pu
 
 ### Verification for this update
 
-Learning-domain suite on the feature branch: 208 tests, OK, 2 skipped (Stage 0 baseline was 201). Frontend was not changed and was not re-run.
+Learning-domain suite on the feature branch: 208 tests at the end of Stage 1 (247 after Stage 6), OK, 2 skipped (Stage 0 baseline was 201). Frontend was not changed and was not re-run.
 
 ## Content Studio Stages 2 to 6 - 20 November 2026
 
