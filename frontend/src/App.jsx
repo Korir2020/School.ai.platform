@@ -11,6 +11,7 @@ import SchoolStatus from "./SchoolStatus";
 import IndependentLearningStatus from "./IndependentLearningStatus";
 import { OfflineUnlock } from "./offline/OfflineComponents";
 import { clearOfflineData } from "./offline/offlineStore";
+import { SiteHome, SiteSchool, SiteLearning } from "./site/SitePages";
 import "./app.css";
 import "./light.css";
 
@@ -19,7 +20,7 @@ const Dash = lazy(() => import("./Dash"));
 
 export default function App() {
   const [ok, setOk] = useState(!!localStorage.getItem("in"));
-  const [scr, setScr] = useState(() => window.location.search.includes("recovery=1") ? "recovery" : "landing");
+  const [scr, setScr] = useState(() => window.location.search.includes("site=1") ? "site-home" : window.location.search.includes("recovery=1") ? "recovery" : "landing");
   const [blocked, setBlocked] = useState(null);
   const [offlineRequired, setOfflineRequired] = useState(false);
   const [offlineSession, setOfflineSession] = useState(null);
@@ -49,6 +50,9 @@ export default function App() {
   if (ok) return <Suspense fallback={<Loading />}><Dash onOut={onOut} onOfflineBoot={onOfflineBoot} offlineSession={offlineSession} onForget={forgetDevice}
     onReconnect={() => { setOfflineSession(null); setOfflineRequired(false); setOk(true); }}
     onOfflinePrepared={() => {}} /></Suspense>;
+  if (scr === "site-home") return <SiteHome go={setScr} />;
+  if (scr === "site-school") return <SiteSchool go={setScr} />;
+  if (scr === "site-learning") return <SiteLearning go={setScr} />;
   if (scr === "login") return <Login onDone={() => { if (window.location.hash) window.history.replaceState(null, "", window.location.pathname + window.location.search); setOk(true); }} onForgot={to("recovery")} onBack={to("landing")} onJoin={to("join")} onRegister={to("school-register")} />;
   if (scr === "recovery") return <PasswordRecovery onBack={to("login")} />;
   if (scr === "join") {
