@@ -145,7 +145,12 @@ def platform_resource_review(request, resource_id):
         obj.status = "approved" if decision == "approve" else "changes_requested"
         obj.reviewed_by = request.user
         obj.reviewed_at = timezone.now()
-        obj.save(update_fields=["status", "reviewed_by", "reviewed_at", "updated_at"])
+        save_fields = ["status", "reviewed_by", "reviewed_at", "updated_at"]
+        if decision == "approve" and hasattr(obj, "license_verified_by"):
+            obj.license_verified_by = request.user
+            obj.license_verified_at = obj.reviewed_at
+            save_fields += ["license_verified_by", "license_verified_at"]
+        obj.save(update_fields=save_fields)
         _audit(request, obj, "platform_resource_" + obj.status, version=obj.version)
     return Response(ca._resource_json(obj))
 

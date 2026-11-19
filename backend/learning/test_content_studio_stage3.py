@@ -75,3 +75,29 @@ class ContentStudioStage3Tests(APITestCase):
         self.src.refresh_from_db()
         self.assertEqual((self.src.status, self.src.version), ("draft", 1))
         self.assertIsNone(self.src.parent_id)
+
+    def review(self, user, decision):
+        self.client.force_authenticate(user)
+        url = BASE + f"resources/{self.src.pk}/review/"
+        return self.client.post(url, {"decision": decision}, format="json")
+
+    def test_stage3_approve_stamps_licence_verifier(self):
+        self.src.status = "in_review"
+        self.src.license_verified_by = None
+        self.src.license_verified_at = None
+        self.src.save()
+        r = self.review(self.admin, "approve")
+        self.assertEqual(r.status_code, 200, r.content)
+        self.src.refresh_from_db()
+        self.assertEqual(self.src.license_verified_by_id, self.admin.pk)
+        self.assertIsNotNone(self.src.license_verified_at)
+
+    def test_stage3_request_changes_does_not_stamp(self):
+        self.src.status = "in_review"
+        self.src.license_verified_by = None
+        self.src.license_verified_at = None
+        self.src.save()
+        r = self.review(self.admin, "request_changes")
+        self.assertEqual(r.status_code, 200, r.content)
+        self.src.refresh_from_db()
+        self.assertIsNone(self.src.license_verified_by_id)
