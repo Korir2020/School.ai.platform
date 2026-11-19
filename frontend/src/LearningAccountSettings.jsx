@@ -24,6 +24,8 @@ export default function LearningAccountSettings({ me }) {
   const [notice, setNotice] = useState("");
   const [selectedStudentId, setSelectedStudentId] = useState("");
   const [issuedInvitation, setIssuedInvitation] = useState(null);
+  const [bulkIds, setBulkIds] = useState([]);
+  const [bulkResults, setBulkResults] = useState(null);
 
   const load = useCallback(async () => {
     setError("");
@@ -149,6 +151,31 @@ export default function LearningAccountSettings({ me }) {
     } finally { setBusy(false); }
   };
 
+  const toggleBulk = (id) => setBulkIds((ids) => (
+    ids.includes(id) ? ids.filter((x) => x !== id) : (ids.length < 50 ? [...ids, id] : ids)
+  ));
+
+  const issueBulk = async () => {
+    if (!bulkIds.length) return;
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      const response = await api(`${BASE}admin/invitations/bulk/`, "POST", { student_ids: bulkIds });
+      const payload = await readJson(response);
+      const names = Object.fromEntries((data?.candidates || []).map((c) => [c.student_id, c.student_name]));
+      setBulkResults({
+        created: payload.created,
+        rows: (payload.results || []).map((r) => ({ ...r, name: names[r.student_id] || `Student ${r.student_id}` })),
+      });
+      setBulkIds([]);
+      setNotice(`${payload.created} invitation(s) created. Deliver each one-time code securely to the linked guardian; Marian did not send a message.`);
+      await load();
+    } catch (cause) {
+      setError(cause.message || "The invitations could not be created.");
+    } finally { setBusy(false); }
+  };
+
   const revokeInvitation = async (invitation) => {
     if (!window.confirm(`Revoke the invitation for ${invitation.student_name}? Its one-time code will stop working.`)) return;
     setBusy(true);
@@ -256,7 +283,36 @@ export default function LearningAccountSettings({ me }) {
               </div>
             )}
           </Card>
-          <Card title="School invitations">
+          <Card title="Invite several learners">
+          <p className="a11-caption">Tick up to 50 learners and issue their invitations together. Each learner is checked by the same rules as a single invitation. Codes are shown once and Marian does not send them.</p>
+          {data.candidates.length > 0 && (
+            <div className="a11-list">
+              {data.candidates.map((student) => (
+                <label key={student.student_id} className="a11-field">
+                  <input type="checkbox" checked={bulkIds.includes(student.student_id)}
+                    disabled={(student.guardian_required && !student.guardian_available) || (!bulkIds.includes(student.student_id) && bulkIds.length >= 50)}
+                    onChange={() => toggleBulk(student.student_id)} />
+                  {" "}{student.student_name} · {student.age_band}{guardianCandidateLabel(student)}
+                </label>
+              ))}
+            </div>
+          )}
+          <Button kind="teal" busy={busy} disabled={!bulkIds.length} onClick={issueBulk}>Invite selected ({bulkIds.length})</Button>
+          {bulkResults && (
+            <div className="a11-one-time-code" role="status">
+              <b>One-time claim codes - shown only now</b>
+              <p>{bulkResults.created} created.</p>
+              {bulkResults.rows.map((row) => (
+                <p key={row.student_id}>
+                  {row.name}: {row.status === 201 ? <code>{row.result.claim_token}</code> : (row.result?.detail || "Not invited.")}
+                </p>
+              ))}
+              <p className="a11-caption">Keep these codes private. They are not stored in the invitation list and Marian did not deliver them.</p>
+              <Button kind="secondary" onClick={() => setBulkResults(null)}>Hide codes</Button>
+            </div>
+          )}
+        </Card>
+        <Card title="School invitations">
             <p className="a11-caption">Delivery-status checks are informational only. No message is sent and no code is changed. Revoke an unclaimed code if it should no longer work.</p>
             {data.invitationsTruncated && <Alert kind="warn">This invitation list is capped at 200 rows.</Alert>}
             {!data.invitations.length ? <EmptyState title="No invitations" text="School invitations will appear here." /> : (
