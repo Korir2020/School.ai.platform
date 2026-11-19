@@ -414,6 +414,53 @@ class LearningContentGovernanceApiTests(APITestCase):
         self.assertEqual(row.review_state, "draft")
         self.assertIsNone(row.reviewed_by_id)
 
+    def _restore_url(self, resource_id, version):
+        return f"{BASE}resources/{resource_id}/revisions/{version}/restore/"
+
+    def _new_resource(self):
+        self.auth(self.teacher)
+        response = self.client.post(f"{BASE}resources/", self.resource_payload(), format="json")
+        self.assertEqual(response.status_code, 201)
+        return response.json()["id"]
+
+    def test_restore_creates_new_version_and_keeps_old_ones(self):
+        from .models import LearningContentRevision, LearningResource
+        rid = self._new_resource()
+        response = self.client.patch(f"{BASE}resources/{rid}/", {"title": "Second title"}, format="json")
+        self.assertEqual(response.status_code, 200)
+        response = self.client.post(self._restore_url(rid, 1), {}, format="json")
+        self.assertEqual(response.status_code, 200)
+        resource = LearningResource.objects.get(pk=rid)
+        self.assertEqual(resource.title, "Fractions lesson")
+        self.assertEqual(resource.version, 3)
+        self.assertEqual(resource.status, "draft")
+        rows = {r.version: r.snapshot["title"] for r in LearningContentRevision.objects.filter(resource=resource)}
+        self.assertEqual(rows, {1: "Fractions lesson", 2: "Second title", 3: "Fractions lesson"})
+
+    def test_restore_is_refused_while_in_review(self):
+        from .models import LearningResource
+        rid = self._new_resource()
+        self.assertEqual(self.client.post(f"{BASE}resources/{rid}/submit/", {}, format="json").status_code, 200)
+        response = self.client.post(self._restore_url(rid, 1), {}, format="json")
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(LearningResource.objects.get(pk=rid).version, 1)
+
+    def test_restore_is_not_available_to_another_school(self):
+        rid = self._new_resource()
+        self.auth(self.other_admin)
+        response = self.client.post(self._restore_url(rid, 1), {}, format="json")
+        self.assertIn(response.status_code, (403, 404))
+
+    def test_restore_rejects_a_request_body(self):
+        rid = self._new_resource()
+        response = self.client.post(self._restore_url(rid, 1), {"title": "Injected"}, format="json")
+        self.assertEqual(response.status_code, 400)
+
+    def test_restore_of_missing_version_is_404(self):
+        rid = self._new_resource()
+        response = self.client.post(self._restore_url(rid, 99), {}, format="json")
+        self.assertEqual(response.status_code, 404)
+
 
 class TranslationReviewRaceTests(TransactionTestCase):
     """Exercise parent/translation lock ordering on databases with row locks."""

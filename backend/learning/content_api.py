@@ -1060,6 +1060,32 @@ def studio_resource_revisions(request, resource_id):
     return _revisions(request, "resource", resource_id)
 
 
+@api_view(["POST"])
+@permission_classes([SchoolContentAuthor, SchoolNotSuspended])
+@throttle_classes([LearningContentThrottle])
+def studio_resource_restore(request, resource_id, version):
+    data, error = _body_object(request)
+    if error:
+        return error
+    if data or request.query_params:
+        return Response({"detail": "Restore does not accept client-supplied content."}, status=400)
+    try:
+        with transaction.atomic():
+            locked = _resource_queryset(request).select_for_update().filter(pk=resource_id).first()
+            if locked is None:
+                return Response({"detail": "Learning content not found."}, status=404)
+            row = LearningContentRevision.objects.filter(resource=locked, version=version).first()
+            if row is None or not isinstance(row.snapshot, dict):
+                return Response({"detail": "Version not found."}, status=404)
+            restored = {k: row.snapshot[k] for k in RESOURCE_INPUTS if k in row.snapshot}
+            response = _save_content(request, "resource", locked, restored, creating=False)
+            if response.status_code == 200:
+                _audit(request, locked, "resource_version_restored", version=locked.version, restored_from=version)
+            return response
+    except (ValueError, DjangoValidationError) as exc:
+        return Response({"detail": str(exc)}, status=400)
+
+
 @api_view(["GET"])
 @permission_classes([SchoolContentAuthor, SchoolNotSuspended])
 @throttle_classes([LearningContentThrottle])
