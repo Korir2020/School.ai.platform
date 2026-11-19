@@ -549,5 +549,5 @@ function CuratorReview() {
 }
 
 export function SchoolLearningCentre() {
-  return <AdminLearningCentre />;
+  return <><AdminLearningCentre /><CuratorReview /></>;
 }
