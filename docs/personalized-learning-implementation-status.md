@@ -477,3 +477,17 @@ Hardened `scripts/release_readiness.py` to invoke subprocesses under a minimal e
 The focused quiz/content-governance run discovered **27 tests: 26 passed, 1 SQLite concurrency test skipped**. `manage.py check` and `makemigrations --check --dry-run` passed. The complete Marian backend suite discovered **1,291 tests: 1,289 passed, 2 skipped**. The final Activity 20 runner completed successfully: isolation tests **2/2**, Activity 18–19 focus **3/3**, learning-domain suite **195 discovered / 193 passed / 2 skipped**, backup/restore rehearsal passed, frontend tests **18/18**, lint **0 errors / 79 existing warnings**, and Vite build passed. SQLite cannot implement `SELECT FOR UPDATE`; both skipped tests remain for isolated PostgreSQL verification. No production DB was migrated or touched; provider credentials were removed from every check subprocess.
 
 The delivery remains a source/staging candidate, not a production certification. Existing Marian marks, examination, publication, reporting, billing, migration, and finance code paths were not altered by this activity. See the canonical roadmap and `activity20-release-readiness.md` for the remaining owner, policy, provider, PostgreSQL, real-device, retention, and deployment gates.
+
+## Content Studio Stage 1 - 19 November 2026 (curator role, platform-wide authoring, licence check)
+
+Branch `feature/content-studio-stage1`, not merged to main. Added the `LearningContentRole` model (roles `author` and `curator`, active flag, granted by, granted at) with additive migration `0013_learningcontentrole`. Only a superuser can grant a role and each grant is audit-logged. Superuser and `is_staff` get no implied authority.
+
+Added `MarianContentAuthor` and `MarianContentCurator` permissions and platform-wide endpoints in `platform_api.py`, separate from the school Studio endpoints. Authors create, edit and submit platform content (`scope="public"`, no school). Only curators review it, and a reviewer cannot be the author. Drafts are visible only to their author.
+
+Added a licence check at submit: CC BY-NC and CC BY-ND are rejected, Public Domain/CC0, CC BY and CC BY-SA are accepted, and any other licence needs a recorded permission note in rights notes.
+
+The publication gate (`PUBLICATION_POLICY_APPROVED = False`) is unchanged and publish still returns 503. No exam data was used. No AI provider is approved.
+
+### Verification for this update
+
+Learning-domain suite on the feature branch: 208 tests, OK, 2 skipped (Stage 0 baseline was 201). Frontend was not changed and was not re-run.
