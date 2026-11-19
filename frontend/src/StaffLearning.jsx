@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "./api";
 import { Button, Loading } from "./ui";
+import { takedownReasonError, takedownPayload } from "./staffLearningUtils";
 import "./StaffLearning.css";
 
 const BASE = "/api/learning/v1/";
@@ -363,6 +364,7 @@ function AdminLearningCentre() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [reason, setReason] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true); setError("");
@@ -414,6 +416,18 @@ function AdminLearningCentre() {
         ? (decision === "approve" ? "Translation approved for reviewed metadata; this does not publish its parent content." : "Translation changes requested; the translator can edit and resubmit.")
         : (decision === "approve" ? "Content approved for school governance. Learner publishing remains disabled by the current Marian policy." : "Changes requested; the author can edit and resubmit the draft."));
       setSelected(null); await load();
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
+  async function takedown(item) {
+    const problem = takedownReasonError(reason);
+    if (problem) { setError(problem); return; }
+    if (!window.confirm("Take this resource down? It will be archived and removed from learners.")) return;
+    setBusy(true); setError(""); setMessage("");
+    try {
+      await request(`studio/resources/${item.id}/takedown/`, "POST", takedownPayload(reason));
+      setMessage("The resource has been taken down and the action recorded in the audit trail.");
+      setReason(""); setSelected(null); await load();
     } catch (err) { setError(err.message); }
     finally { setBusy(false); }
   }
@@ -478,7 +492,8 @@ function AdminLearningCentre() {
         </article>)}</div>}
         {(queue?.resource_translations?.length || queue?.path_translations?.length) ? <p className="sl-footnote">Translation approval validates only that language version. It does not publish its resource or programme parent.</p> : null}
       </section>
-      {selected && <section className="sl-panel"><div className="sl-subheading"><h3>{selected.title || "Content details"}</h3><Button kind="secondary" onClick={() => setSelected(null)}>Close</Button></div>
+      {(() => { const live = resources.filter((row) => ["approved", "published"].includes(row.status)); return live.length ? <section className="sl-panel"><SectionTitle eyebrow="Approved and published" title="Live school resources" text="Inspect an item to take it down if its licence or rights change." /><div className="sl-list">{live.map((row) => <article className="sl-row" key={row.id}><div className="sl-row-main"><span className="sl-eyebrow">{row.status}</span><strong>{row.title}</strong></div><div className="sl-row-actions"><Button kind="secondary" onClick={() => inspect({ ...row, kind: "resource" })}>Inspect</Button></div></article>)}</div></section> : null; })()}
+        {selected && <section className="sl-panel"><div className="sl-subheading"><h3>{selected.title || "Content details"}</h3><Button kind="secondary" onClick={() => setSelected(null)}>Close</Button></div>
         {selected.loading ? <Loading /> : <><p className="sl-footnote">School-only review · {selected.kind.replaceAll("_", " ")} · {selected.version ? `version ${selected.version} · ` : ""}{selected.status || selected.review_state}</p><p>{selected.summary || selected.description || "No short description."}</p><div className="sl-reading-body">{selected.body || "No text content."}</div>
           {selected.kind.endsWith("_translation") ? <div className="sl-metadata-box"><strong>Translation provenance</strong><p>Language: {selected.language_code}</p><p>Source: {selected.translation_source || "Not recorded"}</p><p>Translator account ID: {selected.translator_id || "Not recorded"}</p>{selected.objectives?.length > 0 && <p>Objectives: {selected.objectives.join(" · ")}</p>}</div>
             : <div className="sl-metadata-box"><strong>Rights and age controls</strong><p>Source: {selected.source_name || "Not recorded"}</p><p>Licence: {selected.license_name || "Not recorded"}</p><p>Age range: {selected.age_min ?? "No minimum"}–{selected.age_max ?? "No maximum"}</p><p>Attribution: {selected.attribution || "Not recorded"}</p></div>}
@@ -486,7 +501,8 @@ function AdminLearningCentre() {
           {selected.author_id === null ? <p className="sl-footnote">Author information was not supplied.</p> : null}
           <div className="sl-row-actions"><Button kind="teal" busy={busy} onClick={() => review(selected, "approve")}>Approve for school governance</Button><Button kind="secondary" busy={busy} onClick={() => review(selected, "request_changes")}>Request changes</Button></div></>}
       </section>}
-      <Notice>Publishing is disabled. Approved content is not visible to learners until the platform-wide rights, moderation and shared-catalogue policies are approved.</Notice>
+      {selected && !selected.kind.endsWith("_translation") && selected.kind === "resource" && ["approved", "published"].includes(selected.status) && <div className="sl-field"><label htmlFor="sl-takedown-reason">Takedown reason (required, up to 500 characters)</label><textarea id="sl-takedown-reason" maxLength={500} value={reason} onChange={(event) => setReason(event.target.value)} /><Button kind="secondary" busy={busy} onClick={() => takedown(selected)}>Take down</Button></div>}
+    <Notice>Publishing is disabled. Approved content is not visible to learners until the platform-wide rights, moderation and shared-catalogue policies are approved.</Notice>
     </div>}
     {tab === "programmes" && <section className="sl-panel"><SectionTitle eyebrow="School learning programmes" title="Programme lifecycle" text="Learning paths are treated as school programmes. Manage the review lifecycle without bypassing the separate publishing lock." />
       {paths.length ? <div className="sl-list">{paths.map((path) => <article className="sl-row" key={path.id}><div className="sl-row-main"><strong>{path.title}</strong><p>{path.item_count || 0} steps · {path.language_code} · version {path.version}</p></div><StatusPill>{path.status}</StatusPill></article>)}</div> : <p className="sl-empty">No school learning programmes have been created yet.</p>}
