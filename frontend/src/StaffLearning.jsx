@@ -241,6 +241,7 @@ function TeacherDraftWorkspace({ onNotice }) {
           </details>
           <Button kind="teal" type="submit" busy={busy}>{editing ? "Save private draft" : "Create private draft"}</Button>
         </form>
+        {editing && kind === 'resource' && <RestoreHistory id={editing.id} onRestored={async (version) => { onNotice(`Version ${version} was restored as a new draft version.`); setEditing(null); setForm(blankResource()); await load(); }} />}
       </div>
       <p className="sl-footnote">Drafts and requested changes are visible only to their author and authorised school reviewers. Attachments, external ingestion, automatic content generation and publishing are not enabled here.</p>
     </div>
@@ -352,6 +353,30 @@ export function TeacherLearningStudio() {
 
 function Toggle({ label, description, checked, onChange }) {
   return <label className="sl-setting-toggle"><span><strong>{label}</strong><small>{description}</small></span><input type="checkbox" checked={Boolean(checked)} onChange={(event) => onChange(event.target.checked)} /></label>;
+}
+
+function RestoreHistory({ id, onRestored }) {
+  const [rows, setRows] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  useEffect(() => {
+    let live = true;
+    request(`studio/resources/${id}/revisions/`)
+      .then((data) => { if (live) setRows(list(data)); })
+      .catch(() => { if (live) setRows([]); });
+    return () => { live = false; };
+  }, [id]);
+  const restore = async (version) => {
+    if (!window.confirm(`Restore version ${version} as a new draft version?`)) return;
+    setBusy(true); setMsg("");
+    try { await request(`studio/resources/${id}/revisions/${version}/restore/`, "POST", {}); await onRestored(version); }
+    catch (e) { setMsg(e.message); }
+    setBusy(false);
+  };
+  if (rows === null) return <Loading />;
+  const older = rows.slice(1);
+  if (!older.length) return null;
+  return <div className="sl-metadata-box"><strong>Earlier versions</strong>{msg && <p className="sl-footnote">{msg}</p>}<ul>{older.map((row) => <li key={row.version}>Version {row.version} · {new Date(row.created_at).toLocaleDateString()} <Button kind="secondary" busy={busy} onClick={() => restore(row.version)}>Restore</Button></li>)}</ul></div>;
 }
 
 function VersionHistory({ id }) {
