@@ -204,3 +204,32 @@ def platform_role_grant(request):
             target_id=str(target.pk), safe_details={"role": role},
         )
     return Response({"user_id": target.pk, "role": role, "is_active": True}, status=201)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def platform_role_revoke(request):
+    if not request.user.is_superuser:
+        return Response({'detail': 'Only a superuser can revoke content roles.'}, status=403)
+    data, error = ca._body_object(request)
+    if error:
+        return error
+    role = data.get("role")
+    if role not in (LearningContentRole.AUTHOR, LearningContentRole.CURATOR):
+        return Response({'detail': 'role must be author or curator.'}, status=400)
+    uid = data.get("user_id")
+    if not isinstance(uid, int):
+        return Response({'detail': 'User not found.'}, status=404)
+    with transaction.atomic():
+        row = LearningContentRole.objects.select_for_update().filter(
+            user_id=uid, role=role).first()
+        if row is None:
+            return Response({'detail': 'Role not found.'}, status=404)
+        row.is_active = False
+        row.save(update_fields=["is_active"])
+        LearningAuditEvent.objects.create(
+            actor=request.user, school=None, scope="public",
+            action='content_role_revoked', target_type="user",
+            target_id=str(uid), safe_details={"role": role},
+        )
+    return Response({"user_id": uid, "role": role, "is_active": False})
