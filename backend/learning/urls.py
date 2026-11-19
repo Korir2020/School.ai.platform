@@ -25,6 +25,7 @@ from .assets_api import (
 from .content_api import (
     archive_path,
     archive_resource,
+    duplicate_resource,
     publish_path,
     publish_resource,
     review_path,
@@ -163,6 +164,7 @@ urlpatterns = [
     path("studio/resources/<int:resource_id>/review/", review_resource, name="studio-resource-review"),
     path("studio/resources/<int:resource_id>/publish/", publish_resource, name="studio-resource-publish"),
     path("studio/resources/<int:resource_id>/archive/", archive_resource, name="studio-resource-archive"),
+    path("studio/resources/<int:resource_id>/duplicate/", duplicate_resource, name="studio-resource-duplicate"),
     path("studio/resources/<int:resource_id>/revisions/", studio_resource_revisions, name="studio-resource-revisions"),
     path("studio/resources/<int:resource_id>/translations/", studio_resource_translations, name="studio-resource-translations"),
     path("studio/resources/<int:resource_id>/translations/<int:translation_id>/submit/", submit_resource_translation, name="studio-resource-translation-submit"),

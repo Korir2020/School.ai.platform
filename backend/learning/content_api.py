@@ -1159,3 +1159,32 @@ def archive_resource(request, resource_id):
 @throttle_classes([LearningContentThrottle])
 def archive_path(request, path_id):
     return _transition(request, "path", path_id, "archive")
+
+
+@api_view(["POST"])
+@permission_classes([SchoolContentAuthor, SchoolNotSuspended])
+@throttle_classes([LearningContentThrottle])
+def duplicate_resource(request, resource_id):
+    src = _resource_queryset(request).filter(pk=resource_id).first()
+    if src is None:
+        return Response({"detail": "Not found."}, status=404)
+    keep = ("title", "summary", "body", "practice_quiz", "resource_type",
+            "origin", "external_url", "language_code", "difficulty",
+            "age_min", "age_max", "access_tier", "source_name",
+            "license_name", "license_url", "attribution", "rights_notes",
+            "source_type", "license_expires_on")
+    obj = LearningResource(**{f: getattr(src, f) for f in keep})
+    obj.scope = "school"
+    obj.school = _actor(request).school
+    obj.author = request.user
+    obj.status = "draft"
+    obj.version = 1
+    obj.parent = src
+    _clean_model(obj)
+    with transaction.atomic():
+        obj.save()
+        obj.frameworks.set(src.frameworks.all())
+        obj.topics.set(src.topics.all())
+        _record_revision(obj, request.user)
+        _audit(request, obj, "resource_duplicated", version=obj.version, source_id=src.pk)
+    return Response(_resource_json(obj), status=201)

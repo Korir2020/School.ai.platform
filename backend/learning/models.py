@@ -335,6 +335,10 @@ class LearningResource(models.Model):
     source_type = models.CharField(max_length=24, choices=SOURCE_TYPES, blank=True, default="")
     license_expires_on = models.DateField(null=True, blank=True)
     license_verified_at = models.DateTimeField(null=True, blank=True)
+    parent = models.ForeignKey(
+        "self", null=True, blank=True,
+        on_delete=models.SET_NULL, related_name="duplicates",
+    )
     license_verified_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True,
         on_delete=models.SET_NULL, related_name="+")
