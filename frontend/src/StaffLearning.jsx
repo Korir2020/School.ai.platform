@@ -354,6 +354,20 @@ function Toggle({ label, description, checked, onChange }) {
   return <label className="sl-setting-toggle"><span><strong>{label}</strong><small>{description}</small></span><input type="checkbox" checked={Boolean(checked)} onChange={(event) => onChange(event.target.checked)} /></label>;
 }
 
+function VersionHistory({ id }) {
+  const [rows, setRows] = useState(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    let live = true;
+    request(`studio/resources/${id}/revisions/`)
+      .then((data) => { if (live) setRows(list(data)); })
+      .catch(() => { if (live) setFailed(true); });
+    return () => { live = false; };
+  }, [id]);
+  if (failed) return <p className="sl-footnote">Version history is not available for your role.</p>;
+  if (rows === null) return <Loading />;
+  return <div className="sl-metadata-box"><strong>Version history</strong>{rows.length ? <ul>{rows.map((row) => <li key={row.version}>Version {row.version} · {new Date(row.created_at).toLocaleDateString()}{row.created_by_id ? ` · author ${row.created_by_id}` : ""}</li>)}</ul> : <p>No versions recorded.</p>}</div>;
+}
 function AdminLearningCentre() {
   const [tab, setTab] = useState("overview");
   const [settings, setSettings] = useState(null);
@@ -504,6 +518,7 @@ function AdminLearningCentre() {
           <div className="sl-row-actions"><Button kind="teal" busy={busy} onClick={() => review(selected, "approve")}>Approve for school governance</Button><Button kind="secondary" busy={busy} onClick={() => review(selected, "request_changes")}>Request changes</Button></div></>}
       </section>}
       {selected && !selected.kind.endsWith("_translation") && selected.kind === "resource" && ["approved", "published"].includes(selected.status) && <div className="sl-field"><label htmlFor="sl-takedown-reason">Takedown reason (required, up to 500 characters)</label><textarea id="sl-takedown-reason" maxLength={500} value={reason} onChange={(event) => setReason(event.target.value)} /><Button kind="secondary" busy={busy} onClick={() => takedown(selected)}>Take down</Button></div>}
+    {selected && !selected.loading && selected.kind === "resource" && <VersionHistory id={selected.id} />}
     <Notice>Publishing is disabled. Approved content is not visible to learners until the platform-wide rights, moderation and shared-catalogue policies are approved.</Notice>
     </div>}
     {tab === "programmes" && <section className="sl-panel"><SectionTitle eyebrow="School learning programmes" title="Programme lifecycle" text="Learning paths are treated as school programmes. Manage the review lifecycle without bypassing the separate publishing lock." />
