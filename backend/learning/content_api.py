@@ -581,6 +581,9 @@ def _save_content(request, kind, obj, data, creating):
         obj.version += 1
         obj.reviewed_by = None
         obj.reviewed_at = None
+        if hasattr(obj, "license_verified_by"):
+            obj.license_verified_by = None
+            obj.license_verified_at = None
     if kind == "resource" and obj.origin == "external":
         if not obj.external_url:
             return Response({"detail": "External resources require an HTTPS source URL."}, status=400)
@@ -691,7 +694,12 @@ def _transition(request, kind, content_id, action):
             obj.status = "in_review"
             obj.reviewed_by = None
             obj.reviewed_at = None
-            obj.save(update_fields=["status", "reviewed_by", "reviewed_at", "updated_at"])
+            save_fields = ["status", "reviewed_by", "reviewed_at", "updated_at"]
+            if hasattr(obj, "license_verified_by"):
+                obj.license_verified_by = None
+                obj.license_verified_at = None
+                save_fields += ["license_verified_by", "license_verified_at"]
+            obj.save(update_fields=save_fields)
             _audit(request, obj, f"{kind}_submitted", version=obj.version)
             return _content_view(request, kind, obj)
 

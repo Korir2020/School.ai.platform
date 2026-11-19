@@ -101,3 +101,23 @@ class ContentStudioStage3Tests(APITestCase):
         self.assertEqual(r.status_code, 200, r.content)
         self.src.refresh_from_db()
         self.assertIsNone(self.src.license_verified_by_id)
+
+    def test_stage3_submit_clears_old_verification(self):
+        self.src.status = "changes_requested"
+        self.src.save()
+        self.client.force_authenticate(self.teacher)
+        r = self.client.post(
+            BASE + f"resources/{self.src.pk}/submit/", {}, format="json")
+        self.assertEqual(r.status_code, 200, r.content)
+        self.src.refresh_from_db()
+        self.assertIsNone(self.src.license_verified_by_id)
+        self.assertIsNone(self.src.license_verified_at)
+
+    def test_stage3_edit_clears_old_verification(self):
+        self.client.force_authenticate(self.teacher)
+        r = self.client.patch(
+            BASE + f"resources/{self.src.pk}/",
+            {"title": "Fractions v2"}, format="json")
+        self.assertEqual(r.status_code, 200, r.content)
+        self.src.refresh_from_db()
+        self.assertIsNone(self.src.license_verified_by_id)
