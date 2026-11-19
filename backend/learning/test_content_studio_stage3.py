@@ -121,3 +121,39 @@ class ContentStudioStage3Tests(APITestCase):
         self.assertEqual(r.status_code, 200, r.content)
         self.src.refresh_from_db()
         self.assertIsNone(self.src.license_verified_by_id)
+
+    def takedown(self, user, **body):
+        self.client.force_authenticate(user)
+        url = BASE + f"resources/{self.src.pk}/takedown/"
+        return self.client.post(url, body, format="json")
+
+    def test_stage5_admin_takedown_records_everything(self):
+        r = self.takedown(self.admin, reason="Licence withdrawn by owner")
+        self.assertEqual(r.status_code, 200, r.content)
+        self.src.refresh_from_db()
+        self.assertEqual(self.src.status, "archived")
+        self.assertEqual(self.src.takedown_reason, "Licence withdrawn by owner")
+        self.assertEqual(self.src.taken_down_by_id, self.admin.pk)
+        self.assertIsNotNone(self.src.taken_down_at)
+        from learning.models import LearningAuditEvent
+        self.assertTrue(LearningAuditEvent.objects.filter(
+            action="resource_taken_down", actor=self.admin).exists())
+
+    def test_stage5_reason_is_required(self):
+        self.assertEqual(self.takedown(self.admin).status_code, 400)
+        self.assertEqual(self.takedown(self.admin, reason="  ").status_code, 400)
+        self.assertEqual(self.takedown(self.admin, reason="x" * 501).status_code, 400)
+        self.assertEqual(self.takedown(
+            self.admin, reason="ok", extra=1).status_code, 400)
+        self.src.refresh_from_db()
+        self.assertEqual(self.src.status, "draft")
+
+    def test_stage5_teacher_and_other_school_get_404(self):
+        self.assertEqual(self.takedown(self.teacher, reason="r").status_code, 404)
+        self.assertEqual(self.takedown(self.outsider, reason="r").status_code, 404)
+        self.src.refresh_from_db()
+        self.assertEqual(self.src.status, "draft")
+
+    def test_stage5_repeat_takedown_conflicts(self):
+        self.assertEqual(self.takedown(self.admin, reason="r").status_code, 200)
+        self.assertEqual(self.takedown(self.admin, reason="r").status_code, 409)

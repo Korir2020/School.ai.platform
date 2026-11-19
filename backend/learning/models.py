@@ -355,6 +355,12 @@ class LearningResource(models.Model):
     reviewed_at = models.DateTimeField(null=True, blank=True)
     published_at = models.DateTimeField(null=True, blank=True)
     retired_at = models.DateTimeField(null=True, blank=True)
+    takedown_reason = models.CharField(max_length=500, blank=True, default="")
+    taken_down_at = models.DateTimeField(null=True, blank=True)
+    taken_down_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True,
+        on_delete=models.SET_NULL, related_name="+",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -1201,3 +1201,36 @@ def duplicate_resource(request, resource_id):
         _record_revision(obj, request.user)
         _audit(request, obj, "resource_duplicated", version=obj.version, source_id=src.pk)
     return Response(_resource_json(obj), status=201)
+
+
+@api_view(["POST"])
+@permission_classes([SchoolContentAuthor, SchoolNotSuspended])
+@throttle_classes([LearningContentThrottle])
+def takedown_resource(request, resource_id):
+    data, error = _body_object(request)
+    if error:
+        return error
+    if set(data) - {"reason"}:
+        return Response({"detail": "Takedown accepts only a reason."}, status=400)
+    reason = data.get("reason")
+    if not isinstance(reason, str) or not reason.strip() or len(reason.strip()) > 500:
+        return Response({"detail": "A reason of 1 to 500 characters is required."}, status=400)
+    with transaction.atomic():
+        obj = None
+        if _is_admin(request):
+            obj = _resource_queryset(request).select_for_update(of=("self",)).filter(pk=resource_id).first()
+        if obj is None:
+            return Response({"detail": "Not found."}, status=404)
+        if obj.status == "archived" and obj.taken_down_at:
+            return Response({"detail": "Already taken down."}, status=409)
+        was_live = obj.status == "published"
+        prior = obj.status
+        obj.status = "archived"
+        obj.takedown_reason = reason.strip()
+        obj.taken_down_at = timezone.now()
+        obj.taken_down_by = request.user
+        if was_live:
+            obj.retired_at = obj.taken_down_at
+        obj.save()
+        _audit(request, obj, "resource_taken_down", prior_status=prior, version=obj.version)
+    return Response(_resource_json(obj))
