@@ -499,5 +499,6 @@ Learning-domain suite on the feature branch: 208 tests at the end of Stage 1 (24
 - Stage 4: superuser-only curator revoke endpoint, audited. It builds on the LearningContentRole model added in Stage 1.
 - Stage 5: takedown with a required reason and audit fields (0016); allowlisted YouTube embed_url on the learner detail.
 - Stage 6: question bank. New LearningQuestion table (0017), one row per quiz question, synced on every save. Existing quizzes copied in by 0018. The quiz JSON and learner scoring are unchanged.
-- Learning suite on the feature branch: 247 tests, OK, 2 skipped.
+- Stage 6 lookup: learning/question_lookup.py returns approved questions by topic and difficulty. It reuses the learner visibility rules, never returns answers, and is read-only.
+- Learning suite on the feature branch: 254 tests, OK, 2 skipped. Full backend suite: 1363 tests, OK, 9 skipped.
 - The publication gate PUBLICATION_POLICY_APPROVED remains False. Nothing is merged to main.
