@@ -84,7 +84,7 @@ function PracticeQuizEditor({ quiz, onChange }) {
 
 const blankResource = () => ({
   title: "", summary: "", body: "", practice_quiz: {}, resource_type: "lesson", language_code: "en",
-  difficulty: "beginner", age_min: "", age_max: "", source_name: "",
+  difficulty: "beginner", age_min: "", age_max: "", source_type: "", license_url: "", license_expires_on: "", source_name: "",
   license_name: "", attribution: "", rights_notes: "",
 });
 const blankPath = () => ({
@@ -124,7 +124,7 @@ function TeacherDraftWorkspace({ onNotice }) {
     setKind(contentKind);
     setEditing({ id: row.id, kind: contentKind });
     if (contentKind === "resource") {
-      const fields = ["title", "summary", "body", "practice_quiz", "resource_type", "origin", "external_url", "language_code", "difficulty", "access_tier", "age_min", "age_max", "source_name", "license_name", "license_url", "attribution", "rights_notes"];
+      const fields = ["title", "summary", "body", "practice_quiz", "resource_type", "origin", "external_url", "language_code", "difficulty", "access_tier", "age_min", "age_max", "source_name", "license_name", "license_url", "attribution", "rights_notes", "license_expires_on"];
       setForm({ ...blankResource(), ...Object.fromEntries(fields.filter((field) => field in row).map((field) => [field, row[field]])), age_min: row.age_min ?? "", age_max: row.age_max ?? "" });
     } else {
       const fields = ["title", "description", "language_code", "difficulty", "access_tier", "age_min", "age_max", "source_name", "license_name", "license_url", "attribution", "rights_notes"];
@@ -138,6 +138,7 @@ function TeacherDraftWorkspace({ onNotice }) {
     const fields = { ...form };
     delete fields.objectivesText;
     delete fields.stepsText;
+  if (fields.license_expires_on === "") fields.license_expires_on = null;
     return {
       ...fields,
       age_min: fields.age_min === "" ? null : Number(fields.age_min),
@@ -234,6 +235,7 @@ function TeacherDraftWorkspace({ onNotice }) {
           <details className="sl-metadata"><summary>Source, licence and attribution (required before review)</summary>
             <div className="sl-field"><label htmlFor="sl-source">Source/provenance</label><input id="sl-source" maxLength={240} value={form.source_name} onChange={(event) => setField("source_name", event.target.value)} /></div>
             <div className="sl-field"><label htmlFor="sl-license">Licence name (or record rights below)</label><input id="sl-license" maxLength={160} value={form.license_name} onChange={(event) => setField("license_name", event.target.value)} /></div>
+            {kind === "resource" && <><div className="sl-field"><label htmlFor="sl-source-type">Source type</label><select id="sl-source-type" value={form.source_type || ""} onChange={(event) => setField("source_type", event.target.value)}><option value="">Choose a source type</option><option value={"lesson"}>{"Lesson"}</option><option value={"article"}>{"Article"}</option><option value={"video"}>{"Video"}</option><option value={"audio"}>{"Audio"}</option><option value={"interactive"}>{"Interactive"}</option><option value={"worksheet"}>{"Worksheet"}</option><option value={"external_link"}>{"External link"}</option><option value={"other"}>{"Other"}</option></select></div><div className="sl-field"><label htmlFor="sl-license-url">Licence URL</label><input id="sl-license-url" type="url" value={form.license_url || ""} onChange={(event) => setField("license_url", event.target.value)} /></div><div className="sl-field"><label htmlFor="sl-license-expires">Licence expiry date (if any)</label><input id="sl-license-expires" type="date" value={form.license_expires_on || ""} onChange={(event) => setField("license_expires_on", event.target.value)} /></div></>}
             <div className="sl-field"><label htmlFor="sl-rights">Documented rights notes</label><textarea id="sl-rights" rows={2} maxLength={5000} value={form.rights_notes} onChange={(event) => setField("rights_notes", event.target.value)} /></div>
             <div className="sl-field"><label htmlFor="sl-attribution">Attribution</label><textarea id="sl-attribution" rows={2} maxLength={4000} value={form.attribution} onChange={(event) => setField("attribution", event.target.value)} /></div>
           </details>
