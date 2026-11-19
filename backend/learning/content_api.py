@@ -168,6 +168,23 @@ def _license_error(obj):
     return None
 
 
+def _source_error(obj):
+    """Stage 2: source type, licence expiry and evidence for each source type."""
+    from datetime import date
+    if not hasattr(obj, "source_type"):
+        return None
+    kind = obj.source_type
+    if obj.scope == "public" and not kind:
+        return "Choose a source type before submission."
+    if obj.license_expires_on and obj.license_expires_on < date.today():
+        return "The recorded licence has expired. Renew it before submission."
+    if kind == "open_licensed" and not (obj.license_url or "").strip():
+        return "Open-licensed content needs the licence URL."
+    if kind == "commercial_permission" and not (obj.rights_notes or "").strip():
+        return "Commercial content needs the written permission recorded in rights notes."
+    return None
+
+
 def _metadata_error(obj):
     if not obj.source_name.strip():
         return "Record the content provenance/source before submission."
@@ -176,6 +193,9 @@ def _metadata_error(obj):
     licence_problem = _license_error(obj)
     if licence_problem:
         return licence_problem
+    source_problem = _source_error(obj)
+    if source_problem:
+        return source_problem
     if not obj.attribution.strip():
         return "Record attribution before submission."
     if not _normalize_language(obj.language_code):
@@ -264,6 +284,9 @@ def _resource_snapshot(obj):
         "source_name": obj.source_name, "license_name": obj.license_name,
         "license_url": obj.license_url, "attribution": obj.attribution,
         "rights_notes": obj.rights_notes,
+        "source_type": obj.source_type,
+        "license_expires_on": obj.license_expires_on.isoformat() if obj.license_expires_on else None,
+        "license_verified_at": obj.license_verified_at.isoformat() if obj.license_verified_at else None,
         "private_assets": [
             {"id": asset.pk, "content_type": asset.content_type,
              "size_bytes": asset.size_bytes, "scan_state": asset.scan_state}
@@ -321,6 +344,10 @@ def _resource_json(obj):
         "id": obj.pk, "scope": obj.scope, "school_id": obj.school_id,
         "title": obj.title, "summary": obj.summary, "body": obj.body,
         "practice_quiz": obj.practice_quiz,
+        "source_type": obj.source_type,
+        "license_expires_on": str(obj.license_expires_on) if obj.license_expires_on else None,
+        "license_verified_by_id": obj.license_verified_by_id,
+        "license_verified_at": obj.license_verified_at,
         "resource_type": obj.resource_type, "origin": obj.origin,
         "external_url": obj.external_url, "language_code": obj.language_code,
         "difficulty": obj.difficulty, "access_tier": obj.access_tier,
@@ -362,6 +389,9 @@ def _path_json(obj):
     }
 
 
+RESOURCE_INPUTS = RESOURCE_INPUTS | {"source_type", "license_expires_on"}
+
+
 def _set_resource_fields(obj, data):
     unknown = set(data) - RESOURCE_INPUTS
     if unknown:
@@ -394,6 +424,20 @@ def _set_resource_fields(obj, data):
         obj.external_url = _https(data["external_url"], "external_url")
     if "license_url" in data:
         obj.license_url = _https(data["license_url"], "license_url")
+    if "source_type" in data:
+        if data["source_type"] not in {""} | {key for key, _ in LearningResource.SOURCE_TYPES}:
+            raise ValueError("Invalid source_type.")
+        obj.source_type = data["source_type"]
+    if "license_expires_on" in data:
+        from datetime import date as _date
+        value = data["license_expires_on"]
+        if value in (None, ""):
+            obj.license_expires_on = None
+        else:
+            try:
+                obj.license_expires_on = _date.fromisoformat(value)
+            except (TypeError, ValueError):
+                raise ValueError("Use a licence expiry date like 2027-01-31.")
     if "practice_quiz" in data:
         if obj.resource_type == "interactive":
             obj.practice_quiz = normalize_practice_quiz(

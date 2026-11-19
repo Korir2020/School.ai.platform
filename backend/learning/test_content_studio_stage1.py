@@ -35,6 +35,7 @@ class ContentStudioStage1Tests(APITestCase):
             "body": "Original Marian text.", "language_code": "en",
             "practice_quiz": {}, "age_min": 10, "age_max": 16,
             "source_name": "Marian", "license_name": "Marian-owned",
+        "source_type": "marian_original",
             "attribution": "Created by Marian.",
         }
         d.update(o)
@@ -129,3 +130,37 @@ class ContentStudioStage1Tests(APITestCase):
         r = self.client.post(PLATFORM + f"resources/{rid}/publish/", {}, format="json")
         self.assertEqual(r.status_code, 503)
         self.assertEqual(LearningResource.objects.get(pk=rid).status, "approved")
+
+    def test_stage2_platform_submit_needs_source_type(self):
+        rid = self.create(self.author, source_type="").json()["id"]
+        self.assertEqual(self.submit(self.author, rid).status_code, 400)
+
+    def test_stage2_invalid_source_type_rejected(self):
+        self.assertEqual(self.create(self.author, source_type="bogus").status_code, 400)
+
+    def test_stage2_expired_licence_blocks_submit(self):
+        rid = self.create(self.author, license_expires_on="2020-01-01").json()["id"]
+        self.assertEqual(self.submit(self.author, rid).status_code, 400)
+        rid = self.create(self.author, license_expires_on="2099-01-01").json()["id"]
+        self.assertEqual(self.submit(self.author, rid).status_code, 200)
+
+    def test_stage2_bad_expiry_date_rejected(self):
+        self.assertEqual(self.create(self.author, license_expires_on="soon").status_code, 400)
+
+    def test_stage2_open_licensed_needs_licence_url(self):
+        kw = dict(source_type="open_licensed", license_name="CC BY 4.0")
+        rid = self.create(self.author, **kw).json()["id"]
+        self.assertEqual(self.submit(self.author, rid).status_code, 400)
+        rid = self.create(self.author, license_url="https://creativecommons.org/licenses/by/4.0/", **kw).json()["id"]
+        self.assertEqual(self.submit(self.author, rid).status_code, 200)
+
+    def test_stage2_commercial_needs_permission_note(self):
+        rid = self.create(self.author, source_type="commercial_permission", license_name="CC BY 4.0").json()["id"]
+        self.assertEqual(self.submit(self.author, rid).status_code, 400)
+        rid = self.create(self.author, source_type="commercial_permission", license_name="Acme Commercial Licence", rights_notes="Written permission from Acme, 2026-11-01.").json()["id"]
+        self.assertEqual(self.submit(self.author, rid).status_code, 200)
+
+    def test_stage2_new_fields_in_output(self):
+        r = self.create(self.author, license_expires_on="2099-01-01")
+        self.assertEqual(r.json()["source_type"], "marian_original")
+        self.assertEqual(r.json()["license_expires_on"], "2099-01-01")

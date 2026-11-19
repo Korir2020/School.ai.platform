@@ -325,6 +325,19 @@ class LearningResource(models.Model):
     license_url = models.URLField(blank=True, default="", max_length=1000, validators=[URLValidator(schemes=["https"])] )
     attribution = models.TextField(blank=True, default="")
     rights_notes = models.TextField(blank=True, default="")
+    SOURCE_TYPES = [
+        ("marian_original", "Marian original"),
+        ("teacher_original", "Teacher original"),
+        ("open_licensed", "Open licensed"),
+        ("public_domain", "Public domain"),
+        ("commercial_permission", "Commercial with permission"),
+    ]
+    source_type = models.CharField(max_length=24, choices=SOURCE_TYPES, blank=True, default="")
+    license_expires_on = models.DateField(null=True, blank=True)
+    license_verified_at = models.DateTimeField(null=True, blank=True)
+    license_verified_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True,
+        on_delete=models.SET_NULL, related_name="+")
     author = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
         related_name="authored_learning_resources",
