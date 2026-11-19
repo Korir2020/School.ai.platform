@@ -49,6 +49,7 @@ import SecretaryHome from "./SecretaryHome";
 import SetupPage from "./SetupPage";
 import Announcements from "./Announcements";
 import Backups from "./Backups";
+import { TeacherLearningStudio, SchoolLearningCentre } from "./StaffLearning";
 
 import { clearOfflineData, getOfflineMetadata, loadOfflinePayload, updateOfflinePayload } from "./offline/offlineStore";
 import { replayOperations } from "./offline/operationQueue";
@@ -136,8 +137,8 @@ export default function Dash({ onOut, onOfflineBoot, offlineSession, onForget, o
   };
   const markProps = { d, offlineIdentity: me, offlinePassphrase: syncPassphrase,
     onOfflinePrepared: (passphrase) => { setSyncPassphrase(passphrase); onOfflinePrepared?.(passphrase); }, onForget: forgetFromWorkspace };
-  const baseTabs = role === "teacher" ? { Home: home, Announcements: <Announcements />, Connect: <Connect />, Feedback: <Feedback />, Calendar: <Calendar />, Marks: need(<Marks {...markProps} />), Levels: need(<LevelEntry d={d} />), Attendance: <Attendance />, ...(me && me.is_class_teacher ? { 'Report Cards': <ReportModule /> } : {}) }
-    : role === "school_admin" ? { Home: home, Announcements: <Announcements />, Connect: <Connect />, Feedback: <Feedback />, Calendar: <Calendar />, Approve: <Approvals />, Exams: need(<Exams d={d} />), Marks: need(<AdminFinalMarks />), 'Subject Registration': <SubjectRegistration />, Reports: need(<ReportCards d={d} />), 'Exam Reports': <ReportModule />, Analytics: need(<Analytics d={d} />), Attendance: <Attendance />, Fees: <Fees admin />, 'Billing Centre': <SchoolBilling go={setTab} />, Documents: <BulkDocuments admin />, 'Migration Centre': <MigrationCentre />, Students: need(<Students d={d} />), Parents: <ParentAccounts />, Promotion: <Promotion />, Transfers: <TeacherTransfers />, Teachers: need(<><Teachers />{me && !me.is_deputy && <Deputies />}</>), Staff: <Staff />, Audit: <AuditLog />, Setup: <SetupPage me={me} d={d} go={setTab} /> }
+  const baseTabs = role === "teacher" ? { Home: home, Learning: <TeacherLearningStudio />, Announcements: <Announcements />, Connect: <Connect />, Feedback: <Feedback />, Calendar: <Calendar />, Marks: need(<Marks {...markProps} />), Levels: need(<LevelEntry d={d} />), Attendance: <Attendance />, ...(me && me.is_class_teacher ? { 'Report Cards': <ReportModule /> } : {}) }
+    : role === "school_admin" ? { Home: home, Learning: <SchoolLearningCentre />, Announcements: <Announcements />, Connect: <Connect />, Feedback: <Feedback />, Calendar: <Calendar />, Approve: <Approvals />, Exams: need(<Exams d={d} />), Marks: need(<AdminFinalMarks />), 'Subject Registration': <SubjectRegistration />, Reports: need(<ReportCards d={d} />), 'Exam Reports': <ReportModule />, Analytics: need(<Analytics d={d} />), Attendance: <Attendance />, Fees: <Fees admin />, 'Billing Centre': <SchoolBilling go={setTab} />, Documents: <BulkDocuments admin />, 'Migration Centre': <MigrationCentre />, Students: need(<Students d={d} />), Parents: <ParentAccounts />, Promotion: <Promotion />, Transfers: <TeacherTransfers />, Teachers: need(<><Teachers />{me && !me.is_deputy && <Deputies />}</>), Staff: <Staff />, Audit: <AuditLog />, Setup: <SetupPage me={me} d={d} go={setTab} /> }
     : role === "bursar" ? { Home: <BursarDashboard me={me} data={d} />, Fees: <Fees admin />, Announcements: <Announcements />, Connect: <Connect />, Documents: <BulkDocuments />, Calendar: <Calendar /> }
     : role === "parent" ? { Home: <Parent />, Announcements: <Announcements />, Connect: <Connect />, Feedback: <Feedback /> }
     : role === "secretary" ? { Home: <SecretaryHome me={me} onNavigate={setTab} />, Connect: <Connect /> }
