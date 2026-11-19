@@ -1418,3 +1418,41 @@ class LearningContentRole(models.Model):
                 fields=["user", "role"], name="learn_content_role_unique"
             ),
         ]
+
+
+class LearningQuestion(models.Model):
+    """One practice question, kept in step with the quiz JSON of its resource."""
+
+    resource = models.ForeignKey(LearningResource, on_delete=models.CASCADE, related_name="bank_questions")
+    question_key = models.CharField(max_length=40)
+    position = models.PositiveSmallIntegerField(default=0)
+    prompt = models.CharField(max_length=500)
+    options = models.JSONField(default=list)
+    correct_option_id = models.CharField(max_length=40)
+    explanation = models.CharField(max_length=600, blank=True, default="")
+    topics = models.ManyToManyField(LearningTopic, blank=True, related_name="bank_questions")
+    difficulty = models.CharField(max_length=16, choices=LearningResource.DIFFICULTIES, blank=True, default="")
+    language_code = models.CharField(max_length=20, default="en")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["resource_id", "position", "id"]
+        constraints = [
+            models.UniqueConstraint(fields=["resource", "question_key"], name="learning_question_unique_key"),
+        ]
+
+    def __str__(self):
+        return f"{self.resource_id}:{self.question_key}"
+
+
+from django.db.models.signals import post_save as _post_save  # noqa: E402
+from .question_bank import sync_resource_questions as _sync_bank  # noqa: E402
+
+
+def _bank_after_save(sender, instance, raw=False, **kwargs):
+    if not raw:
+        _sync_bank(instance)
+
+
+_post_save.connect(_bank_after_save, sender=LearningResource, dispatch_uid="learning_question_bank_sync")
