@@ -97,7 +97,16 @@ from .motivation_offline_api import (
 
 app_name = "learning"
 
+from . import platform_api  # noqa: E402
+
 urlpatterns = [
+    path('platform/resources/', platform_api.platform_resources, name="platform-resources"),
+    path('platform/resources/<int:resource_id>/', platform_api.platform_resource_detail, name="platform-resource-detail"),
+    path('platform/resources/<int:resource_id>/submit/', platform_api.platform_resource_submit, name="platform-resource-submit"),
+    path('platform/resources/<int:resource_id>/review/', platform_api.platform_resource_review, name="platform-resource-review"),
+    path('platform/resources/<int:resource_id>/publish/', platform_api.platform_resource_publish, name="platform-resource-publish"),
+    path('platform/roles/', platform_api.platform_role_grant, name="platform-role-grant"),
+    path('platform/review-queue/', platform_api.platform_review_queue, name="platform-review-queue"),
     path("accounts/capabilities/", account_capabilities, name="account-capabilities"),
     path("accounts/register/", independent_registration, name="independent-registration"),
     path("subscriptions/plans/", subscription_plans, name="subscription-plans"),
