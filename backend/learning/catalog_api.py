@@ -321,6 +321,37 @@ def _topic_json(topic, language, age):
     }
 
 
+def _youtube_embed(resource_type, url):
+    """Derive a nocookie embed link from a strict YouTube pattern. No fetching."""
+    import re
+    from urllib.parse import parse_qs, urlparse
+    if resource_type != "video" or not url:
+        return None
+    try:
+        p = urlparse(url.strip())
+        host = (p.hostname or "").lower()
+        port = p.port
+    except ValueError:
+        return None
+    if p.scheme != "https" or port or p.username or p.password:
+        return None
+    parts = [x for x in p.path.split("/") if x]
+    vid = None
+    if host == "youtu.be":
+        if len(parts) == 1:
+            vid = parts[0]
+    elif host in ("youtube.com", "www.youtube.com", "m.youtube.com"):
+        if parts == ["watch"]:
+            v = parse_qs(p.query).get("v", [])
+            if len(v) == 1:
+                vid = v[0]
+        elif len(parts) == 2 and parts[0] in ("shorts", "embed"):
+            vid = parts[1]
+    if vid and re.fullmatch(r"[A-Za-z0-9_-]{11}", vid):
+        return "https://www.youtube-nocookie.com/embed/" + vid
+    return None
+
+
 def _resource_json(resource, language, age, detail=False):
     candidates = _language_candidates(language)
     localized = _localized_resource(resource, candidates)
@@ -368,6 +399,7 @@ def _resource_json(resource, language, age, detail=False):
         data.update({
             "body": strip_tags(localized["body"] or ""),
             "external_url": resource.external_url if resource.external_url else None,
+            "embed_url": _youtube_embed(resource.resource_type, resource.external_url),
             "source_name": strip_tags(resource.source_name or ""),
             "license_name": strip_tags(resource.license_name or ""),
             "attribution": strip_tags(resource.attribution or ""),
