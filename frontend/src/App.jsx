@@ -50,6 +50,7 @@ export default function App() {
   if (ok) return <Suspense fallback={<Loading />}><Dash onOut={onOut} onOfflineBoot={onOfflineBoot} offlineSession={offlineSession} onForget={forgetDevice}
     onReconnect={() => { setOfflineSession(null); setOfflineRequired(false); setOk(true); }}
     onOfflinePrepared={() => {}} /></Suspense>;
+  if (scr === "landing") return <SiteHome go={setScr} />;
   if (scr === "site-home") return <SiteHome go={setScr} />;
   if (scr === "site-school") return <SiteSchool go={setScr} />;
   if (scr === "site-learning") return <SiteLearning go={setScr} />;

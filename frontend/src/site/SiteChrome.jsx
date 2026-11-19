@@ -82,6 +82,8 @@ export function SiteFooter({ go }) {
             <li><button type="button" onClick={() => go("site-school")}>School Management</button></li>
             <li><button type="button" onClick={() => go("site-learning")}>Personalized Learning</button></li>
             <li><button type="button" onClick={() => go("school-register")}>Register a school</button></li>
+<li><button type="button" onClick={() => go("school-status")}>Check school status</button></li>
+<li><button type="button" onClick={() => go("learning-status")}>Check learning status</button></li>
           </ul>
         </div>
         <div>
