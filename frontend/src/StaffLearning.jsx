@@ -528,6 +528,26 @@ function AdminLearningCentre() {
   </div>;
 }
 
+function CuratorReview() {
+  const [rows, setRows] = useState(null);
+  const [hidden, setHidden] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const load = useCallback(() => request("platform/review-queue/")
+    .then((data) => setRows(list(data)))
+    .catch((e) => { if (e.status === 403) setHidden(true); else setMsg("The review queue could not be loaded."); }), []);
+  useEffect(() => { load(); }, [load]);
+  const decide = async (id, decision) => {
+    setBusy(true); setMsg("");
+    try { await request(`platform/resources/${id}/review/`, "POST", { decision }); await load(); }
+    catch (e) { setMsg(e.message); }
+    setBusy(false);
+  };
+  if (hidden) return null;
+  if (rows === null && !msg) return <Loading />;
+  return <div className="sl-metadata-box"><strong>Curator review</strong>{msg && <p className="sl-footnote">{msg}</p>}{rows && rows.length ? <div className="sl-list">{rows.map((row) => <article className="sl-row" key={row.id}><div className="sl-row-main"><strong>{row.title}</strong></div><Button kind="teal" busy={busy} onClick={() => decide(row.id, "approve")}>Approve</Button><Button kind="secondary" busy={busy} onClick={() => decide(row.id, "request_changes")}>Request changes</Button></article>)}</div> : <p className="sl-footnote">Nothing is waiting for review.</p>}</div>;
+}
+
 export function SchoolLearningCentre() {
   return <AdminLearningCentre />;
 }
