@@ -528,7 +528,7 @@ function AdminLearningCentre() {
   </div>;
 }
 
-function CuratorReview() {
+export function CuratorReview() {
   const [rows, setRows] = useState(null);
   const [hidden, setHidden] = useState(false);
   const [busy, setBusy] = useState(false);

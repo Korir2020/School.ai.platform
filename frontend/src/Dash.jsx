@@ -49,7 +49,7 @@ import SecretaryHome from "./SecretaryHome";
 import SetupPage from "./SetupPage";
 import Announcements from "./Announcements";
 import Backups from "./Backups";
-import { TeacherLearningStudio, SchoolLearningCentre } from "./StaffLearning";
+import { TeacherLearningStudio, SchoolLearningCentre, CuratorReview } from "./StaffLearning";
 
 import { clearOfflineData, getOfflineMetadata, loadOfflinePayload, updateOfflinePayload } from "./offline/offlineStore";
 import { replayOperations } from "./offline/operationQueue";
@@ -142,7 +142,7 @@ export default function Dash({ onOut, onOfflineBoot, offlineSession, onForget, o
     : role === "bursar" ? { Home: <BursarDashboard me={me} data={d} />, Fees: <Fees admin />, Announcements: <Announcements />, Connect: <Connect />, Documents: <BulkDocuments />, Calendar: <Calendar /> }
     : role === "parent" ? { Home: <Parent />, Announcements: <Announcements />, Connect: <Connect />, Feedback: <Feedback /> }
     : role === "secretary" ? { Home: <SecretaryHome me={me} onNavigate={setTab} />, Connect: <Connect /> }
-    : role === "superadmin" ? { Home: home, Schools: <Platform d={d} />, 'Platform Billing': <PlatformBilling />, Registrations: <RegistrationReview />, Transfers: <TeacherTransfers />, Admins: <Accounts />, Backups: <Backups />, Audit: <AuditLog />, Feedback: <Feedback owner /> }
+    : role === "superadmin" ? { Home: home, Learning: <CuratorReview />, Schools: <Platform d={d} />, 'Platform Billing': <PlatformBilling />, Registrations: <RegistrationReview />, Transfers: <TeacherTransfers />, Admins: <Accounts />, Backups: <Backups />, Audit: <AuditLog />, Feedback: <Feedback owner /> }
     : d ? { Home: home } : {};
   const tabs = d ? { ...baseTabs, Help: <Help /> } : baseTabs;
   if (offlineSession) {
