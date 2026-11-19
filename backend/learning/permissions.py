@@ -2,7 +2,7 @@ from rest_framework.permissions import BasePermission
 
 from schools.models import GuardianProfile, SchoolAdminProfile, TeacherProfile
 from .account_policy import age_on
-from .models import LearningSchoolSettings
+from .models import LearningContentRole, LearningSchoolSettings
 
 
 class FullSchoolLearningAdmin(BasePermission):
@@ -220,3 +220,30 @@ class FullSchoolContentReviewer(BasePermission):
         request.learning_content_actor = admin
         request.learning_content_role = "school_admin"
         return True
+
+
+def _has_marian_role(request, role):
+    user = request.user
+    if not user or not user.is_authenticated or not user.is_active:
+        return False
+    return LearningContentRole.objects.filter(
+        user=user, role=role, is_active=True
+    ).exists()
+
+
+class MarianContentAuthor(BasePermission):
+    """Active Marian author role only; staff and superuser get nothing."""
+
+    message = "Marian content authoring is not assigned to this account."
+
+    def has_permission(self, request, view):
+        return _has_marian_role(request, LearningContentRole.AUTHOR)
+
+
+class MarianContentCurator(BasePermission):
+    """Active Marian curator role only; staff and superuser get nothing."""
+
+    message = "Marian content review is not assigned to this account."
+
+    def has_permission(self, request, view):
+        return _has_marian_role(request, LearningContentRole.CURATOR)

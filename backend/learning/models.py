@@ -1368,3 +1368,30 @@ class LearningSchoolSettings(models.Model):
             raise ValidationError({"minimum_learner_age": "Minimum learner age must not exceed maximum learner age."})
         if self.maximum_learner_age > 120:
             raise ValidationError({"maximum_learner_age": "Maximum learner age must be 120 or less."})
+
+
+class LearningContentRole(models.Model):
+    """Marian-wide content role; never implied by staff or superuser."""
+
+    AUTHOR = "author"
+    CURATOR = "curator"
+    ROLES = [(AUTHOR, "Marian author"), (CURATOR, "Marian curator")]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name="learning_content_roles",
+    )
+    role = models.CharField(max_length=10, choices=ROLES)
+    is_active = models.BooleanField(default=True)
+    granted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True,
+        on_delete=models.SET_NULL, related_name="learning_content_roles_granted",
+    )
+    granted_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "role"], name="learn_content_role_unique"
+            ),
+        ]
