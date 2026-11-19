@@ -142,11 +142,40 @@ def _https(value, name, *, required=False):
     return value
 
 
+def _license_error(obj):
+    """Allow PD/CC0, CC BY, CC BY-SA; reject NC/ND; others need a note."""
+    import re as _re
+
+    tokens = _re.findall(r"[a-z0-9]+", (obj.license_name or "").lower())
+    squashed = "".join(tokens)
+    if (
+        "nc" in tokens
+        or "nd" in tokens
+        or "noncommercial" in squashed
+        or "noderiv" in squashed
+    ):
+        return "CC BY-NC and CC BY-ND licences are not accepted."
+    core = [t for t in tokens if not t.isdigit()]
+    if (
+        core in (["cc", "by"], ["cc", "by", "sa"])
+        or "cc0" in core
+        or core[:2] == ["public", "domain"]
+        or core[:2] == ["marian", "owned"]
+    ):
+        return None
+    if not (obj.rights_notes or "").strip():
+        return "Other licences need a recorded permission note in rights notes."
+    return None
+
+
 def _metadata_error(obj):
     if not obj.source_name.strip():
         return "Record the content provenance/source before submission."
     if not (obj.license_name.strip() or obj.rights_notes.strip()):
         return "Record the licence or documented usage rights before submission."
+    licence_problem = _license_error(obj)
+    if licence_problem:
+        return licence_problem
     if not obj.attribution.strip():
         return "Record attribution before submission."
     if not _normalize_language(obj.language_code):
