@@ -502,3 +502,13 @@ Learning-domain suite on the feature branch: 208 tests at the end of Stage 1 (24
 - Stage 6 lookup: learning/question_lookup.py returns approved questions by topic and difficulty. It reuses the learner visibility rules, never returns answers, and is read-only.
 - Learning suite on the feature branch: 254 tests, OK, 2 skipped. Full backend suite: 1363 tests, OK, 9 skipped.
 - The publication gate PUBLICATION_POLICY_APPROVED remains False. Nothing is merged to main.
+
+## Content Studio Stage 7 - 20 November 2026
+
+- Frontend, all in `frontend/src/StaffLearning.jsx` (plus `staffLearningUtils.js` and `Dash.jsx`): duplicate button in the teacher library (resources only); admin "Approved and published" list with a takedown panel (reason of 1 to 500 characters); source type, licence URL and licence expiry on the resource form; read-only version history in the admin inspect view.
+- Curator review screen: `CuratorReview` lists `platform/review-queue/` with Approve and Request changes buttons that post to `platform/resources/<id>/review/`. It hides itself when the server refuses (403), so only users with an active curator role see it.
+- Entry points: the screens were not linked from the app before. `Dash.jsx` now has a Learning tab for teachers (`TeacherLearningStudio`), school admins (`SchoolLearningCentre`, which includes the curator panel) and superadmins (curator panel only).
+- Version restore: `POST studio/resources/<id>/revisions/<version>/restore/` (resources only). It reads an old snapshot, keeps only the editable content fields and the framework and topic links, and saves through the normal edit path, so it is refused with 409 unless the resource is a draft or has changes requested. It creates a new version and never edits an old one. Like any edit it resets the status to draft and clears the reviewer and licence-verified marks, so restored content needs review again. Translations, attachments and licence verification are not restored. The teacher edit form shows an "Earlier versions" list with a Restore button.
+- Not covered: restore for programmes (paths). The frontend tests cannot render `StaffLearning.jsx`, so the new panels are checked by the build only; a manual look is still pending.
+- Tests: learning suite 259, OK, 2 skipped. Full backend suite: 1368, OK, 9 skipped (the skips need `pdftotext`). Frontend suite: 22 passing (`npm test` in `frontend`).
+- The publication gate `PUBLICATION_POLICY_APPROVED` remains False. Nothing is merged to main.

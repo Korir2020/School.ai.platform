@@ -1,5 +1,15 @@
 # Marian — Changelog
 
+## 2026-11-20
+### Content Studio Stages 2 to 7 (feature branch, not merged to main)
+- Stage 2: licence source types, expiry and verifier fields, with evidence checks at submit (migration 0014).
+- Stage 3: duplicate a resource with a parent link; approval stamps the licence verifier (0015).
+- Stage 4: superuser-only curator revoke endpoint, audited.
+- Stage 5: takedown with a required reason and audit fields (0016); allowlisted YouTube embed URL.
+- Stage 6: question bank - new `LearningQuestion` table (0017), existing quizzes copied in by 0018, and `learning/question_lookup.py`, which never returns answers.
+- Stage 7: curator review screen, duplicate and takedown screens, licence fields on the resource form, version history, and a restore endpoint with an Earlier versions list in the teacher form. Restore creates a new version and never edits an old one. A Learning tab was added to the teacher, school admin and superadmin dashboards.
+- Publication gate unchanged: `PUBLICATION_POLICY_APPROVED` is False, so nothing reaches learners. Learning tests: 259, OK, 2 skipped. Full backend: 1368, OK, 9 skipped. Frontend: 22 passing.
+
 ## 2026-11-19
 ### Content Studio Stage 1 (feature branch, not merged to main)
 - Added Marian author and curator roles (`LearningContentRole`, migration 0013). Only a superuser grants a role and each grant is audit-logged; superuser and staff get no implied authority.
