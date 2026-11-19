@@ -491,3 +491,13 @@ The publication gate (`PUBLICATION_POLICY_APPROVED = False`) is unchanged and pu
 ### Verification for this update
 
 Learning-domain suite on the feature branch: 208 tests, OK, 2 skipped (Stage 0 baseline was 201). Frontend was not changed and was not re-run.
+
+## Content Studio Stages 2 to 6 - 20 November 2026
+
+- Stage 2: licence source types, expiry and verifier fields, evidence checks at submit (migration 0014).
+- Stage 3: duplicate a resource with a parent link; approval stamps the licence verifier (0015).
+- Stage 4: superuser-only curator revoke endpoint, audited. The curator role already existed.
+- Stage 5: takedown with a required reason and audit fields (0016); allowlisted YouTube embed_url on the learner detail.
+- Stage 6: question bank. New LearningQuestion table (0017), one row per quiz question, synced on every save. Existing quizzes copied in by 0018. The quiz JSON and learner scoring are unchanged.
+- Learning suite on the feature branch: 247 tests, OK, 2 skipped.
+- The publication gate PUBLICATION_POLICY_APPROVED remains False. Nothing is merged to main.
