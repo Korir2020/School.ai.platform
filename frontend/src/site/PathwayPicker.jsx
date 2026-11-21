@@ -3,7 +3,7 @@ import { BookOpen, Globe2, Landmark, Award, GraduationCap, Compass, Cpu, Briefca
 import "./pathway.css";
 
 const academic = [
-  { title: "CBC", desc: "PP1 – Grade 12, Kenya's Competency-Based Curriculum", icon: BookOpen, c: 1, topics: ["Pre-Primary", "Primary", "Junior School", "Senior School"] },
+  { title: "CBC", ready: true, desc: "PP1 – Grade 12, Kenya's Competency-Based Curriculum", icon: BookOpen, c: 1, topics: ["Pre-Primary", "Primary", "Junior School", "Senior School"] },
   { title: "Cambridge International", desc: "Primary, Lower Secondary, IGCSE & A Level", icon: Globe2, c: 2, topics: ["Primary", "Checkpoint", "IGCSE", "AS & A Level"] },
   { title: "British Curriculum", desc: "Key Stages 1–5, GCSE and A Levels", icon: Landmark, c: 3, topics: ["KS1–KS3", "GCSE", "A Levels"] },
   { title: "Pearson Edexcel", desc: "International GCSE and International A Level", icon: Award, c: 4, topics: ["iPrimary", "iLowerSecondary", "IGCSE", "IAL"] },
@@ -43,10 +43,11 @@ function Orbit() {
 function PathCard({ p, i, selected, onSelect }) {
   const [open, setOpen] = useState(false);
   const Icon = p.icon;
+  const pick = p.ready ? onSelect : () => {};
   return (
-    <article onClick={onSelect} role="button" tabIndex={0} aria-pressed={selected}
-      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), onSelect())}
-      className={"pl-glass pl-card" + (selected ? " on" : "")} style={{ animationDelay: `${i * 70}ms` }}>
+    <article onClick={pick} role="button" tabIndex={0} aria-pressed={selected}
+      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), pick())}
+      className={"pl-glass pl-card" + (selected ? " on" : "") + (p.ready ? "" : " soon")} style={{ animationDelay: `${i * 70}ms` }}>
       <span className="pl-check">{selected && <Check size={16} />}</span>
       <div className={"pl-ico pl-c" + p.c}><Icon size={28} /></div>
       <h3>{p.title}</h3>
@@ -55,7 +56,7 @@ function PathCard({ p, i, selected, onSelect }) {
       <div className={"pl-more" + (open ? " open" : "")}><div>{p.topics.map((t) => <span key={t}>{t}</span>)}</div></div>
       <div className="pl-row">
         <button className={"pl-see" + (open ? " open" : "")} onClick={(e) => { e.stopPropagation(); setOpen(!open); }}>{open ? "Hide" : "See"} levels <ChevronDown size={16} /></button>
-        <button className="pl-choose" aria-label={`Choose ${p.title}`} onClick={(e) => { e.stopPropagation(); onSelect(); }}>{selected ? "Chosen" : "Choose"} <ArrowRight size={16} /></button>
+        <button className="pl-choose" aria-label={`Choose ${p.title}`} disabled={!p.ready} onClick={(e) => { e.stopPropagation(); pick(); }}>{!p.ready ? "Coming soon" : selected ? "Chosen" : "Choose"} {p.ready && <ArrowRight size={16} />}</button>
       </div>
     </article>
   );

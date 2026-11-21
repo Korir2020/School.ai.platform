@@ -72,3 +72,6 @@
 .pl-grid { margin-top: 2rem; display: grid; gap: 1.25rem; align-items: start; }
 .pl-empty { padding: 4rem 0; text-align: center; color: var(--pl-muted-foreground); }
 .pl-empty button { font-weight: 600; color: var(--pl-accent); text-decoration: underline; }
+.pl-card.soon { cursor: default; }
+.pl-card.soon .pl-ico { opacity: .75; }
+.pl-choose:disabled, .pl-choose:disabled:hover { background: var(--pl-secondary); color: var(--pl-muted-foreground); transform: none; cursor: default; }
